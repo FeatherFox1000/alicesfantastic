@@ -1,6 +1,48 @@
 import './UnicornsUnite.css';
+import { useEffect, useRef, useState } from 'react';
 
 function UnicornsUnite() {
+  const iframeRef = useRef(null);
+  const wrapperRef = useRef(null);
+  const [isHovering, setIsHovering] = useState(false);
+
+  useEffect(() => {
+    // Add/remove class to body to prevent scrolling when hovering over game
+    if (isHovering) {
+      document.body.classList.add('game-focused');
+    } else {
+      document.body.classList.remove('game-focused');
+    }
+
+    return () => {
+      document.body.classList.remove('game-focused');
+    };
+  }, [isHovering]);
+
+  useEffect(() => {
+    // Prevent arrow keys and space from scrolling when hovering over game
+    const handleKeyDown = (e) => {
+      if (isHovering && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Shift'].includes(e.key)) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    const handleWheel = (e) => {
+      if (isHovering) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('wheel', handleWheel);
+    };
+  }, [isHovering]);
+
   return (
     <div className="page unicorns-unite">
       <div className="page-hero">
@@ -15,9 +57,15 @@ function UnicornsUnite() {
         </section>
 
         <section className="game-container">
-          <div className="game-wrapper">
+          <div
+            className="game-wrapper"
+            ref={wrapperRef}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+          >
             <iframe
-              src="/unicorns-unite/index.html"
+              ref={iframeRef}
+              src={`/unicorns-unite/index.html?v=${Date.now()}`}
               title="Unicorns Unite Game"
               className="game-iframe"
               allowFullScreen

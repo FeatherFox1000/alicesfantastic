@@ -292,7 +292,16 @@
         color: #ffffff;
         font-weight: 300;
         letter-spacing: 4px;
+        margin-bottom: 20px;
+      }
+
+      #loading-screen .tip {
+        font-size: 18px;
+        color: #ffd700;
+        font-weight: 400;
+        letter-spacing: 2px;
         margin-bottom: 40px;
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
       }
 
       #start-button {
@@ -641,12 +650,84 @@
       .apply-customization-button:active {
         transform: scale(0.98);
       }
+
+      /* Map panel */
+      #map-panel {
+        background: linear-gradient(135deg, rgba(30, 30, 60, 0.2), rgba(10, 10, 30, 0.2));
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 25px 35px;
+        border-radius: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
+                    inset 0 0 20px rgba(255, 255, 255, 0.05);
+        display: none;
+      }
+
+      #map-panel.show {
+        display: block;
+      }
+
+      #map-panel h3 {
+        margin: 0 0 15px 0;
+        font-family: 'Cinzel', serif;
+        font-size: 22px;
+        font-weight: 600;
+        color: #87ceeb;
+        text-shadow: 0 0 15px rgba(135, 206, 235, 0.8);
+        letter-spacing: 1px;
+      }
+
+      #game-map {
+        width: 100%;
+        height: auto;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.4);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      }
+
+      .map-legend {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 15px;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #ffffff;
+        font-size: 14px;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+      }
+
+      .legend-icon {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        box-shadow: 0 0 10px currentColor;
+      }
+
+      /* Allow scrolling in pause menu */
+      #pause-menu {
+        overflow-y: auto;
+      }
+
+      .pause-menu-left {
+        overflow-y: auto;
+      }
     </style>
   </head>
   <body>
     <div id="loading-screen">
       <h1>UNICORNS UNITE</h1>
       <p>Save the unicorns with your magical powers!</p>
+      <p class="tip">For best results use fullscreen in pause</p>
       <button id="start-button">ENTER</button>
     </div>
 
@@ -656,7 +737,7 @@
 
       <div id="info-panel">
         <h2>UNICORNS UNITE</h2>
-        <p><strong>Unicorns Saved:</strong> <span id="unicorns-saved">0/5</span></p>
+        <p><strong>Unicorns Saved:</strong> <span id="unicorns-saved">0/10</span></p>
         <p><strong>Magic Power:</strong> <span id="magic-power">100%</span></p>
         <div class="progress-container">
           <div class="progress-bar" id="magic-progress" style="width: 100%"></div>
@@ -684,7 +765,7 @@
         <div class="pause-menu-left">
           <div id="info-panel">
             <h2>UNICORNS UNITE</h2>
-            <p><strong>Unicorns Saved:</strong> <span id="pause-unicorns-saved">0/5</span></p>
+            <p><strong>Unicorns Saved:</strong> <span id="pause-unicorns-saved">0/10</span></p>
             <p><strong>Magic Power:</strong> <span id="pause-magic-power">100%</span></p>
             <div class="progress-container">
               <div class="progress-bar" id="pause-magic-progress" style="width: 100%"></div>
@@ -698,15 +779,35 @@
             <p><strong>Space:</strong> Cast Magic Spell</p>
             <p><strong>Shift:</strong> Protective Shield</p>
           </div>
+
+          <div id="map-panel">
+            <h3>MAP</h3>
+            <canvas id="game-map" width="350" height="350"></canvas>
+            <div class="map-legend">
+              <div class="legend-item">
+                <span class="legend-icon" style="background: #ffd700;">●</span>
+                <span>You</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-icon" style="background: #ff3333;">●</span>
+                <span>In Danger</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-icon" style="background: #00ff00;">●</span>
+                <span>Saved</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="pause-menu-center">
           <h2>PAUSED</h2>
-          <button class="pause-menu-button" id="fullscreen-button">FULLSCREEN</button>
-          <button class="pause-menu-button" id="save-and-end-button">SAVE AND END</button>
-          <button class="pause-menu-button" id="save-button">SAVE</button>
-          <button class="pause-menu-button" id="end-button">END</button>
           <button class="pause-menu-button" id="resume-button">RESUME</button>
+          <button class="pause-menu-button" id="toggle-map-button">TOGGLE MAP</button>
+          <button class="pause-menu-button" id="save-button">SAVE</button>
+          <button class="pause-menu-button" id="fullscreen-button">FULLSCREEN</button>
+          <button class="pause-menu-button" id="restart-button">RESTART</button>
+          <button class="pause-menu-button" id="save-and-end-button">SAVE & EXIT</button>
         </div>
 
         <div class="pause-menu-right">

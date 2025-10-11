@@ -143,6 +143,11 @@
   display: block;
 }
 
+/* Prevent scrolling when game is focused */
+body.game-focused {
+  overflow: hidden;
+}
+
 .game-instructions {
   background: white;
   padding: 2rem;

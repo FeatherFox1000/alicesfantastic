@@ -3,14 +3,265 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
+// Seeded random number generator for consistent map generation
+let seed = 12345; // Fixed seed for consistent map
+function seededRandom() {
+  const x = Math.sin(seed++) * 10000;
+  return x - Math.floor(x);
+}
+
+// Audio System
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let musicGainNode = audioContext.createGain();
+musicGainNode.connect(audioContext.destination);
+musicGainNode.gain.value = 0.3;
+
+let sfxGainNode = audioContext.createGain();
+sfxGainNode.connect(audioContext.destination);
+sfxGainNode.gain.value = 0.5;
+
+// Background music loop (ethereal magical theme)
+let musicOscillators = [];
+let isMusicPlaying = false;
+
+function startBackgroundMusic() {
+  if (isMusicPlaying) return;
+  isMusicPlaying = true;
+
+  // Magical chord progression
+  const melodyNotes = [
+    [523.25, 659.25, 783.99], // C5, E5, G5
+    [587.33, 739.99, 880.00], // D5, F#5, A5
+    [493.88, 659.25, 783.99], // B4, E5, G5
+    [523.25, 698.46, 830.61]  // C5, F5, G#5
+  ];
+
+  let noteIndex = 0;
+
+  function playChord() {
+    if (!isMusicPlaying) return;
+
+    // Stop previous oscillators
+    musicOscillators.forEach(osc => {
+      try { osc.stop(); } catch (e) {}
+    });
+    musicOscillators = [];
+
+    const notes = melodyNotes[noteIndex % melodyNotes.length];
+    const now = audioContext.currentTime;
+
+    notes.forEach((freq, i) => {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.03, now + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+
+      osc.connect(gain);
+      gain.connect(musicGainNode);
+
+      osc.start(now);
+      osc.stop(now + 2.5);
+      musicOscillators.push(osc);
+    });
+
+    noteIndex++;
+    setTimeout(playChord, 2000);
+  }
+
+  playChord();
+}
+
+function stopBackgroundMusic() {
+  isMusicPlaying = false;
+  musicOscillators.forEach(osc => {
+    try { osc.stop(); } catch (e) {}
+  });
+  musicOscillators = [];
+}
+
+// Sound effects
+function playSpellSound() {
+  const now = audioContext.currentTime;
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(800, now);
+  osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+
+  gain.gain.setValueAtTime(0.3, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+  osc.connect(gain);
+  gain.connect(sfxGainNode);
+
+  osc.start(now);
+  osc.stop(now + 0.2);
+}
+
+function playShieldSound() {
+  const now = audioContext.currentTime;
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(200, now);
+  osc.frequency.exponentialRampToValueAtTime(400, now + 0.3);
+
+  gain.gain.setValueAtTime(0.2, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+  osc.connect(gain);
+  gain.connect(sfxGainNode);
+
+  osc.start(now);
+  osc.stop(now + 0.3);
+}
+
+function playUnicornSaveSound() {
+  const now = audioContext.currentTime;
+
+  // Ascending magical chime
+  [0, 0.1, 0.2].forEach((offset, i) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = 'sine';
+    const freq = 800 + (i * 200);
+    osc.frequency.setValueAtTime(freq, now + offset);
+
+    gain.gain.setValueAtTime(0.2, now + offset);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.5);
+
+    osc.connect(gain);
+    gain.connect(sfxGainNode);
+
+    osc.start(now + offset);
+    osc.stop(now + offset + 0.5);
+  });
+}
+
+function playDragonFireSound() {
+  const now = audioContext.currentTime;
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const filter = audioContext.createBiquadFilter();
+
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(100, now);
+  osc.frequency.exponentialRampToValueAtTime(150, now + 0.3);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(500, now);
+
+  gain.gain.setValueAtTime(0.3, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(sfxGainNode);
+
+  osc.start(now);
+  osc.stop(now + 0.4);
+}
+
+function playDragonDefeatedSound() {
+  const now = audioContext.currentTime;
+
+  // Descending dramatic sound
+  [0, 0.15, 0.3].forEach((offset, i) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = 'triangle';
+    const freq = 600 - (i * 150);
+    osc.frequency.setValueAtTime(freq, now + offset);
+
+    gain.gain.setValueAtTime(0.25, now + offset);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.6);
+
+    osc.connect(gain);
+    gain.connect(sfxGainNode);
+
+    osc.start(now + offset);
+    osc.stop(now + offset + 0.6);
+  });
+}
+
+function playEggCollectSound() {
+  const now = audioContext.currentTime;
+
+  // Sparkly collection sound
+  [0, 0.05, 0.1, 0.15].forEach((offset, i) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = 'sine';
+    const freq = 1000 + (i * 300);
+    osc.frequency.setValueAtTime(freq, now + offset);
+
+    gain.gain.setValueAtTime(0.15, now + offset);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.3);
+
+    osc.connect(gain);
+    gain.connect(sfxGainNode);
+
+    osc.start(now + offset);
+    osc.stop(now + offset + 0.3);
+  });
+}
+
+function playVictorySound() {
+  const now = audioContext.currentTime;
+
+  // Triumphant fanfare
+  const victoryNotes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+
+  victoryNotes.forEach((freq, i) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, now + i * 0.15);
+
+    gain.gain.setValueAtTime(0.2, now + i * 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.8);
+
+    osc.connect(gain);
+    gain.connect(sfxGainNode);
+
+    osc.start(now + i * 0.15);
+    osc.stop(now + i * 0.15 + 0.8);
+  });
+}
+
+// Customization unlocks system
+const customizationUnlocks = {
+  colors: ['rainbow', 'galaxy', 'fire', 'ice', 'shadow', 'golden', 'crystal', 'nature'],
+  horns: ['spiral', 'crystal', 'golden', 'dual', 'crown'],
+  manes: ['flowing', 'starry', 'flames', 'wavy'],
+  effects: ['sparkles', 'aura', 'trail']
+};
+
+// Load saved unlocks from localStorage
+let unlockedCustomizations = JSON.parse(localStorage.getItem('unicornUnlocks') || '[]');
+let completionCount = parseInt(localStorage.getItem('unicornCompletions') || '0');
+
 // Game state
 const gameState = {
   unicornsSaved: 0,
-  totalUnicorns: 5,
+  totalUnicorns: 25, // Increased from 10 to 25
   magicPower: 100,
   canCastSpell: true,
   canUseShield: true,
-  hasShield: false
+  hasShield: false,
+  bossesDefeated: 0,
+  basesDestroyed: 0
 };
 
 // Setup scene
@@ -145,24 +396,122 @@ function createClouds() {
 const clouds = [];
 createClouds();
 
-// Create detailed ground with grass texture
-function createGround() {
-  const groundSize = 300;
-  const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 100, 100);
+// Biome definitions - 5 distinct biomes arranged in a circle meeting at the center
+const biomes = {
+  forest: {
+    center: { x: -5000, z: -5000 },
+    radius: 8000,
+    color: 0x3a7a3a,
+    name: 'Emerald Forest',
+    groundColor: 0x4a9a4a,
+    strongholdPos: { x: -5000, z: -5000 }
+  },
+  desert: {
+    center: { x: 5000, z: -5000 },
+    radius: 8000,
+    color: 0xddc777,
+    name: 'Golden Desert',
+    groundColor: 0xf4d693,
+    strongholdPos: { x: 5000, z: -5000 }
+  },
+  snow: {
+    center: { x: 0, z: 7000 },
+    radius: 8000,
+    color: 0xe8f4ff,
+    name: 'Frozen Tundra',
+    groundColor: 0xf0f8ff,
+    strongholdPos: { x: 0, z: 7000 }
+  },
+  volcanic: {
+    center: { x: 5000, z: 5000 },
+    radius: 8000,
+    color: 0x4a2020,
+    name: 'Volcanic Wastes',
+    groundColor: 0x2a1010,
+    strongholdPos: { x: 5000, z: 5000 }
+  },
+  swamp: {
+    center: { x: -5000, z: 5000 },
+    radius: 8000,
+    color: 0x5a6a4a,
+    name: 'Mystic Swamp',
+    groundColor: 0x4a5a3a,
+    strongholdPos: { x: -5000, z: 5000 }
+  }
+};
 
-  // Add terrain variation
+// Helper to determine which biome a position is in
+function getBiome(x, z) {
+  let closestBiome = null;
+  let closestDist = Infinity;
+
+  for (const [key, biome] of Object.entries(biomes)) {
+    const dx = x - biome.center.x;
+    const dz = z - biome.center.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestBiome = { ...biome, type: key, distance: dist };
+    }
+  }
+
+  return closestBiome;
+}
+
+// Create detailed ground with biomes
+function createGround() {
+  const groundSize = 20000;
+  const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 200, 200);
+
+  // Add terrain variation and vertex colors based on biomes
   const vertices = groundGeometry.attributes.position;
+  const colors = new Float32Array(vertices.count * 3);
+
   for (let i = 0; i < vertices.count; i++) {
     const x = vertices.getX(i);
     const z = vertices.getZ(i);
-    const height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
-                   Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.3;
+
+    // Get biome for this position
+    const biome = getBiome(x, z);
+
+    // Biome-specific terrain height
+    let height = 0;
+    if (biome.type === 'snow') {
+      // Snow biome: higher and hillier
+      height = Math.sin(x * 0.02) * Math.cos(z * 0.02) * 3.0 +
+               Math.sin(x * 0.08) * Math.cos(z * 0.08) * 1.5;
+    } else if (biome.type === 'volcanic') {
+      // Volcanic biome: rugged and jagged
+      height = Math.sin(x * 0.05) * Math.cos(z * 0.05) * 2.5 +
+               Math.sin(x * 0.15) * Math.cos(z * 0.15) * 1.0;
+    } else if (biome.type === 'swamp') {
+      // Swamp biome: very flat with small bumps
+      height = Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.3;
+    } else if (biome.type === 'desert') {
+      // Desert biome: rolling dunes
+      height = Math.sin(x * 0.025) * Math.cos(z * 0.025) * 2.0 +
+               Math.sin(x * 0.06) * Math.cos(z * 0.06) * 0.8;
+    } else {
+      // Forest biome: gentle hills
+      height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
+               Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.5;
+    }
+
     vertices.setZ(i, Math.max(0, height + 0.5));
+
+    // Set vertex color based on biome
+    const color = new THREE.Color(biome.color);
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
   }
+
+  groundGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   groundGeometry.computeVertexNormals();
 
   const groundMaterial = new THREE.MeshStandardMaterial({
-    color: 0x5fa85f,
+    vertexColors: true,
     roughness: 0.85,
     metalness: 0.0,
     flatShading: false
@@ -173,8 +522,8 @@ function createGround() {
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Add grass blades
-  addGrass(groundSize);
+  // Add biome-specific vegetation
+  addBiomeVegetation();
 }
 
 function addGrass(groundSize) {
@@ -191,16 +540,16 @@ function addGrass(groundSize) {
 
   const dummy = new THREE.Object3D();
   for (let i = 0; i < grassCount; i++) {
-    const x = (Math.random() - 0.5) * groundSize * 0.9;
-    const z = (Math.random() - 0.5) * groundSize * 0.9;
+    const x = (seededRandom() - 0.5) * groundSize * 0.9;
+    const z = (seededRandom() - 0.5) * groundSize * 0.9;
     const height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
                    Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.3;
     const y = Math.max(0, height + 0.5) + 0.75;
 
     dummy.position.set(x, y, z);
-    dummy.rotation.y = Math.random() * Math.PI;
-    dummy.rotation.z = (Math.random() - 0.5) * 0.3;
-    dummy.scale.set(0.8 + Math.random() * 0.4, 0.8 + Math.random() * 0.6, 1);
+    dummy.rotation.y = seededRandom() * Math.PI;
+    dummy.rotation.z = (seededRandom() - 0.5) * 0.3;
+    dummy.scale.set(0.8 + seededRandom() * 0.4, 0.8 + seededRandom() * 0.6, 1);
     dummy.updateMatrix();
     grassField.setMatrixAt(i, dummy.matrix);
   }
@@ -223,54 +572,433 @@ function getTerrainHeight(x, z) {
 // Tree collision storage
 const treePositions = [];
 
-// Create detailed trees
-function createTree(x, z) {
+// Stronghold collision storage
+const strongholdPositions = [];
+
+// Create detailed trees with variants
+function createTree(x, z, variant = 'oak') {
   const tree = new THREE.Group();
 
-  // Trunk with texture
-  const trunkGeometry = new THREE.CylinderGeometry(0.4, 0.6, 5, 12);
-  const trunkMaterial = new THREE.MeshStandardMaterial({
-    color: 0x4a3728,
-    roughness: 0.95,
-    metalness: 0.0
-  });
-  const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-  trunk.position.y = 2.5;
-  trunk.castShadow = true;
-  trunk.receiveShadow = true;
-  tree.add(trunk);
+  if (variant === 'oak') {
+    // Classic oak tree - thick trunk, round canopy
+    const trunkGeometry = new THREE.CylinderGeometry(0.4, 0.6, 5, 12);
+    const trunkMaterial = new THREE.MeshStandardMaterial({
+      color: 0x4a3728,
+      roughness: 0.95,
+      metalness: 0.0
+    });
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 2.5;
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    tree.add(trunk);
 
-  // Layered foliage
-  const foliageColors = [0x2d5016, 0x3a6b1f, 0x478228];
-  for (let i = 0; i < 3; i++) {
-    const foliage = new THREE.Mesh(
-      new THREE.SphereGeometry(2.5 - i * 0.4, 8, 8),
+    // Layered foliage
+    const foliageColors = [0x2d5016, 0x3a6b1f, 0x478228];
+    for (let i = 0; i < 3; i++) {
+      const foliage = new THREE.Mesh(
+        new THREE.SphereGeometry(2.5 - i * 0.4, 8, 8),
+        new THREE.MeshStandardMaterial({
+          color: foliageColors[i],
+          roughness: 0.85
+        })
+      );
+      foliage.position.y = 5 + i * 1.2;
+      foliage.castShadow = true;
+      foliage.receiveShadow = true;
+      tree.add(foliage);
+    }
+  } else if (variant === 'pine') {
+    // Pine tree - tall, narrow, conical shape
+    const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 7, 8);
+    const trunkMaterial = new THREE.MeshStandardMaterial({
+      color: 0x3d2f1f,
+      roughness: 0.95,
+      metalness: 0.0
+    });
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 3.5;
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    tree.add(trunk);
+
+    // Conical foliage layers
+    const pineColors = [0x1a4d2e, 0x235a36, 0x2d6a3e];
+    for (let i = 0; i < 4; i++) {
+      const foliage = new THREE.Mesh(
+        new THREE.ConeGeometry(1.8 - i * 0.3, 2.5, 8),
+        new THREE.MeshStandardMaterial({
+          color: pineColors[i % 3],
+          roughness: 0.9
+        })
+      );
+      foliage.position.y = 4 + i * 1.5;
+      foliage.castShadow = true;
+      foliage.receiveShadow = true;
+      tree.add(foliage);
+    }
+  } else if (variant === 'birch') {
+    // Birch tree - white trunk, delicate foliage
+    const trunkGeometry = new THREE.CylinderGeometry(0.25, 0.35, 6, 8);
+    const trunkMaterial = new THREE.MeshStandardMaterial({
+      color: 0xe8e8e8,
+      roughness: 0.8,
+      metalness: 0.1
+    });
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 3;
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    tree.add(trunk);
+
+    // Add dark bark stripes
+    for (let i = 0; i < 5; i++) {
+      const stripe = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.26, 0.36, 0.4, 8),
+        new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9 })
+      );
+      stripe.position.y = 1 + i * 1.2;
+      tree.add(stripe);
+    }
+
+    // Light, airy foliage
+    const birchColors = [0x8fbc8f, 0xa8d5a8, 0xc1e8c1];
+    for (let i = 0; i < 3; i++) {
+      const foliage = new THREE.Mesh(
+        new THREE.SphereGeometry(1.8 - i * 0.3, 8, 8),
+        new THREE.MeshStandardMaterial({
+          color: birchColors[i],
+          roughness: 0.8,
+          transparent: true,
+          opacity: 0.9
+        })
+      );
+      foliage.position.y = 5.5 + i * 0.8;
+      foliage.position.x = (i - 1) * 0.3;
+      foliage.castShadow = true;
+      foliage.receiveShadow = true;
+      tree.add(foliage);
+    }
+  } else if (variant === 'willow') {
+    // Willow tree - drooping branches
+    const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 4, 12);
+    const trunkMaterial = new THREE.MeshStandardMaterial({
+      color: 0x5c4a38,
+      roughness: 0.95,
+      metalness: 0.0
+    });
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 2;
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    tree.add(trunk);
+
+    // Wide, drooping canopy
+    const willowColors = [0x9acd32, 0xaddb47, 0xc0e85c];
+    const canopy = new THREE.Mesh(
+      new THREE.SphereGeometry(3, 8, 8),
       new THREE.MeshStandardMaterial({
-        color: foliageColors[i],
+        color: willowColors[0],
         roughness: 0.85
       })
     );
-    foliage.position.y = 5 + i * 1.2;
-    foliage.castShadow = true;
-    foliage.receiveShadow = true;
-    tree.add(foliage);
+    canopy.position.y = 4.5;
+    canopy.scale.set(1, 0.7, 1);
+    canopy.castShadow = true;
+    canopy.receiveShadow = true;
+    tree.add(canopy);
+
+    // Drooping branch strands
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const strand = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 3, 4),
+        new THREE.MeshStandardMaterial({
+          color: willowColors[1],
+          roughness: 0.9
+        })
+      );
+      strand.position.set(
+        Math.cos(angle) * 2,
+        3,
+        Math.sin(angle) * 2
+      );
+      strand.rotation.z = (Math.random() - 0.5) * 0.3;
+      tree.add(strand);
+    }
+  } else if (variant === 'magical') {
+    // Magical tree - glowing, mystical appearance
+    const trunkGeometry = new THREE.CylinderGeometry(0.4, 0.5, 5.5, 12);
+    const trunkMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6a4c93,
+      emissive: 0x3a1c63,
+      emissiveIntensity: 0.2,
+      roughness: 0.7,
+      metalness: 0.3
+    });
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 2.75;
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    tree.add(trunk);
+
+    // Glowing crystalline foliage
+    const magicColors = [0x9d4edd, 0xc77dff, 0xe0aaff];
+    for (let i = 0; i < 3; i++) {
+      const foliage = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(2 - i * 0.3, 0),
+        new THREE.MeshStandardMaterial({
+          color: magicColors[i],
+          emissive: magicColors[i],
+          emissiveIntensity: 0.3,
+          roughness: 0.5,
+          metalness: 0.4,
+          transparent: true,
+          opacity: 0.8
+        })
+      );
+      foliage.position.y = 5.5 + i * 1;
+      foliage.castShadow = true;
+      tree.add(foliage);
+    }
+
+    // Add magical glow
+    const treeLight = new THREE.PointLight(0xc77dff, 1, 8);
+    treeLight.position.y = 6;
+    tree.add(treeLight);
   }
 
   tree.position.set(x, 0, z);
   scene.add(tree);
 
-  // Store tree position for collision detection (radius of trunk at ground level)
+  // Store tree position for collision detection
   treePositions.push({ x, z, radius: 1.5 });
 }
 
-// Add forest
-for (let i = 0; i < 50; i++) {
-  const x = (Math.random() - 0.5) * 280;
-  const z = (Math.random() - 0.5) * 280;
-  const distFromCenter = Math.sqrt(x * x + z * z);
-  if (distFromCenter > 20) {
-    createTree(x, z);
+// Add forest with variety across larger map
+const treeVariants = ['oak', 'pine', 'birch', 'willow', 'magical'];
+
+// Add biome-specific vegetation
+function addBiomeVegetation() {
+  // Forest biome: Dense trees (oak, birch, magical)
+  for (let i = 0; i < 150; i++) {
+    const angle = seededRandom() * Math.PI * 2;
+    const radius = seededRandom() * 5000;
+    const x = biomes.forest.center.x + Math.cos(angle) * radius;
+    const z = biomes.forest.center.z + Math.sin(angle) * radius;
+    const variants = ['oak', 'birch', 'magical'];
+    const variant = variants[Math.floor(seededRandom() * variants.length)];
+    createTree(x, z, variant);
   }
+
+  // Desert biome: Sparse cacti and dead trees
+  for (let i = 0; i < 40; i++) {
+    const angle = seededRandom() * Math.PI * 2;
+    const radius = seededRandom() * 5000;
+    const x = biomes.desert.center.x + Math.cos(angle) * radius;
+    const z = biomes.desert.center.z + Math.sin(angle) * radius;
+
+    // Create cactus or dead tree
+    if (seededRandom() > 0.5) {
+      createCactus(x, z);
+    } else {
+      createDeadTree(x, z);
+    }
+  }
+
+  // Snow biome: Pine trees
+  for (let i = 0; i < 100; i++) {
+    const angle = seededRandom() * Math.PI * 2;
+    const radius = seededRandom() * 5000;
+    const x = biomes.snow.center.x + Math.cos(angle) * radius;
+    const z = biomes.snow.center.z + Math.sin(angle) * radius;
+    createTree(x, z, 'pine');
+  }
+
+  // Volcanic biome: Obsidian spikes and dead trees
+  for (let i = 0; i < 60; i++) {
+    const angle = seededRandom() * Math.PI * 2;
+    const radius = seededRandom() * 5000;
+    const x = biomes.volcanic.center.x + Math.cos(angle) * radius;
+    const z = biomes.volcanic.center.z + Math.sin(angle) * radius;
+
+    if (seededRandom() > 0.6) {
+      createObsidianSpike(x, z);
+    } else {
+      createDeadTree(x, z);
+    }
+  }
+
+  // Swamp biome: Willow trees and mushrooms
+  for (let i = 0; i < 120; i++) {
+    const angle = seededRandom() * Math.PI * 2;
+    const radius = seededRandom() * 5000;
+    const x = biomes.swamp.center.x + Math.cos(angle) * radius;
+    const z = biomes.swamp.center.z + Math.sin(angle) * radius;
+
+    if (seededRandom() > 0.3) {
+      createTree(x, z, 'willow');
+    } else {
+      createMushroom(x, z);
+    }
+  }
+}
+
+// Create cactus for desert biome
+function createCactus(x, z) {
+  const cactus = new THREE.Group();
+
+  const cactusGreen = 0x6b8e23;
+  const cactusMaterial = new THREE.MeshStandardMaterial({
+    color: cactusGreen,
+    roughness: 0.9
+  });
+
+  // Main trunk
+  const trunkGeometry = new THREE.CylinderGeometry(0.4, 0.5, 4, 8);
+  const trunk = new THREE.Mesh(trunkGeometry, cactusMaterial);
+  trunk.position.y = 2;
+  trunk.castShadow = true;
+  cactus.add(trunk);
+
+  // Arms
+  const armGeometry = new THREE.CylinderGeometry(0.3, 0.3, 2, 8);
+  const leftArm = new THREE.Mesh(armGeometry, cactusMaterial);
+  leftArm.position.set(-0.6, 2.5, 0);
+  leftArm.rotation.z = Math.PI / 3;
+  leftArm.castShadow = true;
+  cactus.add(leftArm);
+
+  const rightArm = new THREE.Mesh(armGeometry, cactusMaterial);
+  rightArm.position.set(0.6, 2, 0);
+  rightArm.rotation.z = -Math.PI / 4;
+  rightArm.castShadow = true;
+  cactus.add(rightArm);
+
+  const groundHeight = getTerrainHeight(x, z);
+  cactus.position.set(x, groundHeight, z);
+  scene.add(cactus);
+  treePositions.push({ x, z, radius: 0.8 });
+}
+
+// Create dead tree
+function createDeadTree(x, z) {
+  const tree = new THREE.Group();
+
+  const deadBrown = 0x4a3020;
+  const deadMaterial = new THREE.MeshStandardMaterial({
+    color: deadBrown,
+    roughness: 1.0
+  });
+
+  const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 5, 8);
+  const trunk = new THREE.Mesh(trunkGeometry, deadMaterial);
+  trunk.position.y = 2.5;
+  trunk.castShadow = true;
+  tree.add(trunk);
+
+  // A few bare branches
+  for (let i = 0; i < 3; i++) {
+    const branchGeometry = new THREE.CylinderGeometry(0.1, 0.15, 2, 6);
+    const branch = new THREE.Mesh(branchGeometry, deadMaterial);
+    branch.position.set(
+      (seededRandom() - 0.5) * 0.8,
+      3 + seededRandom() * 1.5,
+      (seededRandom() - 0.5) * 0.8
+    );
+    branch.rotation.z = (seededRandom() - 0.5) * Math.PI / 2;
+    branch.castShadow = true;
+    tree.add(branch);
+  }
+
+  const groundHeight = getTerrainHeight(x, z);
+  tree.position.set(x, groundHeight, z);
+  scene.add(tree);
+  treePositions.push({ x, z, radius: 0.8 });
+}
+
+// Create obsidian spike for volcanic biome
+function createObsidianSpike(x, z) {
+  const spike = new THREE.Group();
+
+  const obsidianMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a1a2e,
+    roughness: 0.3,
+    metalness: 0.7,
+    emissive: 0x331111,
+    emissiveIntensity: 0.2
+  });
+
+  const spikeGeometry = new THREE.ConeGeometry(0.8, 6, 6);
+  const spikeMesh = new THREE.Mesh(spikeGeometry, obsidianMaterial);
+  spikeMesh.position.y = 3;
+  spikeMesh.castShadow = true;
+  spike.add(spikeMesh);
+
+  // Add glow at base
+  const glowGeometry = new THREE.CylinderGeometry(0.5, 0.8, 0.2, 16);
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff3300,
+    transparent: true,
+    opacity: 0.5
+  });
+  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+  glow.position.y = 0.1;
+  spike.add(glow);
+
+  const groundHeight = getTerrainHeight(x, z);
+  spike.position.set(x, groundHeight, z);
+  scene.add(spike);
+  treePositions.push({ x, z, radius: 1.0 });
+}
+
+// Create mushroom for swamp biome
+function createMushroom(x, z) {
+  const mushroom = new THREE.Group();
+
+  // Stem
+  const stemMaterial = new THREE.MeshStandardMaterial({
+    color: 0xf5f5dc,
+    roughness: 0.8
+  });
+  const stemGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2, 12);
+  const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+  stem.position.y = 1;
+  stem.castShadow = true;
+  mushroom.add(stem);
+
+  // Cap
+  const capMaterial = new THREE.MeshStandardMaterial({
+    color: seededRandom() > 0.5 ? 0x8b0000 : 0x9370db,
+    roughness: 0.6
+  });
+  const capGeometry = new THREE.SphereGeometry(1.2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+  const cap = new THREE.Mesh(capGeometry, capMaterial);
+  cap.position.y = 2;
+  cap.castShadow = true;
+  mushroom.add(cap);
+
+  // Spots
+  for (let i = 0; i < 5; i++) {
+    const spotGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+    const spotMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.8
+    });
+    const spot = new THREE.Mesh(spotGeometry, spotMaterial);
+    spot.position.set(
+      (seededRandom() - 0.5) * 1.5,
+      2 + seededRandom() * 0.3,
+      (seededRandom() - 0.5) * 1.5
+    );
+    mushroom.add(spot);
+  }
+
+  const groundHeight = getTerrainHeight(x, z);
+  mushroom.position.set(x, groundHeight, z);
+  scene.add(mushroom);
+  treePositions.push({ x, z, radius: 1.0 });
 }
 
 // Check collision with trees
@@ -286,11 +1014,514 @@ function checkTreeCollision(x, z, radius = 2) {
   return false;
 }
 
+// Check collision with stronghold walls (box collision)
+function checkStrongholdCollision(x, z, radius = 2) {
+  for (const stronghold of strongholdPositions) {
+    // Calculate distance from point to the stronghold walls
+    const halfSize = stronghold.size / 2;
+
+    // Check if point is inside the stronghold's outer boundary
+    if (x + radius > stronghold.x - halfSize && x - radius < stronghold.x + halfSize &&
+        z + radius > stronghold.z - halfSize && z - radius < stronghold.z + halfSize) {
+
+      // Check if point is NOT inside the inner courtyard (allow movement inside)
+      const innerSize = stronghold.size - 2; // Account for wall thickness
+      const innerHalfSize = innerSize / 2;
+
+      if (x + radius > stronghold.x - innerHalfSize && x - radius < stronghold.x + innerHalfSize &&
+          z + radius > stronghold.z - innerHalfSize && z - radius < stronghold.z + innerHalfSize) {
+        // Inside courtyard - check if at the gate entrance (front wall)
+        const gateZ = stronghold.z + halfSize;
+        const gateWidth = 4;
+
+        // Allow passage through gate
+        if (z < gateZ + 1 && z > gateZ - 1 &&
+            x > stronghold.x - gateWidth / 2 && x < stronghold.x + gateWidth / 2) {
+          continue; // At gate, no collision
+        }
+
+        continue; // Inside courtyard, no collision
+      }
+
+      // Collision with walls
+      return true;
+    }
+  }
+  return false;
+}
+
+// Create dragon boss enemy
+function createBoss(x, z, isStronghold = false) {
+  const boss = new THREE.Group();
+
+  // Dragon scale material (dark for stronghold, red for regular)
+  const scaleMaterial = new THREE.MeshStandardMaterial({
+    color: isStronghold ? 0x1a0033 : 0x8b0000,
+    emissive: isStronghold ? 0x330066 : 0x330000,
+    emissiveIntensity: isStronghold ? 0.5 : 0.3,
+    roughness: 0.4,
+    metalness: 0.6
+  });
+
+  // Dragon body (elongated)
+  const bodyGeometry = new THREE.CylinderGeometry(1.2, 1.5, 4, 12);
+  const body = new THREE.Mesh(bodyGeometry, scaleMaterial);
+  body.rotation.z = Math.PI / 2;
+  body.position.x = 1;
+  body.castShadow = true;
+  boss.add(body);
+
+  // Dragon head
+  const headGeometry = new THREE.SphereGeometry(1.5, 12, 12);
+  const head = new THREE.Mesh(headGeometry, scaleMaterial);
+  head.position.set(3.5, 0.5, 0);
+  head.scale.set(1, 0.8, 1.2);
+  head.castShadow = true;
+  boss.add(head);
+
+  // Dragon snout
+  const snoutGeometry = new THREE.ConeGeometry(0.6, 1.5, 8);
+  const snout = new THREE.Mesh(snoutGeometry, scaleMaterial);
+  snout.position.set(4.5, 0.3, 0);
+  snout.rotation.z = -Math.PI / 2;
+  snout.castShadow = true;
+  boss.add(snout);
+
+  // Dragon eyes (glowing - purple for stronghold, orange for regular)
+  const eyeMaterial = new THREE.MeshBasicMaterial({
+    color: isStronghold ? 0x9900ff : 0xffaa00,
+    emissive: isStronghold ? 0x9900ff : 0xffaa00,
+    emissiveIntensity: 2
+  });
+  const eyeGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+
+  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+  leftEye.position.set(4, 0.8, 0.5);
+  boss.add(leftEye);
+
+  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+  rightEye.position.set(4, 0.8, -0.5);
+  boss.add(rightEye);
+
+  // Dragon horns (2 horns on head)
+  const hornMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a,
+    metalness: 0.8,
+    roughness: 0.3
+  });
+
+  const leftHorn = new THREE.Mesh(
+    new THREE.ConeGeometry(0.3, 1.5, 8),
+    hornMaterial
+  );
+  leftHorn.position.set(3.5, 1.5, 0.6);
+  leftHorn.rotation.z = -0.3;
+  leftHorn.castShadow = true;
+  boss.add(leftHorn);
+
+  const rightHorn = new THREE.Mesh(
+    new THREE.ConeGeometry(0.3, 1.5, 8),
+    hornMaterial
+  );
+  rightHorn.position.set(3.5, 1.5, -0.6);
+  rightHorn.rotation.z = -0.3;
+  rightHorn.castShadow = true;
+  boss.add(rightHorn);
+
+  // Dragon wings (2 wings - dark for stronghold, red for regular)
+  const wingMaterial = new THREE.MeshStandardMaterial({
+    color: isStronghold ? 0x0a001a : 0x4a0000,
+    emissive: isStronghold ? 0x220044 : 0x220000,
+    emissiveIntensity: isStronghold ? 0.4 : 0.2,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.9
+  });
+
+  // Left wing
+  const leftWingGeometry = new THREE.ConeGeometry(2, 3, 3);
+  const leftWing = new THREE.Mesh(leftWingGeometry, wingMaterial);
+  leftWing.position.set(1, 1.5, 2);
+  leftWing.rotation.set(Math.PI / 2, 0, Math.PI / 4);
+  leftWing.castShadow = true;
+  boss.add(leftWing);
+  boss.userData.leftWing = leftWing;
+
+  // Right wing
+  const rightWingGeometry = new THREE.ConeGeometry(2, 3, 3);
+  const rightWing = new THREE.Mesh(rightWingGeometry, wingMaterial);
+  rightWing.position.set(1, 1.5, -2);
+  rightWing.rotation.set(Math.PI / 2, 0, -Math.PI / 4);
+  rightWing.castShadow = true;
+  boss.add(rightWing);
+  boss.userData.rightWing = rightWing;
+
+  // Dragon tail
+  const tailSegments = 4;
+  for (let i = 0; i < tailSegments; i++) {
+    const segmentSize = 0.6 - (i * 0.1);
+    const tailSegment = new THREE.Mesh(
+      new THREE.SphereGeometry(segmentSize, 8, 8),
+      scaleMaterial
+    );
+    tailSegment.position.set(-1.5 - (i * 0.8), 0, 0);
+    tailSegment.castShadow = true;
+    boss.add(tailSegment);
+  }
+
+  // Tail spikes
+  for (let i = 0; i < 3; i++) {
+    const spike = new THREE.Mesh(
+      new THREE.ConeGeometry(0.2, 0.8, 6),
+      hornMaterial
+    );
+    spike.position.set(-1.5 - (i * 0.8), 0.6, 0);
+    spike.castShadow = true;
+    boss.add(spike);
+  }
+
+  // Dragon legs (4 legs with claws)
+  const legMaterial = new THREE.MeshStandardMaterial({
+    color: isStronghold ? 0x0d0020 : 0x660000,
+    metalness: 0.4,
+    roughness: 0.6
+  });
+
+  // Front legs
+  for (let side = 0; side < 2; side++) {
+    const legZ = side === 0 ? 1 : -1;
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.25, 0.2, 1.5, 8),
+      legMaterial
+    );
+    leg.position.set(1.5, -1, legZ);
+    leg.castShadow = true;
+    boss.add(leg);
+
+    // Claws
+    for (let claw = 0; claw < 3; claw++) {
+      const clawMesh = new THREE.Mesh(
+        new THREE.ConeGeometry(0.08, 0.3, 6),
+        hornMaterial
+      );
+      clawMesh.position.set(1.5 + (claw - 1) * 0.15, -1.8, legZ);
+      clawMesh.rotation.z = Math.PI;
+      clawMesh.castShadow = true;
+      boss.add(clawMesh);
+    }
+  }
+
+  // Back legs
+  for (let side = 0; side < 2; side++) {
+    const legZ = side === 0 ? 1 : -1;
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.25, 0.2, 1.5, 8),
+      legMaterial
+    );
+    leg.position.set(-0.5, -1, legZ);
+    leg.castShadow = true;
+    boss.add(leg);
+
+    // Claws
+    for (let claw = 0; claw < 3; claw++) {
+      const clawMesh = new THREE.Mesh(
+        new THREE.ConeGeometry(0.08, 0.3, 6),
+        hornMaterial
+      );
+      clawMesh.position.set(-0.5 + (claw - 1) * 0.15, -1.8, legZ);
+      clawMesh.rotation.z = Math.PI;
+      clawMesh.castShadow = true;
+      boss.add(clawMesh);
+    }
+  }
+
+  // Body scales (decorative ridges along spine)
+  for (let i = 0; i < 6; i++) {
+    const scale = new THREE.Mesh(
+      new THREE.ConeGeometry(0.15, 0.4, 6),
+      new THREE.MeshStandardMaterial({
+        color: isStronghold ? 0x4400aa : 0xaa0000,
+        metalness: 0.7,
+        roughness: 0.3
+      })
+    );
+    scale.position.set(0.5 - (i * 0.4), 1.8, 0);
+    scale.castShadow = true;
+    boss.add(scale);
+  }
+
+  // Nostrils (glowing)
+  const nostrilMaterial = new THREE.MeshBasicMaterial({
+    color: isStronghold ? 0x6600cc : 0xff4400,
+    emissive: isStronghold ? 0x6600cc : 0xff4400,
+    emissiveIntensity: 1.5
+  });
+
+  const nostrilGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+  const leftNostril = new THREE.Mesh(nostrilGeometry, nostrilMaterial);
+  leftNostril.position.set(5, 0.1, 0.3);
+  boss.add(leftNostril);
+
+  const rightNostril = new THREE.Mesh(nostrilGeometry, nostrilMaterial);
+  rightNostril.position.set(5, 0.1, -0.3);
+  boss.add(rightNostril);
+
+  // Teeth (visible from snout)
+  for (let i = 0; i < 6; i++) {
+    const tooth = new THREE.Mesh(
+      new THREE.ConeGeometry(0.06, 0.3, 6),
+      new THREE.MeshStandardMaterial({
+        color: 0xeeeeee,
+        metalness: 0.2,
+        roughness: 0.8
+      })
+    );
+    tooth.position.set(4.3 + (i * 0.1), 0 - (i % 2) * 0.15, (i % 2 === 0 ? 0.4 : -0.4));
+    tooth.rotation.z = Math.PI;
+    tooth.castShadow = true;
+    boss.add(tooth);
+  }
+
+  // Fire/Force glow light (purple for stronghold, orange for regular)
+  const bossLight = new THREE.PointLight(isStronghold ? 0x9900ff : 0xff4400, 3, 20);
+  bossLight.position.set(4.5, 0.3, 0);
+  boss.add(bossLight);
+
+  // Position boss
+  const groundHeight = getTerrainHeight(x, z);
+  boss.position.set(x, groundHeight + 4, z);
+
+  boss.userData = {
+    health: 3,
+    maxHealth: 3,
+    patrolAngle: Math.random() * Math.PI * 2,
+    patrolRadius: 8,
+    centerX: x,
+    centerZ: z,
+    defeated: false,
+    attackCooldown: 0,
+    rotationSpeed: 0.02
+  };
+
+  scene.add(boss);
+  return boss;
+}
+
+// Create stronghold fortress base
+function createBase(x, z) {
+  const base = new THREE.Group();
+
+  // Stone material for fortress
+  const stoneMaterial = new THREE.MeshStandardMaterial({
+    color: 0x4a4a4a,
+    metalness: 0.1,
+    roughness: 0.9
+  });
+
+  // Main fortress walls (4 walls forming a square)
+  const wallHeight = 10;
+  const wallThickness = 1;
+  const wallLength = 12;
+
+  // Front wall (with gate opening)
+  const frontWallLeft = new THREE.Mesh(
+    new THREE.BoxGeometry(wallLength / 2 - 2, wallHeight, wallThickness),
+    stoneMaterial
+  );
+  frontWallLeft.position.set(-wallLength / 4 - 1, wallHeight / 2, wallLength / 2);
+  frontWallLeft.castShadow = true;
+  frontWallLeft.receiveShadow = true;
+  base.add(frontWallLeft);
+
+  const frontWallRight = new THREE.Mesh(
+    new THREE.BoxGeometry(wallLength / 2 - 2, wallHeight, wallThickness),
+    stoneMaterial
+  );
+  frontWallRight.position.set(wallLength / 4 + 1, wallHeight / 2, wallLength / 2);
+  frontWallRight.castShadow = true;
+  frontWallRight.receiveShadow = true;
+  base.add(frontWallRight);
+
+  // Back, left, right walls
+  const backWall = new THREE.Mesh(
+    new THREE.BoxGeometry(wallLength, wallHeight, wallThickness),
+    stoneMaterial
+  );
+  backWall.position.set(0, wallHeight / 2, -wallLength / 2);
+  backWall.castShadow = true;
+  backWall.receiveShadow = true;
+  base.add(backWall);
+
+  const leftWall = new THREE.Mesh(
+    new THREE.BoxGeometry(wallThickness, wallHeight, wallLength),
+    stoneMaterial
+  );
+  leftWall.position.set(-wallLength / 2, wallHeight / 2, 0);
+  leftWall.castShadow = true;
+  leftWall.receiveShadow = true;
+  base.add(leftWall);
+
+  const rightWall = new THREE.Mesh(
+    new THREE.BoxGeometry(wallThickness, wallHeight, wallLength),
+    stoneMaterial
+  );
+  rightWall.position.set(wallLength / 2, wallHeight / 2, 0);
+  rightWall.castShadow = true;
+  rightWall.receiveShadow = true;
+  base.add(rightWall);
+
+  // Corner towers (4 towers)
+  const towerMaterial = new THREE.MeshStandardMaterial({
+    color: 0x3a3a3a,
+    metalness: 0.2,
+    roughness: 0.8
+  });
+
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const towerX = Math.cos(angle) * (wallLength / 2 + 0.5);
+    const towerZ = Math.sin(angle) * (wallLength / 2 + 0.5);
+
+    // Tower base
+    const tower = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.5, 1.8, 12, 8),
+      towerMaterial
+    );
+    tower.position.set(towerX, 6, towerZ);
+    tower.castShadow = true;
+    tower.receiveShadow = true;
+    base.add(tower);
+
+    // Tower top (cone roof)
+    const towerTop = new THREE.Mesh(
+      new THREE.ConeGeometry(2, 3, 8),
+      new THREE.MeshStandardMaterial({
+        color: 0x8b0000,
+        metalness: 0.3,
+        roughness: 0.7
+      })
+    );
+    towerTop.position.set(towerX, 13.5, towerZ);
+    towerTop.castShadow = true;
+    base.add(towerTop);
+
+    // Tower windows (glowing red)
+    const window1 = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 0.8, 0.2),
+      new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        emissive: 0xff0000,
+        emissiveIntensity: 1
+      })
+    );
+    window1.position.set(towerX, 8, towerZ);
+    base.add(window1);
+  }
+
+  // Battlements on top of walls
+  for (let i = 0; i < 20; i++) {
+    const battlementX = (i % 5) * 3 - 6;
+    const battlementZ = i < 5 ? 6 : i < 10 ? -6 : i < 15 ? battlementX : battlementX;
+    const actualX = i < 10 ? battlementX : i < 15 ? -6 : 6;
+    const actualZ = i < 5 ? 6 : i < 10 ? -6 : battlementZ;
+
+    const battlement = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 1.5, 0.8),
+      stoneMaterial
+    );
+    battlement.position.set(actualX, wallHeight + 0.75, actualZ);
+    battlement.castShadow = true;
+    base.add(battlement);
+  }
+
+  // Force field barrier at gate
+  const domeGeometry = new THREE.BoxGeometry(4, 8, 0.5);
+  const domeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff0000,
+    emissive: 0xff0000,
+    emissiveIntensity: 0.8,
+    transparent: true,
+    opacity: 0.3,
+    side: THREE.DoubleSide
+  });
+  const dome = new THREE.Mesh(domeGeometry, domeMaterial);
+  dome.position.set(0, 4, wallLength / 2);
+  dome.castShadow = true;
+  base.add(dome);
+
+  // Energy grid at gate
+  const gridGeometry = new THREE.BoxGeometry(4.2, 8.2, 0.3);
+  const gridMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff0000,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.6
+  });
+  const grid = new THREE.Mesh(gridGeometry, gridMaterial);
+  grid.position.set(0, 4, wallLength / 2);
+  base.add(grid);
+
+  // Floor/platform
+  const platform = new THREE.Mesh(
+    new THREE.BoxGeometry(wallLength + 2, 0.5, wallLength + 2),
+    new THREE.MeshStandardMaterial({
+      color: 0x2a2a2a,
+      metalness: 0.3,
+      roughness: 0.8
+    })
+  );
+  platform.position.y = 0.25;
+  platform.castShadow = true;
+  platform.receiveShadow = true;
+  base.add(platform);
+
+  // Energy core in center
+  const core = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8, 16, 16),
+    new THREE.MeshStandardMaterial({
+      color: 0xff0000,
+      emissive: 0xff0000,
+      emissiveIntensity: 2,
+      transparent: true,
+      opacity: 0.9
+    })
+  );
+  core.position.y = 1;
+  base.add(core);
+
+  // Stronghold light
+  const baseLight = new THREE.PointLight(0xff0000, 5, 30);
+  baseLight.position.set(0, 6, 0);
+  base.add(baseLight);
+
+  // Position base
+  const groundHeight = getTerrainHeight(x, z);
+  base.position.set(x, groundHeight, z);
+
+  base.userData = {
+    health: 8,  // Increased health for stronghold
+    maxHealth: 8,
+    destroyed: false,
+    dome: dome,
+    grid: grid,
+    core: core,
+    rotationSpeed: 0,
+    wallLength: wallLength
+  };
+
+  scene.add(base);
+
+  // Store stronghold position for collision detection
+  strongholdPositions.push({ x, z, size: wallLength });
+
+  return base;
+}
+
 // Add magical flowers
 function createFlowers() {
-  for (let i = 0; i < 60; i++) {
-    const x = (Math.random() - 0.5) * 260;
-    const z = (Math.random() - 0.5) * 260;
+  for (let i = 0; i < 300; i++) { // More flowers for larger map
+    const x = (seededRandom() - 0.5) * 19000;
+    const z = (seededRandom() - 0.5) * 19000;
     const y = getTerrainHeight(x, z);
 
     const flower = new THREE.Group();
@@ -519,9 +1750,9 @@ function createUnicorn(color, isPlayer = false) {
       })
     );
     const t = i / 11;
-    // Position mane from neck top down along the body back
-    const baseX = 1.7 - t * 1.9; // From neck area back
-    const baseY = 0.85 - t * 0.85; // Start high on neck, go down to body level
+    // Position mane from top of head down along the neck and body
+    const baseX = 2.0 - t * 2.2; // Start at head, go back along neck and body
+    const baseY = 1.5 - t * 1.5; // Start higher at top of head, go down to body level
 
     maneSegment.position.set(baseX, baseY, 0);
     maneSegment.scale.set(0.7, 1.3, 0.5);
@@ -553,29 +1784,29 @@ function createUnicorn(color, isPlayer = false) {
     unicorn.add(forelock);
   }
 
-  // Tail - long and flowing
+  // Tail - long and flowing (made bigger and more prominent)
   const tailBase = new THREE.Mesh(
-    new THREE.SphereGeometry(0.23, 12, 12),
+    new THREE.SphereGeometry(0.35, 12, 12),
     bodyMaterial
   );
   tailBase.position.set(-1.2, 0.25, 0);
   unicorn.add(tailBase);
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 15; i++) {
     const tailSegment = new THREE.Mesh(
-      new THREE.SphereGeometry(0.21 - i * 0.017, 12, 12),
+      new THREE.SphereGeometry(0.32 - i * 0.015, 12, 12),
       new THREE.MeshStandardMaterial({
         color: maneColors[i % maneColors.length],
         roughness: 0.75
       })
     );
-    const t = i / 9;
+    const t = i / 14;
     tailSegment.position.set(
-      -1.3 - t * 1.1,
-      0.2 - t * 0.75 - Math.sin(t * Math.PI) * 0.28,
-      Math.sin(t * Math.PI * 2) * 0.14
+      -1.3 - t * 1.8,
+      0.2 - t * 1.2 - Math.sin(t * Math.PI) * 0.4,
+      Math.sin(t * Math.PI * 2) * 0.25
     );
-    tailSegment.scale.set(0.7, 1.5, 0.7);
+    tailSegment.scale.set(1.0, 2.0, 1.0);
     tailSegment.castShadow = true;
     unicorn.add(tailSegment);
   }
@@ -694,16 +1925,163 @@ scene.add(player);
 
 // Create unicorns in danger
 const unicornsInDanger = [];
+const bosses = [];
+const bases = [];
+
+// Dragon eggs collection system
+const dragonEggs = [];
+let collectedEggs = parseInt(localStorage.getItem('dragonEggsCollected') || '0');
+
+// Create dragon egg
+function createDragonEgg(x, z, type = 'fire') {
+  const egg = new THREE.Group();
+
+  // Egg types: fire (red/orange), ice (blue/cyan), shadow (purple/black), nature (green)
+  const eggColors = {
+    fire: { base: 0xff4400, spot: 0xff8800, glow: 0xff6600 },
+    ice: { base: 0x00ccff, spot: 0x66ddff, glow: 0x00ffff },
+    shadow: { base: 0x4400aa, spot: 0x6600cc, glow: 0x9900ff },
+    nature: { base: 0x44aa00, spot: 0x88cc00, glow: 0x00ff44 }
+  };
+
+  const colors = eggColors[type];
+
+  // Main egg body
+  const eggGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+  eggGeometry.scale(1, 1.3, 1); // Make it egg-shaped
+  const eggMaterial = new THREE.MeshStandardMaterial({
+    color: colors.base,
+    emissive: colors.glow,
+    emissiveIntensity: 0.3,
+    metalness: 0.4,
+    roughness: 0.6
+  });
+  const eggMesh = new THREE.Mesh(eggGeometry, eggMaterial);
+  eggMesh.castShadow = true;
+  egg.add(eggMesh);
+
+  // Egg spots/patterns
+  for (let i = 0; i < 8; i++) {
+    const spot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 8, 8),
+      new THREE.MeshStandardMaterial({
+        color: colors.spot,
+        emissive: colors.spot,
+        emissiveIntensity: 0.2,
+        metalness: 0.5,
+        roughness: 0.5
+      })
+    );
+    const angle = (i / 8) * Math.PI * 2;
+    spot.position.set(
+      Math.cos(angle) * 0.6,
+      Math.sin(i) * 0.3,
+      Math.sin(angle) * 0.6
+    );
+    egg.add(spot);
+  }
+
+  // Glowing ring around base
+  const ringGeometry = new THREE.RingGeometry(0.8, 1, 32);
+  const ringMaterial = new THREE.MeshBasicMaterial({
+    color: colors.glow,
+    transparent: true,
+    opacity: 0.5,
+    side: THREE.DoubleSide
+  });
+  const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = -0.5;
+  egg.add(ring);
+
+  // Glow light
+  const eggLight = new THREE.PointLight(colors.glow, 2, 10);
+  eggLight.position.set(0, 0, 0);
+  egg.add(eggLight);
+
+  // Position egg
+  const groundHeight = getTerrainHeight(x, z);
+  egg.position.set(x, groundHeight + 1, z);
+
+  egg.userData = {
+    type: type,
+    collected: false,
+    bobTime: Math.random() * Math.PI * 2,
+    ring: ring
+  };
+
+  scene.add(egg);
+  return egg;
+}
+
+// Spawn dragon eggs across the larger map
+const eggTypes = ['fire', 'ice', 'shadow', 'nature'];
+const eggPositions = [
+  { x: 2000, z: -1500, type: 'fire' },
+  { x: -1800, z: 2200, type: 'ice' },
+  { x: 800, z: -2800, type: 'shadow' },
+  { x: -3200, z: 500, type: 'nature' },
+  { x: 2500, z: 2500, type: 'fire' },
+  { x: -2400, z: -2400, type: 'ice' },
+  { x: 3000, z: 200, type: 'shadow' },
+  { x: 200, z: 3200, type: 'nature' }
+];
+
+eggPositions.forEach(pos => {
+  const egg = createDragonEgg(pos.x, pos.z, pos.type);
+  dragonEggs.push(egg);
+});
+
 const dangerPositions = [
-  { x: 40, z: 40 },
-  { x: -50, z: 30 },
-  { x: 45, z: -45 },
-  { x: -35, z: -50 },
-  { x: 10, z: 60 }
+  // FOREST BIOME (5 unicorns) - centered at (-5000, -5000)
+  { x: -5000, z: -5000, protection: 'base', biome: 'forest' },      // Unicorn 0 - Forest stronghold
+  { x: -4200, z: -5800, protection: 'boss', biome: 'forest' },      // Unicorn 1 - Forest boss
+  { x: -5800, z: -4200, protection: 'boss', biome: 'forest' },      // Unicorn 2 - Forest boss
+  { x: -4500, z: -4500, protection: 'none', biome: 'forest' },      // Unicorn 3 - Forest free
+  { x: -5500, z: -5500, protection: 'none', biome: 'forest' },      // Unicorn 4 - Forest free
+
+  // DESERT BIOME (5 unicorns) - centered at (5000, -5000)
+  { x: 5000, z: -5000, protection: 'base', biome: 'desert' },       // Unicorn 5 - Desert stronghold
+  { x: 5800, z: -4200, protection: 'boss', biome: 'desert' },       // Unicorn 6 - Desert boss
+  { x: 4200, z: -5800, protection: 'boss', biome: 'desert' },       // Unicorn 7 - Desert boss
+  { x: 5500, z: -5500, protection: 'none', biome: 'desert' },       // Unicorn 8 - Desert free
+  { x: 4500, z: -4500, protection: 'none', biome: 'desert' },       // Unicorn 9 - Desert free
+
+  // SNOW BIOME (5 unicorns) - centered at (0, 7000)
+  { x: 0, z: 7000, protection: 'base', biome: 'snow' },             // Unicorn 10 - Snow stronghold
+  { x: -800, z: 7800, protection: 'boss', biome: 'snow' },          // Unicorn 11 - Snow boss
+  { x: 800, z: 6200, protection: 'boss', biome: 'snow' },           // Unicorn 12 - Snow boss
+  { x: -500, z: 6500, protection: 'none', biome: 'snow' },          // Unicorn 13 - Snow free
+  { x: 500, z: 7500, protection: 'none', biome: 'snow' },           // Unicorn 14 - Snow free
+
+  // VOLCANIC BIOME (5 unicorns) - centered at (5000, 5000)
+  { x: 5000, z: 5000, protection: 'base', biome: 'volcanic' },      // Unicorn 15 - Volcanic stronghold
+  { x: 5800, z: 5800, protection: 'boss', biome: 'volcanic' },      // Unicorn 16 - Volcanic boss
+  { x: 4200, z: 4200, protection: 'boss', biome: 'volcanic' },      // Unicorn 17 - Volcanic boss
+  { x: 5500, z: 4500, protection: 'none', biome: 'volcanic' },      // Unicorn 18 - Volcanic free
+  { x: 4500, z: 5500, protection: 'none', biome: 'volcanic' },      // Unicorn 19 - Volcanic free
+
+  // SWAMP BIOME (5 unicorns) - centered at (-5000, 5000)
+  { x: -5000, z: 5000, protection: 'base', biome: 'swamp' },        // Unicorn 20 - Swamp stronghold
+  { x: -5800, z: 5800, protection: 'boss', biome: 'swamp' },        // Unicorn 21 - Swamp boss
+  { x: -4200, z: 4200, protection: 'boss', biome: 'swamp' },        // Unicorn 22 - Swamp boss
+  { x: -5500, z: 4500, protection: 'none', biome: 'swamp' },        // Unicorn 23 - Swamp free
+  { x: -4500, z: 5500, protection: 'none', biome: 'swamp' }         // Unicorn 24 - Swamp free
 ];
 
 dangerPositions.forEach((pos, index) => {
-  const colors = [0xe6e6fa, 0xdda0dd, 0xffb6c1, 0xf0e6ff, 0xffd7ff];
+  const colors = [
+    0xe6e6fa,  // Lavender
+    0xdda0dd,  // Plum
+    0xffb6c1,  // Light Pink
+    0xf0e6ff,  // Light Purple
+    0xffd7ff,  // Orchid
+    0xb0e0e6,  // Powder Blue
+    0xfffacd,  // Lemon Chiffon
+    0xf5deb3,  // Wheat
+    0xdaa520,  // Goldenrod
+    0x98fb98   // Pale Green
+  ];
   const unicornInDanger = createUnicorn(colors[index], false);
   const groundHeight = getTerrainHeight(pos.x, pos.z);
   unicornInDanger.position.set(pos.x, groundHeight + 3.5, pos.z);
@@ -719,7 +2097,7 @@ dangerPositions.forEach((pos, index) => {
     })
   );
   dangerRing.rotation.x = -Math.PI / 2;
-  dangerRing.position.y = 0.1;
+  dangerRing.position.y = -3.4;  // Position ring at ground level relative to unicorn
   unicornInDanger.add(dangerRing);
 
   // Danger particles (reduced for cleaner look)
@@ -756,8 +2134,33 @@ dangerPositions.forEach((pos, index) => {
       0,
       (Math.random() - 0.5) * 8 - 5
     ),
-    originalPosition: new THREE.Vector3(pos.x, groundHeight + 3.5, pos.z)
+    originalPosition: new THREE.Vector3(pos.x, groundHeight + 3.5, pos.z),
+    protection: pos.protection,
+    boss: null,
+    base: null
   };
+
+  // Create boss or base based on protection type
+  if (pos.protection === 'boss') {
+    const boss = createBoss(pos.x, pos.z);
+    unicornInDanger.userData.boss = boss;
+    boss.userData.unicornIndex = index;
+    bosses.push(boss);
+  } else if (pos.protection === 'base') {
+    const base = createBase(pos.x, pos.z);
+    unicornInDanger.userData.base = base;
+    base.userData.unicornIndex = index;
+    bases.push(base);
+
+    // Add a stronghold boss to guard this base
+    const strongholdBoss = createBoss(pos.x, pos.z, true);
+    strongholdBoss.userData.health = 5;  // Stronghold bosses have 5 health instead of 3
+    strongholdBoss.userData.maxHealth = 5;
+    strongholdBoss.userData.isStrongholdBoss = true;
+    strongholdBoss.userData.baseIndex = bases.length - 1;
+    strongholdBoss.userData.flyHeight = 8; // Fly higher than regular dragons
+    bosses.push(strongholdBoss);
+  }
 
   scene.add(unicornInDanger);
   unicornsInDanger.push(unicornInDanger);
@@ -807,6 +2210,11 @@ function startGame() {
     if (loadingScreen) {
       loadingScreen.style.display = 'none';
     }
+
+    // Start background music
+    audioContext.resume().then(() => {
+      startBackgroundMusic();
+    });
 
     // Try to load saved game
     loadSavedGame();
@@ -891,6 +2299,11 @@ document.getElementById('pause-button').addEventListener('click', () => {
     pauseMagicProgress.style.width = `${Math.max(0, gameState.magicPower)}%`;
   }
 
+  // Update map if visible
+  if (mapVisible) {
+    renderMap();
+  }
+
   // Show pause menu
   pauseMenu.classList.add('show');
 });
@@ -899,6 +2312,10 @@ document.getElementById('pause-button').addEventListener('click', () => {
 document.getElementById('resume-button').addEventListener('click', () => {
   gamePaused = false;
   pauseMenu.classList.remove('show');
+
+  // Hide map when resuming
+  mapVisible = false;
+  mapPanel.classList.remove('show');
 
   // Resume game - request pointer lock again
   renderer.domElement.requestPointerLock();
@@ -940,6 +2357,141 @@ document.getElementById('save-button').addEventListener('click', () => {
   showMessage('💾 Game Saved!');
 });
 
+// Restart button
+document.getElementById('restart-button').addEventListener('click', () => {
+  // Clear saved game
+  localStorage.removeItem('unicornsUnite_save');
+
+  // Reset and return to loading screen
+  resetGame();
+
+  showMessage('🔄 Game Restarted!');
+});
+
+// Map toggle button
+let mapVisible = false;
+const mapPanel = document.getElementById('map-panel');
+const mapCanvas = document.getElementById('game-map');
+const mapCtx = mapCanvas.getContext('2d');
+
+document.getElementById('toggle-map-button').addEventListener('click', () => {
+  mapVisible = !mapVisible;
+
+  if (mapVisible) {
+    mapPanel.classList.add('show');
+    renderMap();
+  } else {
+    mapPanel.classList.remove('show');
+  }
+});
+
+// Function to render the map
+function renderMap() {
+  const canvas = mapCanvas;
+  const ctx = mapCtx;
+  const width = canvas.width;
+  const height = canvas.height;
+
+  // Clear canvas
+  ctx.clearRect(0, 0, width, height);
+
+  // Draw background with gradient
+  const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width/2);
+  gradient.addColorStop(0, 'rgba(50, 80, 50, 0.8)');
+  gradient.addColorStop(1, 'rgba(20, 40, 20, 0.8)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+
+  // Draw grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  const gridSize = 50;
+  for (let x = 0; x < width; x += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let y = 0; y < height; y += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  // Map scale and offset (game world is roughly -150 to +150 in both X and Z)
+  const worldSize = 300;
+  const scale = width / worldSize;
+  const offsetX = width / 2;
+  const offsetY = height / 2;
+
+  // Function to convert world coordinates to canvas coordinates
+  function worldToCanvas(x, z) {
+    return {
+      x: offsetX + x * scale,
+      y: offsetY + z * scale
+    };
+  }
+
+  // Draw unicorns in danger
+  unicornsInDanger.forEach(unicorn => {
+    const pos = worldToCanvas(unicorn.position.x, unicorn.position.z);
+
+    // Draw unicorn marker
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+
+    if (unicorn.userData.saved) {
+      // Saved unicorn - green
+      ctx.fillStyle = '#00ff00';
+      ctx.shadowColor = '#00ff00';
+    } else {
+      // In danger - red
+      ctx.fillStyle = '#ff3333';
+      ctx.shadowColor = '#ff3333';
+    }
+
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Draw border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  // Draw player position (on top)
+  const playerPos = worldToCanvas(player.position.x, player.position.z);
+
+  // Player marker - golden with pulse effect
+  ctx.beginPath();
+  ctx.arc(playerPos.x, playerPos.y, 10, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffd700';
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = 20;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Player border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Draw player direction indicator
+  ctx.beginPath();
+  ctx.moveTo(playerPos.x, playerPos.y);
+  const dirAngle = player.rotation.y + Math.PI / 2;
+  const dirLength = 15;
+  ctx.lineTo(
+    playerPos.x + Math.cos(dirAngle) * dirLength,
+    playerPos.y + Math.sin(dirAngle) * dirLength
+  );
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
 // Save and end button
 document.getElementById('save-and-end-button').addEventListener('click', () => {
   // Save game
@@ -957,11 +2509,6 @@ document.getElementById('save-and-end-button').addEventListener('click', () => {
   localStorage.setItem('unicornsUnite_save', JSON.stringify(saveData));
 
   // Reset and return to loading screen
-  resetGame();
-});
-
-// End button (without saving)
-document.getElementById('end-button').addEventListener('click', () => {
   resetGame();
 });
 
@@ -1201,6 +2748,9 @@ function castSpell() {
   gameState.magicPower -= 20;
   updateUI();
 
+  // Play spell sound
+  playSpellSound();
+
   document.getElementById('spell-ability').classList.add('cooldown');
 
   // Create magical spell
@@ -1265,7 +2815,7 @@ function castSpell() {
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
   spell.userData = {
-    velocity: direction.clone().multiplyScalar(0.6),
+    velocity: direction.clone().multiplyScalar(1.8),  // Increased speed from 1.2 to 1.8
     lifetime: 0,
     particles
   };
@@ -1289,6 +2839,9 @@ function activateShield() {
   gameState.hasShield = true;
   gameState.magicPower -= 30;
   updateUI();
+
+  // Play shield sound
+  playShieldSound();
 
   document.getElementById('shield-ability').classList.add('cooldown');
 
@@ -1322,7 +2875,7 @@ function activateShield() {
       gameState.canUseShield = true;
       document.getElementById('shield-ability').classList.remove('cooldown');
     }, 2000);
-  }, 3000);
+  }, 5000);  // Increased from 3000 to 5000 milliseconds (5 seconds)
 }
 
 // UI updates
@@ -1347,6 +2900,36 @@ function showMessage(text) {
   }, 2500);
 }
 
+// Unlock new customization
+function unlockCustomization() {
+  completionCount++;
+  localStorage.setItem('unicornCompletions', completionCount.toString());
+
+  // Get all possible unlocks
+  const allUnlocks = [
+    ...customizationUnlocks.colors.map(c => ({ type: 'color', value: c })),
+    ...customizationUnlocks.horns.map(h => ({ type: 'horn', value: h })),
+    ...customizationUnlocks.manes.map(m => ({ type: 'mane', value: m })),
+    ...customizationUnlocks.effects.map(e => ({ type: 'effect', value: e }))
+  ];
+
+  // Filter out already unlocked
+  const availableUnlocks = allUnlocks.filter(unlock =>
+    !unlockedCustomizations.some(u => u.type === unlock.type && u.value === unlock.value)
+  );
+
+  if (availableUnlocks.length > 0) {
+    // Unlock a random customization
+    const newUnlock = availableUnlocks[Math.floor(Math.random() * availableUnlocks.length)];
+    unlockedCustomizations.push(newUnlock);
+    localStorage.setItem('unicornUnlocks', JSON.stringify(unlockedCustomizations));
+
+    return newUnlock;
+  }
+
+  return null;
+}
+
 // Game loop
 const clock = new THREE.Clock();
 let cameraAngle = 0;
@@ -1364,8 +2947,10 @@ function animate() {
   const delta = clock.getDelta();
   const time = clock.getElapsedTime();
 
-  // Player movement
-  const moveSpeed = 8 * delta;
+  // Player movement with sprint
+  const isSprinting = keys['f'] && gameState.magicPower > 0;
+  const baseSpeed = isSprinting ? 16 : 8; // Double speed when sprinting
+  const moveSpeed = baseSpeed * delta;
   const direction = new THREE.Vector3();
 
   if (keys['w'] || keys['arrowup']) direction.z -= 1;
@@ -1391,9 +2976,36 @@ function animate() {
     const newX = player.position.x + rotatedDir.x * moveSpeed;
     const newZ = player.position.z + rotatedDir.z * moveSpeed;
 
-    // Only move if not colliding with trees
-    if (!checkTreeCollision(newX, newZ)) {
+    // Only move if not colliding with trees or strongholds
+    if (!checkTreeCollision(newX, newZ) && !checkStrongholdCollision(newX, newZ)) {
       player.position.add(rotatedDir.multiplyScalar(moveSpeed));
+
+      // Drain magic when sprinting
+      if (isSprinting) {
+        gameState.magicPower = Math.max(0, gameState.magicPower - delta * 25);
+        updateUI();
+
+        // Add sprint particle trail
+        if (Math.random() < 0.3) {
+          const sprintParticle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.2, 8, 8),
+            new THREE.MeshBasicMaterial({
+              color: 0x00ffff,
+              transparent: true,
+              opacity: 0.8
+            })
+          );
+          sprintParticle.position.copy(player.position);
+          sprintParticle.position.y -= 1;
+          sprintParticle.position.x += (Math.random() - 0.5) * 2;
+          sprintParticle.position.z += (Math.random() - 0.5) * 2;
+          scene.add(sprintParticle);
+
+          setTimeout(() => {
+            scene.remove(sprintParticle);
+          }, 500);
+        }
+      }
     }
 
     // Face the direction of movement
@@ -1404,7 +3016,7 @@ function animate() {
     const terrainHeight = getTerrainHeight(player.position.x, player.position.z);
 
     // Realistic gallop cycle - horses have a 4-beat gait
-    const gallopSpeed = 6; // Slower for more realism
+    const gallopSpeed = isSprinting ? 12 : 6; // Faster animation when sprinting
     const gallopCycle = time * gallopSpeed;
 
     // Two-phase bounce pattern (suspension phase in real galloping)
@@ -1526,53 +3138,359 @@ function animate() {
       spell.userData.particles.rotation.y += delta * 2;
     }
 
-    // Check collision with unicorns
-    unicornsInDanger.forEach(unicorn => {
-      if (!unicorn.userData.saved) {
-        const distance = spell.position.distanceTo(unicorn.position);
-        if (distance < 50) {
-          unicorn.userData.saved = true;
-          gameState.unicornsSaved++;
-          updateUI();
-          showMessage('✨ Unicorn Saved! ✨');
+    // Check collision with bosses
+    bosses.forEach((boss, bossIndex) => {
+      if (!boss.userData.defeated) {
+        const distance = spell.position.distanceTo(boss.position);
+        if (distance < 4) {
+          boss.userData.health--;
+          showMessage(`💥 Boss Hit! Health: ${boss.userData.health}/${boss.userData.maxHealth}`);
 
-          // Remove danger effects
-          unicorn.remove(unicorn.userData.dangerRing);
-          unicorn.remove(unicorn.userData.particles);
+          // Remove spell after hit
+          scene.remove(spell);
+          spells.splice(index, 1);
 
-          // Add celebration effects
-          const celebrationLight = new THREE.PointLight(0xffd700, 3, 15);
-          unicorn.add(celebrationLight);
+          if (boss.userData.health <= 0) {
+            boss.userData.defeated = true;
+            gameState.bossesDefeated++;
 
-          // Victory sparkles
-          for (let i = 0; i < 20; i++) {
-            setTimeout(() => {
-              const sparkle = new THREE.Mesh(
-                new THREE.SphereGeometry(0.2, 8, 8),
-                new THREE.MeshBasicMaterial({ color: 0xffd700 })
-              );
-              sparkle.position.copy(unicorn.position);
-              sparkle.position.y += Math.random() * 4;
-              sparkle.position.x += (Math.random() - 0.5) * 4;
-              sparkle.position.z += (Math.random() - 0.5) * 4;
-              scene.add(sparkle);
+            // Play dragon defeated sound
+            playDragonDefeatedSound();
 
-              setTimeout(() => scene.remove(sparkle), 1000);
-            }, i * 50);
+            showMessage('⚔️ Boss Defeated! ⚔️');
+
+            // Clear boss reference from unicorn
+            const unicornIdx = boss.userData.unicornIndex;
+            if (unicornsInDanger[unicornIdx]) {
+              unicornsInDanger[unicornIdx].userData.boss = null;
+            }
+
+            // Boss death animation
+            scene.remove(boss);
+            bosses.splice(bossIndex, 1);
           }
+          return;
+        }
+      }
+    });
 
-          if (gameState.unicornsSaved === gameState.totalUnicorns) {
-            setTimeout(() => {
-              showMessage('🎉 YOU WIN! All Unicorns United! 🎉');
-            }, 500);
+    // Check collision with bases
+    bases.forEach((base, baseIndex) => {
+      if (!base.userData.destroyed) {
+        const distance = spell.position.distanceTo(base.position);
+        if (distance < 6) {
+          base.userData.health--;
+          showMessage(`⚡ Base Hit! Integrity: ${base.userData.health}/${base.userData.maxHealth}`);
+
+          // Visual damage effect - reduce opacity
+          const damagePercent = base.userData.health / base.userData.maxHealth;
+          base.userData.dome.material.opacity = 0.3 * damagePercent;
+          base.userData.grid.material.opacity = 0.6 * damagePercent;
+
+          // Remove spell after hit
+          scene.remove(spell);
+          spells.splice(index, 1);
+
+          if (base.userData.health <= 0) {
+            base.userData.destroyed = true;
+            gameState.basesDestroyed++;
+            showMessage('💥 Base Destroyed! 💥');
+
+            // Clear base reference from unicorn
+            const unicornIdx = base.userData.unicornIndex;
+            if (unicornsInDanger[unicornIdx]) {
+              unicornsInDanger[unicornIdx].userData.base = null;
+            }
+
+            // Remove from collision array
+            const collisionIndex = strongholdPositions.findIndex(
+              sh => sh.x === base.position.x && sh.z === base.position.z
+            );
+            if (collisionIndex !== -1) {
+              strongholdPositions.splice(collisionIndex, 1);
+            }
+
+            // Base destruction animation
+            scene.remove(base);
+            bases.splice(baseIndex, 1);
+          }
+          return;
+        }
+      }
+    });
+
+    // Check collision with unicorns (only if boss is defeated or base is destroyed)
+    unicornsInDanger.forEach((unicorn, unicornIndex) => {
+      if (!unicorn.userData.saved) {
+        // Check if unicorn is protected
+        const canSave = (unicorn.userData.protection === 'boss' && !unicorn.userData.boss) ||
+                        (unicorn.userData.protection === 'base' && !unicorn.userData.base) ||
+                        (unicorn.userData.protection === 'none');
+
+        if (canSave) {
+          const distance = spell.position.distanceTo(unicorn.position);
+          if (distance < 5) {
+            unicorn.userData.saved = true;
+            gameState.unicornsSaved++;
+            updateUI();
+
+            // Play unicorn save sound
+            playUnicornSaveSound();
+
+            showMessage('✨ Unicorn Saved! ✨');
+
+            // Remove danger effects
+            unicorn.remove(unicorn.userData.dangerRing);
+            unicorn.remove(unicorn.userData.particles);
+
+            // Add celebration effects
+            const celebrationLight = new THREE.PointLight(0xffd700, 3, 15);
+            unicorn.add(celebrationLight);
+
+            // Victory sparkles
+            for (let i = 0; i < 20; i++) {
+              setTimeout(() => {
+                const sparkle = new THREE.Mesh(
+                  new THREE.SphereGeometry(0.2, 8, 8),
+                  new THREE.MeshBasicMaterial({ color: 0xffd700 })
+                );
+                sparkle.position.copy(unicorn.position);
+                sparkle.position.y += Math.random() * 4;
+                sparkle.position.x += (Math.random() - 0.5) * 4;
+                sparkle.position.z += (Math.random() - 0.5) * 4;
+                scene.add(sparkle);
+
+                setTimeout(() => scene.remove(sparkle), 1000);
+              }, i * 50);
+            }
+
+            if (gameState.unicornsSaved === gameState.totalUnicorns) {
+              setTimeout(() => {
+                // Play victory sound
+                playVictorySound();
+
+                const unlock = unlockCustomization();
+                if (unlock) {
+                  showMessage(`🎉 YOU WIN! All Unicorns United! 🎉\n🔓 Unlocked: ${unlock.type} - ${unlock.value}!`);
+                } else {
+                  showMessage('🎉 YOU WIN! All Unicorns United! 🎉\n✨ All customizations unlocked!');
+                }
+              }, 500);
+            }
+
+            // Remove spell after saving unicorn
+            scene.remove(spell);
+            spells.splice(index, 1);
+          }
+        } else if (unicorn.userData.protection === 'boss' && unicorn.userData.boss) {
+          // Show message that boss must be defeated first
+          const distance = spell.position.distanceTo(unicorn.position);
+          if (distance < 5) {
+            showMessage('⚠️ Defeat the boss first!');
+          }
+        } else if (unicorn.userData.protection === 'base' && unicorn.userData.base) {
+          // Show message that base must be destroyed first
+          const distance = spell.position.distanceTo(unicorn.position);
+          if (distance < 5) {
+            showMessage('⚠️ Destroy the force field first!');
           }
         }
       }
     });
 
-    if (spell.userData.lifetime > 8) {
+    if (spell.userData.lifetime > 15) {  // Increased from 12 to 15 seconds
       scene.remove(spell);
       spells.splice(index, 1);
+    }
+  });
+
+  // Animate bosses (dragons)
+  bosses.forEach(boss => {
+    if (!boss.userData.defeated) {
+      // Patrol around center point
+      boss.userData.patrolAngle += boss.userData.rotationSpeed;
+      const centerX = boss.userData.centerX;
+      const centerZ = boss.userData.centerZ;
+      const radius = boss.userData.patrolRadius;
+
+      boss.position.x = centerX + Math.cos(boss.userData.patrolAngle) * radius;
+      boss.position.z = centerZ + Math.sin(boss.userData.patrolAngle) * radius;
+
+      // Bob up and down (dragon flight - stronghold dragons fly higher)
+      const baseHeight = boss.userData.flyHeight || 4;
+      boss.position.y = getTerrainHeight(boss.position.x, boss.position.z) + baseHeight + Math.sin(time * 2) * 0.5;
+
+      // Face direction of patrol movement
+      boss.rotation.y = boss.userData.patrolAngle + Math.PI / 2;
+
+      // Animate dragon wings (flapping)
+      if (boss.userData.leftWing && boss.userData.rightWing) {
+        const wingFlap = Math.sin(time * 8) * 0.4;
+        boss.userData.leftWing.rotation.z = Math.PI / 4 + wingFlap;
+        boss.userData.rightWing.rotation.z = -Math.PI / 4 - wingFlap;
+      }
+
+      // Check if player is nearby and attack with fire breath
+      const isStronghold = boss.userData.isStrongholdBoss;
+      const attackRange = isStronghold ? 25 : 15; // Stronghold dragons have longer range
+      const distToPlayer = boss.position.distanceTo(player.position);
+
+      if (distToPlayer < attackRange) {
+        boss.userData.attackCooldown -= delta;
+        if (boss.userData.attackCooldown <= 0 && !gameState.hasShield) {
+          // Dragon breathes fire/force at player
+          const particleCount = isStronghold ? 30 : 20; // More particles for stronghold
+
+          // Play dragon fire sound
+          playDragonFireSound();
+
+          // Create fire/force particles
+          for (let i = 0; i < particleCount; i++) {
+            const fireBall = new THREE.Mesh(
+              new THREE.SphereGeometry(isStronghold ? 0.4 : 0.3, 8, 8),
+              new THREE.MeshBasicMaterial({
+                // Dark purple/blue force for stronghold, orange/yellow fire for regular
+                color: isStronghold ?
+                  (i % 2 === 0 ? 0x6600cc : 0x9900ff) :
+                  (i % 2 === 0 ? 0xff4400 : 0xff8800),
+                transparent: true,
+                opacity: 0.8
+              })
+            );
+            fireBall.position.copy(boss.position);
+            fireBall.position.y -= 0.5;
+
+            // Direction towards player with some spread
+            const direction = new THREE.Vector3()
+              .subVectors(player.position, boss.position)
+              .normalize();
+            direction.x += (Math.random() - 0.5) * 0.3;
+            direction.z += (Math.random() - 0.5) * 0.3;
+
+            // Stronghold dragons shoot faster projectiles
+            const projectileSpeed = isStronghold ? 2.0 : 1.5;
+            const projectileLifetime = isStronghold ? 2000 : 1500;
+
+            fireBall.userData = {
+              velocity: direction.multiplyScalar(projectileSpeed),
+              lifetime: 0,
+              maxLifetime: projectileLifetime / 1000
+            };
+
+            scene.add(fireBall);
+            spells.push(fireBall); // Reuse spells array for fire particles
+
+            setTimeout(() => {
+              scene.remove(fireBall);
+              const idx = spells.indexOf(fireBall);
+              if (idx > -1) spells.splice(idx, 1);
+            }, projectileLifetime);
+          }
+
+          // Drain player magic (more for stronghold)
+          const magicDrain = isStronghold ? 8 : 5;
+          gameState.magicPower = Math.max(0, gameState.magicPower - magicDrain);
+          updateUI();
+          boss.userData.attackCooldown = 3; // Attack every 3 seconds
+          showMessage(isStronghold ? '⚡ Dragon unleashes dark force!' : '🔥 Dragon breathes fire!');
+        }
+      }
+
+      // Allied unicorns attack stronghold bosses
+      if (boss.userData.isStrongholdBoss) {
+        unicornsInDanger.forEach(unicorn => {
+          if (unicorn.userData.saved) {
+            const distToUnicorn = boss.position.distanceTo(unicorn.position);
+            if (distToUnicorn < 15) {
+              // Initialize attack cooldown if not present
+              if (!unicorn.userData.attackCooldown) {
+                unicorn.userData.attackCooldown = 0;
+              }
+
+              unicorn.userData.attackCooldown -= delta;
+              if (unicorn.userData.attackCooldown <= 0) {
+                // Allied unicorn attacks boss
+                boss.userData.health -= 1;
+                unicorn.userData.attackCooldown = 3; // Attack every 3 seconds
+
+                // Show attack message
+                showMessage('⚡ Allied unicorn attacks boss! ' + boss.userData.health + '/' + boss.userData.maxHealth);
+
+                // Create attack effect from unicorn to boss
+                const attackSpell = new THREE.Group();
+                const attackCore = new THREE.Mesh(
+                  new THREE.SphereGeometry(0.3, 16, 16),
+                  new THREE.MeshBasicMaterial({
+                    color: 0x00ffff,
+                    transparent: true,
+                    opacity: 0.8
+                  })
+                );
+                attackSpell.add(attackCore);
+                attackSpell.position.copy(unicorn.position);
+                attackSpell.position.y += 2;
+
+                const direction = new THREE.Vector3()
+                  .subVectors(boss.position, unicorn.position)
+                  .normalize();
+
+                attackSpell.userData = {
+                  velocity: direction.multiplyScalar(2),
+                  lifetime: 0,
+                  fromAlly: true
+                };
+
+                scene.add(attackSpell);
+                spells.push(attackSpell);
+
+                // Check if boss is defeated
+                if (boss.userData.health <= 0) {
+                  boss.userData.defeated = true;
+                  gameState.bossesDefeated++;
+
+                  // Play dragon defeated sound
+                  playDragonDefeatedSound();
+
+                  showMessage('⚔️ Stronghold Boss Defeated by Allies! ⚔️');
+
+                  // Clear boss reference from unicorn if it has one
+                  const unicornIdx = boss.userData.unicornIndex;
+                  if (unicornIdx !== undefined && unicornsInDanger[unicornIdx]) {
+                    unicornsInDanger[unicornIdx].userData.boss = null;
+                  }
+
+                  // Boss death animation
+                  scene.remove(boss);
+                  const bossIndex = bosses.indexOf(boss);
+                  if (bossIndex > -1) {
+                    bosses.splice(bossIndex, 1);
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+  });
+
+  // Animate bases
+  bases.forEach(base => {
+    if (!base.userData.destroyed) {
+      // Rotate base
+      base.rotation.y += base.userData.rotationSpeed;
+      base.userData.dome.rotation.y += delta * 0.5;
+      base.userData.grid.rotation.y -= delta * 0.3;
+
+      // Pulsing effect on dome
+      const pulseScale = 1 + Math.sin(time * 2) * 0.05;
+      base.userData.dome.scale.set(pulseScale, pulseScale, pulseScale);
+
+      // Pulsing core
+      if (base.userData.core) {
+        const coreScale = 1 + Math.sin(time * 3) * 0.3;
+        base.userData.core.scale.set(coreScale, coreScale, coreScale);
+      }
     }
   });
 
@@ -1702,9 +3620,62 @@ function animate() {
     }
   });
 
+  // Animate dragon eggs
+  dragonEggs.forEach((egg, index) => {
+    if (!egg.userData.collected) {
+      // Bob up and down
+      egg.userData.bobTime += delta * 2;
+      const originalY = getTerrainHeight(egg.position.x, egg.position.z) + 1;
+      egg.position.y = originalY + Math.sin(egg.userData.bobTime) * 0.3;
+
+      // Rotate
+      egg.rotation.y += delta * 0.5;
+
+      // Pulse ring
+      const pulseScale = 1 + Math.sin(egg.userData.bobTime * 2) * 0.2;
+      egg.userData.ring.scale.set(pulseScale, pulseScale, 1);
+
+      // Check if player is near to collect
+      const distToPlayer = egg.position.distanceTo(player.position);
+      if (distToPlayer < 3) {
+        egg.userData.collected = true;
+        collectedEggs++;
+        localStorage.setItem('dragonEggsCollected', collectedEggs.toString());
+
+        // Play egg collection sound
+        playEggCollectSound();
+
+        // Collection effect
+        for (let i = 0; i < 20; i++) {
+          setTimeout(() => {
+            const sparkle = new THREE.Mesh(
+              new THREE.SphereGeometry(0.2, 8, 8),
+              new THREE.MeshBasicMaterial({
+                color: egg.userData.type === 'fire' ? 0xff6600 :
+                       egg.userData.type === 'ice' ? 0x00ffff :
+                       egg.userData.type === 'shadow' ? 0x9900ff : 0x00ff44
+              })
+            );
+            sparkle.position.copy(egg.position);
+            sparkle.position.y += Math.random() * 2;
+            sparkle.position.x += (Math.random() - 0.5) * 2;
+            sparkle.position.z += (Math.random() - 0.5) * 2;
+            scene.add(sparkle);
+
+            setTimeout(() => scene.remove(sparkle), 500);
+          }, i * 30);
+        }
+
+        showMessage(`🥚 Dragon Egg Collected! (${collectedEggs} total) - ${egg.userData.type} type`);
+        scene.remove(egg);
+        dragonEggs.splice(index, 1);
+      }
+    }
+  });
+
   // Regenerate magic
   if (gameState.magicPower < 100) {
-    gameState.magicPower = Math.min(100, gameState.magicPower + delta * 15);
+    gameState.magicPower = Math.min(100, gameState.magicPower + delta * 8);  // Reduced from 15 to 8
     updateUI();
   }
 
