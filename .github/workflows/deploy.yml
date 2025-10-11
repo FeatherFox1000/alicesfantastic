@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Unicorns Unite game dependencies
+        run: cd games/unicorns-unite && npm ci
+
       - name: Build main site
         run: npm run build
 
