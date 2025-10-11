@@ -855,6 +855,15 @@
       </div>
     </div>
 
-    <script type="module" src="/main.js"></script>
+    <script type="module">
+      // Ensure DOM is fully loaded before initializing the game
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', async () => {
+          await import('/main.js');
+        });
+      } else {
+        import('/main.js');
+      }
+    </script>
   </body>
 </html>
