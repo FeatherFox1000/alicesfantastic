@@ -33,11 +33,11 @@ jobs:
       - name: Install Unicorns Unite game dependencies
         run: cd games/unicorns-unite && npm ci
 
-      - name: Build main site
-        run: npm run build
-
       - name: Build Unicorns Unite game
         run: npm run build:unicorns-unite
+
+      - name: Build main site
+        run: npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
