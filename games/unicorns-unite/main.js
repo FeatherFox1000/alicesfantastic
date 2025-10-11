@@ -155,9 +155,9 @@ function createGround() {
   for (let i = 0; i < vertices.count; i++) {
     const x = vertices.getX(i);
     const z = vertices.getZ(i);
-    const height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 2 +
-                   Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.5;
-    vertices.setZ(i, height);
+    const height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
+                   Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.3;
+    vertices.setZ(i, Math.max(0, height + 0.5));
   }
   groundGeometry.computeVertexNormals();
 
@@ -193,8 +193,9 @@ function addGrass(groundSize) {
   for (let i = 0; i < grassCount; i++) {
     const x = (Math.random() - 0.5) * groundSize * 0.9;
     const z = (Math.random() - 0.5) * groundSize * 0.9;
-    const y = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 2 +
-              Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.5 + 0.75;
+    const height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
+                   Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.3;
+    const y = Math.max(0, height + 0.5) + 0.75;
 
     dummy.position.set(x, y, z);
     dummy.rotation.y = Math.random() * Math.PI;
@@ -213,9 +214,14 @@ createGround();
 
 // Helper function to get terrain height at position
 function getTerrainHeight(x, z) {
-  return Math.sin(x * 0.03) * Math.cos(z * 0.03) * 2 +
-         Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.5;
+  // Flatter terrain with minimum height of 0
+  const height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
+                 Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.3;
+  return Math.max(0, height + 0.5); // Ensure minimum height of 0.5
 }
+
+// Tree collision storage
+const treePositions = [];
 
 // Create detailed trees
 function createTree(x, z) {
@@ -252,6 +258,9 @@ function createTree(x, z) {
 
   tree.position.set(x, 0, z);
   scene.add(tree);
+
+  // Store tree position for collision detection (radius of trunk at ground level)
+  treePositions.push({ x, z, radius: 1.5 });
 }
 
 // Add forest
@@ -264,13 +273,25 @@ for (let i = 0; i < 50; i++) {
   }
 }
 
+// Check collision with trees
+function checkTreeCollision(x, z, radius = 2) {
+  for (const tree of treePositions) {
+    const dx = x - tree.x;
+    const dz = z - tree.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    if (distance < tree.radius + radius) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Add magical flowers
 function createFlowers() {
   for (let i = 0; i < 60; i++) {
     const x = (Math.random() - 0.5) * 260;
     const z = (Math.random() - 0.5) * 260;
-    const y = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 2 +
-              Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.5;
+    const y = getTerrainHeight(x, z);
 
     const flower = new THREE.Group();
 
@@ -573,6 +594,9 @@ function createUnicorn(color, isPlayer = false) {
     const legGroup = new THREE.Group();
     legGroup.position.set(pos.x, 0, pos.z);
 
+    // Upper leg group (can rotate at hip)
+    const upperLegGroup = new THREE.Group();
+
     // Upper leg (thigh/shoulder)
     const upperLeg = new THREE.Mesh(
       new THREE.CylinderGeometry(0.2, 0.17, 0.85, 12),
@@ -581,7 +605,7 @@ function createUnicorn(color, isPlayer = false) {
     upperLeg.position.set(0, -0.425, 0);
     upperLeg.castShadow = true;
     upperLeg.receiveShadow = true;
-    legGroup.add(upperLeg);
+    upperLegGroup.add(upperLeg);
 
     // Knee/hock joint
     const joint = new THREE.Mesh(
@@ -590,35 +614,39 @@ function createUnicorn(color, isPlayer = false) {
     );
     joint.position.set(0, -0.85, 0);
     joint.castShadow = true;
-    legGroup.add(joint);
+    upperLegGroup.add(joint);
+
+    // Lower leg group (rotates at knee)
+    const lowerLegGroup = new THREE.Group();
+    lowerLegGroup.position.set(0, -0.85, 0); // Position at knee
 
     // Lower leg (cannon bone)
     const lowerLeg = new THREE.Mesh(
       new THREE.CylinderGeometry(0.14, 0.12, 0.85, 12),
       bodyMaterial
     );
-    lowerLeg.position.set(0, -1.275, 0);
+    lowerLeg.position.set(0, -0.425, 0);
     lowerLeg.castShadow = true;
     lowerLeg.receiveShadow = true;
-    legGroup.add(lowerLeg);
+    lowerLegGroup.add(lowerLeg);
 
     // Fetlock (ankle)
     const fetlock = new THREE.Mesh(
       new THREE.SphereGeometry(0.12, 12, 12),
       bodyMaterial
     );
-    fetlock.position.set(0, -1.7, 0);
+    fetlock.position.set(0, -0.85, 0);
     fetlock.castShadow = true;
-    legGroup.add(fetlock);
+    lowerLegGroup.add(fetlock);
 
     // Pastern (lower ankle)
     const pastern = new THREE.Mesh(
       new THREE.CylinderGeometry(0.11, 0.13, 0.23, 12),
       bodyMaterial
     );
-    pastern.position.set(0, -1.84, 0);
+    pastern.position.set(0, -0.99, 0);
     pastern.castShadow = true;
-    legGroup.add(pastern);
+    lowerLegGroup.add(pastern);
 
     // Hoof
     const hoof = new THREE.Mesh(
@@ -629,12 +657,21 @@ function createUnicorn(color, isPlayer = false) {
         roughness: 0.6
       })
     );
-    hoof.position.set(0, -2.0, 0);
+    hoof.position.set(0, -1.15, 0);
     hoof.castShadow = true;
-    legGroup.add(hoof);
+    lowerLegGroup.add(hoof);
 
+    upperLegGroup.add(lowerLegGroup);
+    legGroup.add(upperLegGroup);
     unicorn.add(legGroup);
-    legs.push({ group: legGroup, phase: pos.phase, baseY: 0 });
+
+    legs.push({
+      group: legGroup,
+      upperLeg: upperLegGroup,
+      lowerLeg: lowerLegGroup,
+      phase: pos.phase,
+      baseY: 0
+    });
   });
 
   // Store legs for animation
@@ -652,7 +689,7 @@ function createUnicorn(color, isPlayer = false) {
 
 const player = createUnicorn(0xfff0f5, true);
 const playerGroundHeight = getTerrainHeight(0, 0);
-player.position.set(0, playerGroundHeight + 2.2, 0);
+player.position.set(0, playerGroundHeight + 3.5, 0);
 scene.add(player);
 
 // Create unicorns in danger
@@ -669,7 +706,7 @@ dangerPositions.forEach((pos, index) => {
   const colors = [0xe6e6fa, 0xdda0dd, 0xffb6c1, 0xf0e6ff, 0xffd7ff];
   const unicornInDanger = createUnicorn(colors[index], false);
   const groundHeight = getTerrainHeight(pos.x, pos.z);
-  unicornInDanger.position.set(pos.x, groundHeight + 2.2, pos.z);
+  unicornInDanger.position.set(pos.x, groundHeight + 3.5, pos.z);
 
   // Danger indicator (cleaner look)
   const dangerRing = new THREE.Mesh(
@@ -719,7 +756,7 @@ dangerPositions.forEach((pos, index) => {
       0,
       (Math.random() - 0.5) * 8 - 5
     ),
-    originalPosition: new THREE.Vector3(pos.x, groundHeight + 2.2, pos.z)
+    originalPosition: new THREE.Vector3(pos.x, groundHeight + 3.5, pos.z)
   };
 
   scene.add(unicornInDanger);
@@ -770,22 +807,168 @@ function startGame() {
     if (loadingScreen) {
       loadingScreen.style.display = 'none';
     }
+
+    // Try to load saved game
+    loadSavedGame();
+
     // Auto-enable pointer lock when game starts
     renderer.domElement.requestPointerLock();
+  }
+}
+
+// Load saved game function
+function loadSavedGame() {
+  const savedData = localStorage.getItem('unicornsUnite_save');
+  if (savedData) {
+    try {
+      const save = JSON.parse(savedData);
+
+      // Restore game state
+      gameState.unicornsSaved = save.unicornsSaved || 0;
+      gameState.magicPower = save.magicPower || 100;
+
+      // Restore player position
+      if (save.playerPosition) {
+        player.position.set(
+          save.playerPosition.x,
+          save.playerPosition.y,
+          save.playerPosition.z
+        );
+      }
+
+      // Restore saved unicorns
+      if (save.savedUnicorns && Array.isArray(save.savedUnicorns)) {
+        save.savedUnicorns.forEach((isSaved, index) => {
+          if (isSaved && unicornsInDanger[index]) {
+            const unicorn = unicornsInDanger[index];
+            unicorn.userData.saved = true;
+
+            // Remove danger effects
+            if (unicorn.userData.dangerRing.parent) {
+              unicorn.remove(unicorn.userData.dangerRing);
+            }
+            if (unicorn.userData.particles.parent) {
+              unicorn.remove(unicorn.userData.particles);
+            }
+
+            // Add celebration light
+            const celebrationLight = new THREE.PointLight(0xffd700, 3, 15);
+            unicorn.add(celebrationLight);
+          }
+        });
+      }
+
+      // Update UI with restored state
+      updateUI();
+
+      showMessage('✨ Game Loaded!');
+    } catch (e) {
+      console.error('Error loading saved game:', e);
+    }
   }
 }
 
 // Add click listener to start button
 document.getElementById('start-button').addEventListener('click', startGame);
 
-// Exit game button
-document.getElementById('exit-button').addEventListener('click', () => {
-  // Exit pointer lock
+// Pause game button
+let gamePaused = false;
+const pauseMenu = document.getElementById('pause-menu');
+
+document.getElementById('pause-button').addEventListener('click', () => {
+  gamePaused = true;
+
+  // Exit pointer lock when paused
   if (document.pointerLockElement) {
     document.exitPointerLock();
   }
 
+  // Update pause menu stats
+  document.getElementById('pause-unicorns-saved').textContent = `${gameState.unicornsSaved}/${gameState.totalUnicorns}`;
+  document.getElementById('pause-magic-power').textContent = `${Math.max(0, Math.round(gameState.magicPower))}%`;
+  const pauseMagicProgress = document.getElementById('pause-magic-progress');
+  if (pauseMagicProgress) {
+    pauseMagicProgress.style.width = `${Math.max(0, gameState.magicPower)}%`;
+  }
+
+  // Show pause menu
+  pauseMenu.classList.add('show');
+});
+
+// Resume button
+document.getElementById('resume-button').addEventListener('click', () => {
+  gamePaused = false;
+  pauseMenu.classList.remove('show');
+
+  // Resume game - request pointer lock again
+  renderer.domElement.requestPointerLock();
+});
+
+// Fullscreen button
+document.getElementById('fullscreen-button').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    // Enter fullscreen
+    document.documentElement.requestFullscreen().then(() => {
+      showMessage('🖥️ Fullscreen Mode Activated!');
+    }).catch(err => {
+      console.error('Error attempting to enable fullscreen:', err);
+      showMessage('⚠️ Fullscreen not supported');
+    });
+  } else {
+    // Exit fullscreen
+    document.exitFullscreen().then(() => {
+      showMessage('🖥️ Fullscreen Mode Deactivated!');
+    });
+  }
+});
+
+// Save button
+document.getElementById('save-button').addEventListener('click', () => {
+  // Save game state to localStorage
+  const saveData = {
+    unicornsSaved: gameState.unicornsSaved,
+    magicPower: gameState.magicPower,
+    playerPosition: {
+      x: player.position.x,
+      y: player.position.y,
+      z: player.position.z
+    },
+    savedUnicorns: unicornsInDanger.map(u => u.userData.saved),
+    timestamp: Date.now()
+  };
+  localStorage.setItem('unicornsUnite_save', JSON.stringify(saveData));
+  showMessage('💾 Game Saved!');
+});
+
+// Save and end button
+document.getElementById('save-and-end-button').addEventListener('click', () => {
+  // Save game
+  const saveData = {
+    unicornsSaved: gameState.unicornsSaved,
+    magicPower: gameState.magicPower,
+    playerPosition: {
+      x: player.position.x,
+      y: player.position.y,
+      z: player.position.z
+    },
+    savedUnicorns: unicornsInDanger.map(u => u.userData.saved),
+    timestamp: Date.now()
+  };
+  localStorage.setItem('unicornsUnite_save', JSON.stringify(saveData));
+
+  // Reset and return to loading screen
+  resetGame();
+});
+
+// End button (without saving)
+document.getElementById('end-button').addEventListener('click', () => {
+  resetGame();
+});
+
+// Reset game function
+function resetGame() {
   // Reset game state
+  gamePaused = false;
   gameStarted = false;
   mouseMovement = false;
   gameState.unicornsSaved = 0;
@@ -795,7 +978,7 @@ document.getElementById('exit-button').addEventListener('click', () => {
   gameState.hasShield = false;
 
   // Reset player position
-  player.position.set(0, playerGroundHeight + 2.2, 0);
+  player.position.set(0, playerGroundHeight + 3.5, 0);
   player.rotation.y = 0;
 
   // Reset camera
@@ -834,6 +1017,9 @@ document.getElementById('exit-button').addEventListener('click', () => {
   document.getElementById('spell-ability').classList.remove('cooldown');
   document.getElementById('shield-ability').classList.remove('cooldown');
 
+  // Hide pause menu
+  pauseMenu.classList.remove('show');
+
   // Show loading screen again
   const loadingScreen = document.getElementById('loading-screen');
   if (loadingScreen) {
@@ -841,7 +1027,7 @@ document.getElementById('exit-button').addEventListener('click', () => {
   }
 
   updateUI();
-});
+}
 
 // Click to enable pointer lock during game
 renderer.domElement.addEventListener('click', () => {
@@ -854,6 +1040,158 @@ renderer.domElement.addEventListener('click', () => {
 document.addEventListener('pointerlockchange', () => {
   mouseMovement = document.pointerLockElement === renderer.domElement;
 });
+
+// Toggle UI button functionality
+let uiVisible = true;
+document.getElementById('toggle-ui-button').addEventListener('click', () => {
+  uiVisible = !uiVisible;
+
+  const infoPanel = document.getElementById('info-panel');
+  const controls = document.getElementById('controls');
+  const abilityBar = document.getElementById('ability-bar');
+
+  if (uiVisible) {
+    infoPanel.classList.remove('ui-panel-hidden');
+    controls.classList.remove('ui-panel-hidden');
+    abilityBar.classList.remove('ui-panel-hidden');
+  } else {
+    infoPanel.classList.add('ui-panel-hidden');
+    controls.classList.add('ui-panel-hidden');
+    abilityBar.classList.add('ui-panel-hidden');
+  }
+});
+
+// Unicorn customization system
+const customization = {
+  bodyColor: '#fff0f5',
+  maneColor: 'pink',
+  hornColor: '#ffd700'
+};
+
+// Mane color schemes
+const maneColorSchemes = {
+  pink: [0xff1493, 0xff69b4, 0xffb6c1, 0xff1493, 0xff69b4, 0xffb6c1],
+  purple: [0x8b00ff, 0x9932cc, 0xba55d3, 0x8b00ff, 0x9932cc, 0xba55d3],
+  rainbow: [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff, 0x4b0082],
+  fire: [0xff0000, 0xff4500, 0xffa500, 0xff0000, 0xff4500, 0xffa500],
+  ocean: [0x1e90ff, 0x00bfff, 0x87ceeb, 0x1e90ff, 0x00bfff, 0x87ceeb],
+  galaxy: [0x191970, 0x9370db, 0xff1493, 0x191970, 0x9370db, 0xff1493]
+};
+
+// Track selected colors temporarily
+let tempBodyColor = customization.bodyColor;
+let tempManeColor = customization.maneColor;
+let tempHornColor = customization.hornColor;
+
+// Customization button handlers
+document.querySelectorAll('[data-body-color]').forEach(button => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('[data-body-color]').forEach(btn => btn.classList.remove('selected'));
+    button.classList.add('selected');
+    tempBodyColor = button.getAttribute('data-body-color');
+  });
+});
+
+document.querySelectorAll('[data-mane-color]').forEach(button => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('[data-mane-color]').forEach(btn => btn.classList.remove('selected'));
+    button.classList.add('selected');
+    tempManeColor = button.getAttribute('data-mane-color');
+  });
+});
+
+document.querySelectorAll('[data-horn-color]').forEach(button => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('[data-horn-color]').forEach(btn => btn.classList.remove('selected'));
+    button.classList.add('selected');
+    tempHornColor = button.getAttribute('data-horn-color');
+  });
+});
+
+// Apply customization button
+document.getElementById('apply-customization').addEventListener('click', () => {
+  customization.bodyColor = tempBodyColor;
+  customization.maneColor = tempManeColor;
+  customization.hornColor = tempHornColor;
+
+  applyUnicornCustomization();
+  showMessage('✨ Customization Applied! ✨');
+});
+
+// Function to apply customization to player unicorn
+function applyUnicornCustomization() {
+  const bodyColor = new THREE.Color(customization.bodyColor);
+  const hornColor = new THREE.Color(customization.hornColor);
+  const maneColors = maneColorSchemes[customization.maneColor];
+
+  // Update body color
+  player.children.forEach(child => {
+    if (child.isMesh && child.material) {
+      // Check if it's a body part (not mane, tail, horn, or hoof)
+      const materialColor = child.material.color;
+      if (materialColor &&
+          !child.material.metalness || child.material.metalness < 0.5) {
+        // Update body materials
+        if (child.geometry.type === 'CapsuleGeometry' ||
+            child.geometry.type === 'SphereGeometry' ||
+            child.geometry.type === 'CylinderGeometry' ||
+            child.geometry.type === 'BoxGeometry') {
+          child.material.color.copy(bodyColor);
+        }
+      }
+    }
+  });
+
+  // Update legs (body parts in groups)
+  if (player.userData.legs) {
+    player.userData.legs.forEach(leg => {
+      leg.upperLeg.children.forEach(child => {
+        if (child.isMesh && child.material && child.material.color) {
+          child.material.color.copy(bodyColor);
+        }
+      });
+      leg.lowerLeg.children.forEach(child => {
+        if (child.isMesh && child.material && child.material.color) {
+          // Don't change hoof color
+          if (child.material.metalness < 0.5) {
+            child.material.color.copy(bodyColor);
+          }
+        }
+      });
+    });
+  }
+
+  // Update mane colors
+  if (player.userData.mane) {
+    player.userData.mane.forEach((segment, index) => {
+      const colorIndex = index % maneColors.length;
+      segment.material.color.setHex(maneColors[colorIndex]);
+      segment.material.emissive.setHex(maneColors[colorIndex]);
+    });
+  }
+
+  // Update tail colors (search for tail segments)
+  let tailSegmentCount = 0;
+  player.children.forEach(child => {
+    if (child.isMesh && child.geometry.type === 'SphereGeometry' &&
+        child.position.x < -1) { // Tail is at negative X
+      const colorIndex = tailSegmentCount % maneColors.length;
+      if (child.material.roughness > 0.7) { // Identify tail material
+        child.material.color.setHex(maneColors[colorIndex]);
+        tailSegmentCount++;
+      }
+    }
+  });
+
+  // Update horn
+  player.children.forEach(child => {
+    if (child.isMesh && child.geometry.type === 'CylinderGeometry' &&
+        child.position.y > 1.5) { // Horn is high up
+      child.material.color.copy(hornColor);
+      child.material.emissive.copy(hornColor);
+    }
+  });
+}
 
 // Advanced magic spell system
 const spells = [];
@@ -1016,6 +1354,13 @@ let cameraHeight = 0;
 
 function animate() {
   requestAnimationFrame(animate);
+
+  // Skip game logic if paused, but still render
+  if (gamePaused) {
+    composer.render();
+    return;
+  }
+
   const delta = clock.getDelta();
   const time = clock.getElapsedTime();
 
@@ -1041,7 +1386,15 @@ function animate() {
 
     // Store direction before modifying for position
     const moveDir = rotatedDir.clone();
-    player.position.add(rotatedDir.multiplyScalar(moveSpeed));
+
+    // Calculate new position
+    const newX = player.position.x + rotatedDir.x * moveSpeed;
+    const newZ = player.position.z + rotatedDir.z * moveSpeed;
+
+    // Only move if not colliding with trees
+    if (!checkTreeCollision(newX, newZ)) {
+      player.position.add(rotatedDir.multiplyScalar(moveSpeed));
+    }
 
     // Face the direction of movement
     // Calculate angle and add 90 degrees (PI/2) to align unicorn head with movement
@@ -1058,7 +1411,7 @@ function animate() {
     const bouncePhase1 = Math.sin(gallopCycle * 2);
     const bouncePhase2 = Math.sin(gallopCycle * 2 + Math.PI * 0.5);
     const verticalBounce = (Math.abs(bouncePhase1) * 0.4 + Math.abs(bouncePhase2) * 0.2) * 0.7;
-    player.position.y = terrainHeight + 2.2 + verticalBounce;
+    player.position.y = terrainHeight + 3.5 + verticalBounce;
 
     // Dynamic body tilt based on movement
     const forwardTilt = Math.sin(gallopCycle * 2) * 0.12; // More forward lean during gallop
@@ -1066,7 +1419,7 @@ function animate() {
     player.rotation.x = forwardTilt;
     player.rotation.z = sideSway;
 
-    // Animate legs - realistic four-beat gallop
+    // Animate legs - realistic four-beat gallop with knee bending
     if (player.userData.legs) {
       player.userData.legs.forEach((leg, index) => {
         // Each leg has a slightly different timing for realistic gait
@@ -1075,13 +1428,21 @@ function animate() {
 
         // Realistic leg lift with proper stride
         const stride = Math.sin(legCycle);
-        const lift = Math.max(0, stride) * 0.5; // Reduced lift
-        const reach = stride * 0.2; // Reduced forward reach
+        const lift = Math.max(0, stride) * 0.5; // Vertical lift
+        const reach = stride * 0.3; // Hip rotation angle
 
+        // Position adjustment for lift
         leg.group.position.y = -lift;
-        leg.group.rotation.x = reach; // Leg reaches forward and back (reduced)
 
-        // Keep legs straight
+        // Hip rotation (upper leg swings forward and back)
+        leg.upperLeg.rotation.x = reach;
+
+        // Knee bending - bends backward when leg is lifted
+        // More bend when stride is positive (leg lifting), straightens when negative (leg extending)
+        const kneeBend = Math.max(0, stride) * 0.6;
+        leg.lowerLeg.rotation.x = -kneeBend; // Negative for backward bend
+
+        // Keep legs aligned
         leg.group.rotation.z = 0;
         leg.group.rotation.y = 0;
       });
@@ -1106,7 +1467,7 @@ function animate() {
 
     // Update terrain height even when idle
     const terrainHeight = getTerrainHeight(player.position.x, player.position.z);
-    player.position.y = terrainHeight + 2.2 + Math.sin(idleTime * 0.5) * 0.05;
+    player.position.y = terrainHeight + 3.5 + Math.sin(idleTime * 0.5) * 0.05;
 
     // Animate mane slowly when idle
     if (player.userData.mane) {
@@ -1124,7 +1485,8 @@ function animate() {
     if (player.userData.legs) {
       player.userData.legs.forEach(leg => {
         leg.group.position.y += (leg.baseY - leg.group.position.y) * 0.1;
-        leg.group.rotation.x *= 0.9;
+        leg.upperLeg.rotation.x *= 0.9; // Reset hip rotation
+        leg.lowerLeg.rotation.x *= 0.9; // Reset knee bend
         leg.group.rotation.y = 0;
         leg.group.rotation.z = 0;
       });
@@ -1168,7 +1530,7 @@ function animate() {
     unicornsInDanger.forEach(unicorn => {
       if (!unicorn.userData.saved) {
         const distance = spell.position.distanceTo(unicorn.position);
-        if (distance < 3) {
+        if (distance < 50) {
           unicorn.userData.saved = true;
           gameState.unicornsSaved++;
           updateUI();
@@ -1230,7 +1592,7 @@ function animate() {
 
       // Gentle bobbing on terrain
       const unicornTerrainHeight = getTerrainHeight(unicorn.position.x, unicorn.position.z);
-      unicorn.position.y = unicornTerrainHeight + 2.2 + Math.sin(unicorn.userData.pulseTime * 0.5) * 0.15;
+      unicorn.position.y = unicornTerrainHeight + 3.5 + Math.sin(unicorn.userData.pulseTime * 0.5) * 0.15;
     } else {
       // Follow player when saved
       const targetPos = new THREE.Vector3()
@@ -1261,26 +1623,33 @@ function animate() {
 
         // Keep on terrain
         const followTerrainHeight = getTerrainHeight(unicorn.position.x, unicorn.position.z);
-        unicorn.position.y = followTerrainHeight + 2.2 + walkBounce;
+        unicorn.position.y = followTerrainHeight + 3.5 + walkBounce;
 
         // Body movement during walk
         unicorn.rotation.x = Math.sin(walkCycle * 2) * 0.08;
         unicorn.rotation.z = Math.sin(walkCycle) * 0.04;
 
-        // Animate legs with walking gait
+        // Animate legs with walking gait and knee bending
         if (unicorn.userData.legs) {
           unicorn.userData.legs.forEach((leg, index) => {
             const legCycle = walkCycle * 2 + leg.phase;
             const stride = Math.sin(legCycle);
 
             // Walking has lower lift than galloping
-            const lift = Math.max(0, stride) * 0.3; // Reduced lift
-            const reach = stride * 0.15; // Reduced reach
+            const lift = Math.max(0, stride) * 0.3; // Vertical lift
+            const reach = stride * 0.2; // Hip rotation angle
 
+            // Position adjustment for lift
             leg.group.position.y = -lift;
-            leg.group.rotation.x = reach;
 
-            // Keep legs straight
+            // Hip rotation (upper leg swings forward and back)
+            leg.upperLeg.rotation.x = reach;
+
+            // Knee bending - less pronounced during walking
+            const kneeBend = Math.max(0, stride) * 0.4;
+            leg.lowerLeg.rotation.x = -kneeBend; // Negative for backward bend
+
+            // Keep legs aligned
             leg.group.rotation.z = 0;
             leg.group.rotation.y = 0;
           });
@@ -1301,7 +1670,7 @@ function animate() {
         // Idle at position
         const idleTime = time * 2;
         const followIdleHeight = getTerrainHeight(unicorn.position.x, unicorn.position.z);
-        unicorn.position.y = followIdleHeight + 2.2 + Math.sin(idleTime * 0.5) * 0.1;
+        unicorn.position.y = followIdleHeight + 3.5 + Math.sin(idleTime * 0.5) * 0.1;
 
         // Subtle idle rotation
         unicorn.rotation.x += (Math.sin(idleTime * 0.5) * 0.02 - unicorn.rotation.x) * 0.1;
@@ -1323,7 +1692,8 @@ function animate() {
         if (unicorn.userData.legs) {
           unicorn.userData.legs.forEach(leg => {
             leg.group.position.y += (0 - leg.group.position.y) * 0.1;
-            leg.group.rotation.x *= 0.9;
+            leg.upperLeg.rotation.x *= 0.9; // Reset hip rotation
+            leg.lowerLeg.rotation.x *= 0.9; // Reset knee bend
             leg.group.rotation.y = 0;
             leg.group.rotation.z = 0;
           });
