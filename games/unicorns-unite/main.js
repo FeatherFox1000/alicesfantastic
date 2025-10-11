@@ -10,235 +10,7 @@ function seededRandom() {
   return x - Math.floor(x);
 }
 
-// Audio System
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-let musicGainNode = audioContext.createGain();
-musicGainNode.connect(audioContext.destination);
-musicGainNode.gain.value = 0.3;
-
-let sfxGainNode = audioContext.createGain();
-sfxGainNode.connect(audioContext.destination);
-sfxGainNode.gain.value = 0.5;
-
-// Background music loop (ethereal magical theme)
-let musicOscillators = [];
-let isMusicPlaying = false;
-
-function startBackgroundMusic() {
-  if (isMusicPlaying) return;
-  isMusicPlaying = true;
-
-  // Magical chord progression
-  const melodyNotes = [
-    [523.25, 659.25, 783.99], // C5, E5, G5
-    [587.33, 739.99, 880.00], // D5, F#5, A5
-    [493.88, 659.25, 783.99], // B4, E5, G5
-    [523.25, 698.46, 830.61]  // C5, F5, G#5
-  ];
-
-  let noteIndex = 0;
-
-  function playChord() {
-    if (!isMusicPlaying) return;
-
-    // Stop previous oscillators
-    musicOscillators.forEach(osc => {
-      try { osc.stop(); } catch (e) {}
-    });
-    musicOscillators = [];
-
-    const notes = melodyNotes[noteIndex % melodyNotes.length];
-    const now = audioContext.currentTime;
-
-    notes.forEach((freq, i) => {
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now);
-
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.03, now + 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
-
-      osc.connect(gain);
-      gain.connect(musicGainNode);
-
-      osc.start(now);
-      osc.stop(now + 2.5);
-      musicOscillators.push(osc);
-    });
-
-    noteIndex++;
-    setTimeout(playChord, 2000);
-  }
-
-  playChord();
-}
-
-function stopBackgroundMusic() {
-  isMusicPlaying = false;
-  musicOscillators.forEach(osc => {
-    try { osc.stop(); } catch (e) {}
-  });
-  musicOscillators = [];
-}
-
-// Sound effects
-function playSpellSound() {
-  const now = audioContext.currentTime;
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(800, now);
-  osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
-
-  gain.gain.setValueAtTime(0.3, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-
-  osc.connect(gain);
-  gain.connect(sfxGainNode);
-
-  osc.start(now);
-  osc.stop(now + 0.2);
-}
-
-function playShieldSound() {
-  const now = audioContext.currentTime;
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(200, now);
-  osc.frequency.exponentialRampToValueAtTime(400, now + 0.3);
-
-  gain.gain.setValueAtTime(0.2, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-
-  osc.connect(gain);
-  gain.connect(sfxGainNode);
-
-  osc.start(now);
-  osc.stop(now + 0.3);
-}
-
-function playUnicornSaveSound() {
-  const now = audioContext.currentTime;
-
-  // Ascending magical chime
-  [0, 0.1, 0.2].forEach((offset, i) => {
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-
-    osc.type = 'sine';
-    const freq = 800 + (i * 200);
-    osc.frequency.setValueAtTime(freq, now + offset);
-
-    gain.gain.setValueAtTime(0.2, now + offset);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.5);
-
-    osc.connect(gain);
-    gain.connect(sfxGainNode);
-
-    osc.start(now + offset);
-    osc.stop(now + offset + 0.5);
-  });
-}
-
-function playDragonFireSound() {
-  const now = audioContext.currentTime;
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  const filter = audioContext.createBiquadFilter();
-
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(100, now);
-  osc.frequency.exponentialRampToValueAtTime(150, now + 0.3);
-
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(500, now);
-
-  gain.gain.setValueAtTime(0.3, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-
-  osc.connect(filter);
-  filter.connect(gain);
-  gain.connect(sfxGainNode);
-
-  osc.start(now);
-  osc.stop(now + 0.4);
-}
-
-function playDragonDefeatedSound() {
-  const now = audioContext.currentTime;
-
-  // Descending dramatic sound
-  [0, 0.15, 0.3].forEach((offset, i) => {
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-
-    osc.type = 'triangle';
-    const freq = 600 - (i * 150);
-    osc.frequency.setValueAtTime(freq, now + offset);
-
-    gain.gain.setValueAtTime(0.25, now + offset);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.6);
-
-    osc.connect(gain);
-    gain.connect(sfxGainNode);
-
-    osc.start(now + offset);
-    osc.stop(now + offset + 0.6);
-  });
-}
-
-function playEggCollectSound() {
-  const now = audioContext.currentTime;
-
-  // Sparkly collection sound
-  [0, 0.05, 0.1, 0.15].forEach((offset, i) => {
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-
-    osc.type = 'sine';
-    const freq = 1000 + (i * 300);
-    osc.frequency.setValueAtTime(freq, now + offset);
-
-    gain.gain.setValueAtTime(0.15, now + offset);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.3);
-
-    osc.connect(gain);
-    gain.connect(sfxGainNode);
-
-    osc.start(now + offset);
-    osc.stop(now + offset + 0.3);
-  });
-}
-
-function playVictorySound() {
-  const now = audioContext.currentTime;
-
-  // Triumphant fanfare
-  const victoryNotes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-
-  victoryNotes.forEach((freq, i) => {
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(freq, now + i * 0.15);
-
-    gain.gain.setValueAtTime(0.2, now + i * 0.15);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.8);
-
-    osc.connect(gain);
-    gain.connect(sfxGainNode);
-
-    osc.start(now + i * 0.15);
-    osc.stop(now + i * 0.15 + 0.8);
-  });
-}
+// Audio System - Disabled
 
 // Customization unlocks system
 const customizationUnlocks = {
@@ -2211,10 +1983,7 @@ function startGame() {
       loadingScreen.style.display = 'none';
     }
 
-    // Start background music
-    audioContext.resume().then(() => {
-      startBackgroundMusic();
-    });
+    // Background music disabled
 
     // Try to load saved game
     loadSavedGame();
@@ -2748,8 +2517,7 @@ function castSpell() {
   gameState.magicPower -= 20;
   updateUI();
 
-  // Play spell sound
-  playSpellSound();
+  // Spell sound disabled
 
   document.getElementById('spell-ability').classList.add('cooldown');
 
@@ -2840,8 +2608,7 @@ function activateShield() {
   gameState.magicPower -= 30;
   updateUI();
 
-  // Play shield sound
-  playShieldSound();
+  // Shield sound disabled
 
   document.getElementById('shield-ability').classList.add('cooldown');
 
@@ -3154,8 +2921,7 @@ function animate() {
             boss.userData.defeated = true;
             gameState.bossesDefeated++;
 
-            // Play dragon defeated sound
-            playDragonDefeatedSound();
+            // Dragon defeated sound disabled
 
             showMessage('⚔️ Boss Defeated! ⚔️');
 
@@ -3234,8 +3000,7 @@ function animate() {
             gameState.unicornsSaved++;
             updateUI();
 
-            // Play unicorn save sound
-            playUnicornSaveSound();
+            // Unicorn save sound disabled
 
             showMessage('✨ Unicorn Saved! ✨');
 
@@ -3266,8 +3031,7 @@ function animate() {
 
             if (gameState.unicornsSaved === gameState.totalUnicorns) {
               setTimeout(() => {
-                // Play victory sound
-                playVictorySound();
+                // Victory sound disabled
 
                 const unlock = unlockCustomization();
                 if (unlock) {
@@ -3341,8 +3105,7 @@ function animate() {
           // Dragon breathes fire/force at player
           const particleCount = isStronghold ? 30 : 20; // More particles for stronghold
 
-          // Play dragon fire sound
-          playDragonFireSound();
+          // Dragon fire sound disabled
 
           // Create fire/force particles
           for (let i = 0; i < particleCount; i++) {
@@ -3448,8 +3211,7 @@ function animate() {
                   boss.userData.defeated = true;
                   gameState.bossesDefeated++;
 
-                  // Play dragon defeated sound
-                  playDragonDefeatedSound();
+                  // Dragon defeated sound disabled
 
                   showMessage('⚔️ Stronghold Boss Defeated by Allies! ⚔️');
 
@@ -3642,8 +3404,7 @@ function animate() {
         collectedEggs++;
         localStorage.setItem('dragonEggsCollected', collectedEggs.toString());
 
-        // Play egg collection sound
-        playEggCollectSound();
+        // Egg collection sound disabled
 
         // Collection effect
         for (let i = 0; i < 20; i++) {
