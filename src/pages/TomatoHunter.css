@@ -1,0 +1,203 @@
+.tomato-hunter {
+  min-height: 100vh;
+}
+
+.game-showcase {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+.game-image-container {
+  position: sticky;
+  top: 100px;
+}
+
+.showcase-image {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.game-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.game-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .game-meta {
+  background: var(--color-card-bg);
+}
+
+.meta-item {
+  color: #888;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .meta-item {
+  color: #ccc;
+}
+
+.tags {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.tag {
+  background: linear-gradient(135deg, #7b14c9 0%, #9d4edd 100%);
+  color: white;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.description-box {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .description-box {
+  background: var(--color-card-bg);
+}
+
+.description-box h2 {
+  font-size: 1.8rem;
+  color: #7b14c9;
+  margin: 0 0 1rem;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .description-box h2 {
+  color: #e91e63;
+}
+
+.description-box p {
+  font-size: 1.15rem;
+  color: #555;
+  line-height: 1.7;
+  margin: 0;
+}
+
+[data-theme="dark"] .description-box p {
+  color: var(--color-text-light);
+}
+
+.download-section {
+  background: linear-gradient(135deg, #fdeded 0%, #ffd4e5 100%);
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(123, 20, 201, 0.1);
+}
+
+[data-theme="dark"] .download-section {
+  background: var(--color-light-section-bg);
+}
+
+.download-section h3 {
+  font-size: 1.6rem;
+  color: #7b14c9;
+  margin: 0 0 1rem;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .download-section h3 {
+  color: #e91e63;
+}
+
+.download-section > p {
+  font-size: 1.1rem;
+  color: #555;
+  margin: 0 0 1.5rem;
+}
+
+[data-theme="dark"] .download-section > p {
+  color: var(--color-text-light);
+}
+
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #7b14c9 0%, #9d4edd 100%);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(123, 20, 201, 0.3);
+}
+
+.download-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(123, 20, 201, 0.4);
+}
+
+.button-icon {
+  font-size: 1.3rem;
+}
+
+.note {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+[data-theme="dark"] .note {
+  background: var(--color-card-bg);
+  color: var(--color-text-light);
+}
+
+.note strong {
+  color: #7b14c9;
+}
+
+[data-theme="dark"] .note strong {
+  color: #e91e63;
+}
+
+.external-link {
+  color: #7b14c9;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 2px solid #7b14c9;
+  transition: all 0.2s ease;
+}
+
+.external-link:hover {
+  color: #9d4edd;
+  border-bottom-color: #9d4edd;
+}
+
+@media (max-width: 968px) {
+  .game-showcase {
+    grid-template-columns: 1fr;
+  }
+
+  .game-image-container {
+    position: static;
+  }
+}

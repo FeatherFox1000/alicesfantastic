@@ -1,0 +1,250 @@
+.unicorns-unite {
+  min-height: 100vh;
+}
+
+.page-hero {
+  background: linear-gradient(135deg, #fdeded 0%, #ffd4e5 100%);
+  padding: 4rem 2rem;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(123, 20, 201, 0.1);
+}
+
+[data-theme="dark"] .page-hero {
+  background: var(--color-light-section-bg);
+}
+
+.page-hero h1 {
+  font-size: 3.5rem;
+  color: #7b14c9;
+  margin: 0;
+  font-weight: 800;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .page-hero h1 {
+  color: #e91e63;
+}
+
+.page-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.intro-section {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.game-intro {
+  font-size: 1.4rem;
+  color: #555;
+  line-height: 1.8;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .game-intro {
+  background: var(--color-card-bg);
+  color: var(--color-text-light);
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.info-card {
+  background: white;
+  padding: 2.5rem;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+[data-theme="dark"] .info-card {
+  background: var(--color-card-bg);
+}
+
+.info-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 12px 40px rgba(123, 20, 201, 0.2);
+}
+
+.card-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.info-card h2 {
+  font-size: 1.8rem;
+  color: #7b14c9;
+  margin: 0 0 1rem;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .info-card h2 {
+  color: #e91e63;
+}
+
+.info-card p {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+}
+
+[data-theme="dark"] .info-card p {
+  color: var(--color-text-light);
+}
+
+.coming-soon {
+  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #7b14c9 0%, #9d4edd 100%);
+  border-radius: 16px;
+  margin-top: 3rem;
+}
+
+.coming-soon p {
+  font-size: 1.3rem;
+  color: white;
+  margin: 0;
+  font-weight: 600;
+}
+
+.game-container {
+  margin: 3rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.game-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(123, 20, 201, 0.2);
+  background: #000;
+}
+
+.game-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.game-instructions {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .game-instructions {
+  background: var(--color-card-bg);
+}
+
+.game-instructions h3 {
+  font-size: 1.8rem;
+  color: #7b14c9;
+  margin: 0 0 1.5rem;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .game-instructions h3 {
+  color: #e91e63;
+}
+
+.game-instructions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+}
+
+.game-instructions li {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 2;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+[data-theme="dark"] .game-instructions li {
+  color: var(--color-text-light);
+}
+
+.game-instructions li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: #7b14c9;
+  font-weight: bold;
+}
+
+[data-theme="dark"] .game-instructions li::before {
+  color: #e91e63;
+}
+
+.game-instructions strong {
+  color: #7b14c9;
+}
+
+[data-theme="dark"] .game-instructions strong {
+  color: #e91e63;
+}
+
+.game-objective {
+  font-size: 1.2rem;
+  color: #555;
+  margin: 0;
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(123, 20, 201, 0.1), rgba(157, 78, 221, 0.1));
+  border-radius: 12px;
+  border-left: 4px solid #7b14c9;
+}
+
+[data-theme="dark"] .game-objective {
+  color: var(--color-text-light);
+  background: linear-gradient(135deg, rgba(233, 30, 99, 0.1), rgba(157, 78, 221, 0.1));
+  border-left-color: #e91e63;
+}
+
+@media (max-width: 768px) {
+  .page-hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .game-intro {
+    font-size: 1.2rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-wrapper {
+    aspect-ratio: 4 / 3;
+  }
+
+  .game-instructions {
+    padding: 1.5rem;
+  }
+
+  .game-instructions h3 {
+    font-size: 1.5rem;
+  }
+
+  .game-instructions li {
+    font-size: 1rem;
+  }
+}

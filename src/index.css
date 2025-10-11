@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+
+  --color-primary: #7b14c9;
+  --color-secondary: #9d4edd;
+  --color-background: #fdeded;
+  --color-text: #333;
+  --color-text-light: #555;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="dark"] {
+  --color-background: #1a1a2e;
+  --color-text: #eee;
+  --color-text-light: #ccc;
+  --color-card-bg: #4a2545;
+  --color-light-section-bg: #7b14c9;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-text);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+code, pre {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}

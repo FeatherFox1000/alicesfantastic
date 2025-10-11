@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unicorns Unite - Epic Fantasy Adventure</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: 'Lato', sans-serif;
+        background: #000;
+      }
+
+      #game-ui {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      #info-panel {
+        position: absolute;
+        top: 30px;
+        left: 30px;
+        background: linear-gradient(135deg, rgba(138, 43, 226, 0.15), rgba(75, 0, 130, 0.15));
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 25px 35px;
+        border-radius: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(138, 43, 226, 0.4),
+                    inset 0 0 20px rgba(255, 255, 255, 0.05);
+        min-width: 280px;
+        animation: fadeIn 1s ease-out;
+      }
+
+      #info-panel h2 {
+        margin: 0 0 15px 0;
+        font-size: 32px;
+        font-family: 'Cinzel', serif;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ff1493, #ff69b4, #ffd700);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 30px rgba(255, 20, 147, 0.8);
+        letter-spacing: 2px;
+      }
+
+      #info-panel p {
+        margin: 12px 0;
+        font-size: 16px;
+        color: #ffffff;
+        font-weight: 400;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+        letter-spacing: 0.5px;
+      }
+
+      #info-panel p strong {
+        color: #ffd700;
+        font-weight: 700;
+      }
+
+      #controls {
+        position: absolute;
+        bottom: 30px;
+        left: 30px;
+        background: linear-gradient(135deg, rgba(30, 30, 60, 0.15), rgba(10, 10, 30, 0.15));
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 25px 35px;
+        border-radius: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
+                    inset 0 0 20px rgba(255, 255, 255, 0.05);
+        animation: slideUp 1s ease-out;
+      }
+
+      #controls h3 {
+        margin: 0 0 15px 0;
+        font-family: 'Cinzel', serif;
+        font-size: 22px;
+        font-weight: 600;
+        color: #87ceeb;
+        text-shadow: 0 0 15px rgba(135, 206, 235, 0.8);
+        letter-spacing: 1px;
+      }
+
+      #controls p {
+        margin: 8px 0;
+        font-size: 15px;
+        color: #e0e0e0;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+      }
+
+      #controls p strong {
+        display: inline-block;
+        min-width: 140px;
+        color: #ffd700;
+        font-weight: 700;
+      }
+
+      #ability-bar {
+        position: absolute;
+        bottom: 30px;
+        right: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        animation: slideLeft 1s ease-out;
+      }
+
+      .ability {
+        background: linear-gradient(135deg, rgba(255, 20, 147, 0.3), rgba(186, 85, 211, 0.3));
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        color: white;
+        padding: 18px 28px;
+        border-radius: 15px;
+        border: 2px solid rgba(255, 105, 180, 0.5);
+        font-weight: 700;
+        font-size: 16px;
+        box-shadow: 0 6px 24px rgba(255, 20, 147, 0.5),
+                    inset 0 0 15px rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+        letter-spacing: 0.5px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .ability::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s;
+      }
+
+      .ability:not(.cooldown):hover::before {
+        left: 100%;
+      }
+
+      .ability.cooldown {
+        background: linear-gradient(135deg, rgba(60, 60, 60, 0.3), rgba(40, 40, 40, 0.3));
+        border-color: rgba(100, 100, 100, 0.3);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+        color: #888;
+      }
+
+      #message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.95), rgba(255, 105, 180, 0.95));
+        backdrop-filter: blur(20px);
+        padding: 40px 70px;
+        border-radius: 30px;
+        font-size: 36px;
+        font-weight: 900;
+        font-family: 'Cinzel', serif;
+        color: #ffffff;
+        box-shadow: 0 15px 60px rgba(255, 215, 0, 0.8),
+                    0 0 100px rgba(255, 20, 147, 0.6),
+                    inset 0 0 40px rgba(255, 255, 255, 0.2);
+        display: none;
+        text-align: center;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8),
+                     0 0 30px rgba(255, 215, 0, 1);
+        border: 3px solid rgba(255, 255, 255, 0.5);
+        letter-spacing: 2px;
+        animation: messagePopIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+      }
+
+      #message.show {
+        display: block;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes slideLeft {
+        from {
+          opacity: 0;
+          transform: translateX(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes messagePopIn {
+        0% {
+          transform: translate(-50%, -50%) scale(0) rotate(-180deg);
+          opacity: 0;
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.1) rotate(10deg);
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(1) rotate(0deg);
+          opacity: 1;
+        }
+      }
+
+      /* Progress bar for magic power */
+      .progress-container {
+        margin-top: 8px;
+        width: 100%;
+        height: 8px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+      }
+
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #ff1493, #ff69b4, #ffd700);
+        border-radius: 10px;
+        transition: width 0.3s ease;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+      }
+
+      /* Loading screen */
+      #loading-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1a0033, #330066, #660099);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        cursor: pointer;
+      }
+
+      #loading-screen h1 {
+        font-family: 'Cinzel', serif;
+        font-size: 72px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ff1493, #ff69b4, #ffd700);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 30px;
+        text-shadow: 0 0 60px rgba(255, 20, 147, 0.8);
+        animation: glow 2s ease-in-out infinite;
+      }
+
+      #loading-screen p {
+        font-size: 24px;
+        color: #ffffff;
+        font-weight: 300;
+        letter-spacing: 4px;
+        margin-bottom: 40px;
+      }
+
+      #start-button {
+        padding: 20px 60px;
+        font-size: 28px;
+        font-family: 'Cinzel', serif;
+        font-weight: 700;
+        color: #ffffff;
+        background: linear-gradient(135deg, #ff1493, #ff69b4, #ffd700);
+        border: 3px solid rgba(255, 255, 255, 0.5);
+        border-radius: 50px;
+        cursor: pointer;
+        letter-spacing: 3px;
+        box-shadow: 0 10px 40px rgba(255, 20, 147, 0.6),
+                    inset 0 0 20px rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+        animation: pulse 2s ease-in-out infinite;
+        pointer-events: auto;
+      }
+
+      #start-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 15px 60px rgba(255, 20, 147, 0.9),
+                    inset 0 0 30px rgba(255, 255, 255, 0.3);
+      }
+
+      #start-button:active {
+        transform: scale(1.05);
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.8;
+        }
+      }
+
+      /* Exit button */
+      #exit-button {
+        position: absolute;
+        top: 30px;
+        right: 30px;
+        padding: 15px 35px;
+        font-size: 18px;
+        font-family: 'Cinzel', serif;
+        font-weight: 600;
+        color: #ffffff;
+        background: linear-gradient(135deg, rgba(255, 20, 147, 0.3), rgba(186, 85, 211, 0.3));
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 2px solid rgba(255, 105, 180, 0.5);
+        border-radius: 15px;
+        cursor: pointer;
+        letter-spacing: 2px;
+        box-shadow: 0 6px 24px rgba(255, 20, 147, 0.5),
+                    inset 0 0 15px rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        pointer-events: auto;
+        z-index: 200;
+      }
+
+      #exit-button:hover {
+        background: linear-gradient(135deg, rgba(255, 20, 147, 0.5), rgba(186, 85, 211, 0.5));
+        transform: scale(1.05);
+        box-shadow: 0 8px 32px rgba(255, 20, 147, 0.7),
+                    inset 0 0 20px rgba(255, 255, 255, 0.15);
+      }
+
+      #exit-button:active {
+        transform: scale(0.98);
+      }
+
+      @keyframes fadeOut {
+        to {
+          opacity: 0;
+          pointer-events: none;
+        }
+      }
+
+      @keyframes glow {
+        0%, 100% {
+          filter: brightness(1);
+        }
+        50% {
+          filter: brightness(1.5);
+        }
+      }
+
+      /* Vignette effect */
+      body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.5);
+        z-index: 50;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DDhF5A5V.js"></script>
+  </head>
+  <body>
+    <div id="loading-screen">
+      <h1>UNICORNS UNITE</h1>
+      <p>Save the unicorns with your magical powers!</p>
+      <button id="start-button">ENTER</button>
+    </div>
+
+    <div id="game-ui">
+      <button id="exit-button">EXIT GAME</button>
+
+      <div id="info-panel">
+        <h2>UNICORNS UNITE</h2>
+        <p><strong>Unicorns Saved:</strong> <span id="unicorns-saved">0/5</span></p>
+        <p><strong>Magic Power:</strong> <span id="magic-power">100%</span></p>
+        <div class="progress-container">
+          <div class="progress-bar" id="magic-progress" style="width: 100%"></div>
+        </div>
+      </div>
+
+      <div id="controls">
+        <h3>CONTROLS</h3>
+        <p><strong>WASD / Arrows:</strong> Move Unicorn</p>
+        <p><strong>Mouse:</strong> Camera Rotation</p>
+        <p><strong>Space:</strong> Cast Magic Spell</p>
+        <p><strong>Shift:</strong> Protective Shield</p>
+      </div>
+
+      <div id="ability-bar">
+        <div class="ability" id="spell-ability">✨ MAGIC SPELL</div>
+        <div class="ability" id="shield-ability">🛡️ SHIELD</div>
+      </div>
+
+      <div id="message"></div>
+    </div>
+
+  </body>
+</html>
