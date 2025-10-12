@@ -3,12 +3,18 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
+// Wait for DOM to be ready before initializing game
+function initGame() {
 // Seeded random number generator for consistent map generation
 let seed = 12345; // Fixed seed for consistent map
 function seededRandom() {
   const x = Math.sin(seed++) * 10000;
   return x - Math.floor(x);
 }
+
+// Collision storage (must be declared before createGround)
+const treePositions = [];
+const strongholdPositions = [];
 
 // Audio System - Disabled
 
@@ -340,12 +346,6 @@ function getTerrainHeight(x, z) {
                  Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.3;
   return Math.max(0, height + 0.5); // Ensure minimum height of 0.5
 }
-
-// Tree collision storage
-const treePositions = [];
-
-// Stronghold collision storage
-const strongholdPositions = [];
 
 // Create detailed trees with variants
 function createTree(x, z, variant = 'oak') {
@@ -3465,3 +3465,11 @@ console.log('🦄 Unicorns Unite - Professional Edition');
 console.log('Use WASD to move, mouse to look around');
 console.log('Press Space to cast magic spells');
 console.log('Press Shift for shield protection');
+}
+
+// Initialize game when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initGame);
+} else {
+  initGame();
+}
