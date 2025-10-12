@@ -11,7 +11,8 @@
     "dev:unicorns-unite": "cd games/unicorns-unite && npm run dev",
     "build:unicorns-unite": "cd games/unicorns-unite && npm run build && rm -rf ../../public/unicorns-unite-game && cp -r dist ../../public/unicorns-unite-game",
     "dev:creator": "cd games/creator-game && npm run dev",
-    "build:creator": "cd games/creator-game && npm run build && rm -rf ../../public/creator-game && cp -r dist ../../public/creator-game"
+    "build:creator": "cd games/creator-game && npm run build && rm -rf ../../public/creator-game && cp -r dist ../../public/creator-game",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:unicorns-unite\" \"npm run dev:creator\" --names \"website,unicorns,creator\" --prefix-colors \"cyan,magenta,yellow\""
   },
   "dependencies": {
     "react": "^19.1.1",
@@ -24,6 +25,7 @@
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
+    "concurrently": "^9.2.1",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
