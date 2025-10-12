@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puppy Control - Multiplayer Platformer</title>
+    <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Main Menu Screen -->
+        <div id="main-menu" class="screen active">
+            <div class="menu-container">
+                <h1>🐕 Puppy Control</h1>
+                <p class="subtitle">Multiplayer Platformer Adventure</p>
+                <div class="menu-buttons">
+                    <button id="host-btn" class="menu-btn">Host Game</button>
+                    <button id="join-btn" class="menu-btn">Join Game</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Host Game Screen -->
+        <div id="host-screen" class="screen">
+            <div class="menu-container">
+                <h2>Host a Game</h2>
+                <div class="form-group">
+                    <label for="host-name">Your Name:</label>
+                    <input type="text" id="host-name" placeholder="Enter your name" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="max-players">Max Players:</label>
+                    <select id="max-players">
+                        <option value="2">2 Players</option>
+                        <option value="4" selected>4 Players</option>
+                        <option value="6">6 Players</option>
+                        <option value="8">8 Players</option>
+                    </select>
+                </div>
+                <div class="menu-buttons">
+                    <button id="create-room-btn" class="menu-btn">Create Room</button>
+                    <button id="back-from-host-btn" class="menu-btn secondary">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Join Game Screen -->
+        <div id="join-screen" class="screen">
+            <div class="menu-container">
+                <h2>Join a Game</h2>
+                <div class="form-group">
+                    <label for="join-name">Your Name:</label>
+                    <input type="text" id="join-name" placeholder="Enter your name" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="room-code">Room Code:</label>
+                    <input type="text" id="room-code" placeholder="Enter 6-digit code" maxlength="6">
+                </div>
+                <div class="menu-buttons">
+                    <button id="join-room-btn" class="menu-btn">Join Room</button>
+                    <button id="back-from-join-btn" class="menu-btn secondary">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobby-screen" class="screen">
+            <div class="lobby-container">
+                <h2>Game Lobby</h2>
+                <div id="room-info">
+                    <div class="room-code-display">
+                        <span>Room Code:</span>
+                        <span id="display-room-code" class="code">------</span>
+                        <button id="copy-code-btn" class="icon-btn" title="Copy code">📋</button>
+                    </div>
+                </div>
+                <div id="players-list">
+                    <h3>Players (<span id="player-count">0</span>/<span id="max-player-count">4</span>)</h3>
+                    <div id="players-container"></div>
+                </div>
+                <div class="menu-buttons">
+                    <button id="start-game-btn" class="menu-btn" style="display: none;">Start Game</button>
+                    <button id="leave-lobby-btn" class="menu-btn secondary">Leave</button>
+                </div>
+                <div id="lobby-status" class="status-message"></div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div id="game-ui">
+                <div id="game-info">
+                    <span id="room-code-game"></span>
+                    <span id="player-name-display"></span>
+                </div>
+                <div id="scoreboard">
+                    <h3>Players</h3>
+                    <div id="player-scores"></div>
+                </div>
+            </div>
+            <canvas id="game-canvas"></canvas>
+            <div id="game-controls">
+                <p><strong>Controls:</strong> Arrow Keys or WASD to move • SPACE to jump</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
