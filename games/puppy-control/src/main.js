@@ -586,31 +586,87 @@ class PuppyControl {
     }
 
     drawPlayer(player) {
-        // Draw puppy body
+        const x = player.x;
+        const y = player.y;
+        const dir = player.direction;
+
+        // Dog body (main torso)
         this.ctx.fillStyle = player.color;
-        this.ctx.fillRect(player.x, player.y, player.width, player.height);
+        this.ctx.fillRect(x, y + 12, player.width, player.height - 12);
 
-        // Draw puppy face
-        const faceX = player.direction === 1 ? player.x + player.width * 0.6 : player.x + player.width * 0.1;
+        // Dog head
+        const headX = dir === 1 ? x + player.width - 18 : x + 3;
+        this.ctx.fillRect(headX, y, 15, 15);
 
-        // Eyes
+        // Snout/muzzle
+        const snoutX = dir === 1 ? headX + 12 : headX - 8;
+        this.ctx.fillRect(snoutX, y + 7, 8, 6);
+
+        // Ears (floppy dog ears)
+        this.ctx.fillStyle = this.darkenColor(player.color, 20);
+        const earX = dir === 1 ? headX : headX + 10;
+        this.ctx.fillRect(earX, y - 2, 5, 10); // Ear
+
+        // Eyes (big puppy eyes)
         this.ctx.fillStyle = 'white';
-        this.ctx.fillRect(faceX, player.y + 10, 6, 6);
-        this.ctx.fillRect(faceX + 10, player.y + 10, 6, 6);
+        const eyeX = dir === 1 ? headX + 4 : headX + 6;
+        this.ctx.beginPath();
+        this.ctx.arc(eyeX, y + 6, 3, 0, Math.PI * 2);
+        this.ctx.fill();
 
         // Pupils
         this.ctx.fillStyle = 'black';
-        this.ctx.fillRect(faceX + 2, player.y + 12, 3, 3);
-        this.ctx.fillRect(faceX + 12, player.y + 12, 3, 3);
+        this.ctx.beginPath();
+        this.ctx.arc(eyeX + (dir === 1 ? 1 : -1), y + 6, 1.5, 0, Math.PI * 2);
+        this.ctx.fill();
 
-        // Nose
+        // Nose (black dot)
+        const noseX = dir === 1 ? snoutX + 6 : snoutX + 2;
         this.ctx.fillStyle = 'black';
-        this.ctx.fillRect(faceX + 6, player.y + 20, 4, 3);
+        this.ctx.beginPath();
+        this.ctx.arc(noseX, y + 10, 2, 0, Math.PI * 2);
+        this.ctx.fill();
 
-        // Tail
-        const tailX = player.direction === 1 ? player.x - 5 : player.x + player.width;
+        // Mouth (little smile)
+        this.ctx.strokeStyle = 'black';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.arc(noseX, y + 11, 3, 0.2, Math.PI - 0.2);
+        this.ctx.stroke();
+
+        // Legs (4 legs)
         this.ctx.fillStyle = player.color;
-        this.ctx.fillRect(tailX, player.y + 5, 5, 15);
+        this.ctx.fillRect(x + 5, y + player.height - 8, 5, 10); // Front left
+        this.ctx.fillRect(x + player.width - 10, y + player.height - 8, 5, 10); // Front right
+        this.ctx.fillRect(x + 12, y + player.height - 6, 5, 8); // Back left
+        this.ctx.fillRect(x + player.width - 17, y + player.height - 6, 5, 8); // Back right
+
+        // Paws (darker color)
+        this.ctx.fillStyle = this.darkenColor(player.color, 40);
+        this.ctx.fillRect(x + 5, y + player.height + 1, 5, 2); // Front left paw
+        this.ctx.fillRect(x + player.width - 10, y + player.height + 1, 5, 2); // Front right paw
+
+        // Tail (curved and wagging)
+        const tailX = dir === 1 ? x - 2 : x + player.width - 3;
+        const tailWag = Math.sin(Date.now() / 200) * 3; // Wagging animation
+        this.ctx.fillStyle = player.color;
+        this.ctx.beginPath();
+        this.ctx.moveTo(tailX, y + 15);
+        this.ctx.quadraticCurveTo(
+            tailX + (dir === 1 ? -8 : 8),
+            y + 10 + tailWag,
+            tailX + (dir === 1 ? -6 : 6),
+            y + 5
+        );
+        this.ctx.lineWidth = 4;
+        this.ctx.strokeStyle = player.color;
+        this.ctx.stroke();
+
+        // Tail tip
+        this.ctx.fillStyle = 'white';
+        this.ctx.beginPath();
+        this.ctx.arc(tailX + (dir === 1 ? -6 : 6), y + 5, 3, 0, Math.PI * 2);
+        this.ctx.fill();
 
         // Player name
         this.ctx.fillStyle = 'white';
@@ -618,15 +674,29 @@ class PuppyControl {
         this.ctx.lineWidth = 3;
         this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.strokeText(player.name, player.x + player.width / 2, player.y - 5);
-        this.ctx.fillText(player.name, player.x + player.width / 2, player.y - 5);
+        this.ctx.strokeText(player.name, x + player.width / 2, y - 8);
+        this.ctx.fillText(player.name, x + player.width / 2, y - 8);
 
-        // Highlight my player
+        // Highlight my player with golden glow
         if (player.id === this.myPlayerId) {
             this.ctx.strokeStyle = '#FFD700';
             this.ctx.lineWidth = 3;
-            this.ctx.strokeRect(player.x - 2, player.y - 2, player.width + 4, player.height + 4);
+            this.ctx.setLineDash([5, 5]);
+            this.ctx.strokeRect(x - 4, y - 4, player.width + 8, player.height + 8);
+            this.ctx.setLineDash([]);
         }
+    }
+
+    darkenColor(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) - amt;
+        const G = (num >> 8 & 0x00FF) - amt;
+        const B = (num & 0x0000FF) - amt;
+        return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+            (B < 255 ? B < 1 ? 0 : B : 255))
+            .toString(16).slice(1);
     }
 
     updateScoreboard() {
