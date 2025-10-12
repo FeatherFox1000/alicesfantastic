@@ -20,9 +20,9 @@ function UnicornsUnite() {
   }, [isHovering]);
 
   useEffect(() => {
-    // Prevent arrow keys and space from scrolling when hovering over game
+    // Always prevent arrow keys and space from scrolling on this page
     const handleKeyDown = (e) => {
-      if (isHovering && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Shift'].includes(e.key)) {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Shift'].includes(e.key)) {
         e.preventDefault();
         return false;
       }
@@ -65,7 +65,7 @@ function UnicornsUnite() {
           >
             <iframe
               ref={iframeRef}
-              src={`/unicorns-unite/index.html?v=${Date.now()}`}
+              src={import.meta.env.DEV ? 'http://localhost:5174/' : `/unicorns-unite/index.html?v=${Date.now()}`}
               title="Unicorns Unite Game"
               className="game-iframe"
               allowFullScreen

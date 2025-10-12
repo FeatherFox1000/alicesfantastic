@@ -78,8 +78,8 @@ scene.add(ambientLight);
 const sunLight = new THREE.DirectionalLight(0xfffdf5, 2.5);
 sunLight.position.set(100, 120, 50);
 sunLight.castShadow = true;
-sunLight.shadow.mapSize.width = 4096;
-sunLight.shadow.mapSize.height = 4096;
+sunLight.shadow.mapSize.width = 2048;
+sunLight.shadow.mapSize.height = 2048;
 sunLight.shadow.camera.left = -100;
 sunLight.shadow.camera.right = 100;
 sunLight.shadow.camera.top = 100;
@@ -144,7 +144,7 @@ function createClouds() {
     shininess: 10
   });
 
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 10; i++) {
     const cloud = new THREE.Group();
 
     for (let j = 0; j < 3; j++) {
@@ -177,44 +177,44 @@ createClouds();
 // Biome definitions - 5 distinct biomes arranged in a circle meeting at the center
 const biomes = {
   forest: {
-    center: { x: -5000, z: -5000 },
-    radius: 8000,
+    center: { x: -75, z: -75 },
+    radius: 120,
     color: 0x3a7a3a,
     name: 'Emerald Forest',
     groundColor: 0x4a9a4a,
-    strongholdPos: { x: -5000, z: -5000 }
+    strongholdPos: { x: -75, z: -75 }
   },
   desert: {
-    center: { x: 5000, z: -5000 },
-    radius: 8000,
+    center: { x: 75, z: -75 },
+    radius: 120,
     color: 0xddc777,
     name: 'Golden Desert',
     groundColor: 0xf4d693,
-    strongholdPos: { x: 5000, z: -5000 }
+    strongholdPos: { x: 75, z: -75 }
   },
   snow: {
-    center: { x: 0, z: 7000 },
-    radius: 8000,
+    center: { x: 0, z: 105 },
+    radius: 120,
     color: 0xe8f4ff,
     name: 'Frozen Tundra',
     groundColor: 0xf0f8ff,
-    strongholdPos: { x: 0, z: 7000 }
+    strongholdPos: { x: 0, z: 105 }
   },
   volcanic: {
-    center: { x: 5000, z: 5000 },
-    radius: 8000,
+    center: { x: 75, z: 75 },
+    radius: 120,
     color: 0x4a2020,
     name: 'Volcanic Wastes',
     groundColor: 0x2a1010,
-    strongholdPos: { x: 5000, z: 5000 }
+    strongholdPos: { x: 75, z: 75 }
   },
   swamp: {
-    center: { x: -5000, z: 5000 },
-    radius: 8000,
+    center: { x: -75, z: 75 },
+    radius: 120,
     color: 0x5a6a4a,
     name: 'Mystic Swamp',
     groundColor: 0x4a5a3a,
-    strongholdPos: { x: -5000, z: 5000 }
+    strongholdPos: { x: -75, z: 75 }
   }
 };
 
@@ -239,8 +239,8 @@ function getBiome(x, z) {
 
 // Create detailed ground with biomes
 function createGround() {
-  const groundSize = 20000;
-  const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 200, 200);
+  const groundSize = 300;
+  const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 50, 50);
 
   // Add terrain variation and vertex colors based on biomes
   const vertices = groundGeometry.attributes.position;
@@ -313,7 +313,7 @@ function addGrass(groundSize) {
     opacity: 0.7
   });
 
-  const grassCount = 2000;
+  const grassCount = 500;
   const grassField = new THREE.InstancedMesh(grassGeometry, grassMaterial, grassCount);
 
   const dummy = new THREE.Object3D();
@@ -341,9 +341,32 @@ createGround();
 
 // Helper function to get terrain height at position
 function getTerrainHeight(x, z) {
-  // Flatter terrain with minimum height of 0
-  const height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
-                 Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.3;
+  // Get biome for this position
+  const biome = getBiome(x, z);
+
+  // Biome-specific terrain height (must match createGround logic)
+  let height = 0;
+  if (biome.type === 'snow') {
+    // Snow biome: higher and hillier
+    height = Math.sin(x * 0.02) * Math.cos(z * 0.02) * 3.0 +
+             Math.sin(x * 0.08) * Math.cos(z * 0.08) * 1.5;
+  } else if (biome.type === 'volcanic') {
+    // Volcanic biome: rugged and jagged
+    height = Math.sin(x * 0.05) * Math.cos(z * 0.05) * 2.5 +
+             Math.sin(x * 0.15) * Math.cos(z * 0.15) * 1.0;
+  } else if (biome.type === 'swamp') {
+    // Swamp biome: very flat with small bumps
+    height = Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.3;
+  } else if (biome.type === 'desert') {
+    // Desert biome: rolling dunes
+    height = Math.sin(x * 0.025) * Math.cos(z * 0.025) * 2.0 +
+             Math.sin(x * 0.06) * Math.cos(z * 0.06) * 0.8;
+  } else {
+    // Forest biome: gentle hills
+    height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
+             Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.5;
+  }
+
   return Math.max(0, height + 0.5); // Ensure minimum height of 0.5
 }
 
@@ -553,9 +576,9 @@ const treeVariants = ['oak', 'pine', 'birch', 'willow', 'magical'];
 // Add biome-specific vegetation
 function addBiomeVegetation() {
   // Forest biome: Dense trees (oak, birch, magical)
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 30; i++) {
     const angle = seededRandom() * Math.PI * 2;
-    const radius = seededRandom() * 5000;
+    const radius = seededRandom() * 75;
     const x = biomes.forest.center.x + Math.cos(angle) * radius;
     const z = biomes.forest.center.z + Math.sin(angle) * radius;
     const variants = ['oak', 'birch', 'magical'];
@@ -564,9 +587,9 @@ function addBiomeVegetation() {
   }
 
   // Desert biome: Sparse cacti and dead trees
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 10; i++) {
     const angle = seededRandom() * Math.PI * 2;
-    const radius = seededRandom() * 5000;
+    const radius = seededRandom() * 75;
     const x = biomes.desert.center.x + Math.cos(angle) * radius;
     const z = biomes.desert.center.z + Math.sin(angle) * radius;
 
@@ -579,18 +602,18 @@ function addBiomeVegetation() {
   }
 
   // Snow biome: Pine trees
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 20; i++) {
     const angle = seededRandom() * Math.PI * 2;
-    const radius = seededRandom() * 5000;
+    const radius = seededRandom() * 75;
     const x = biomes.snow.center.x + Math.cos(angle) * radius;
     const z = biomes.snow.center.z + Math.sin(angle) * radius;
     createTree(x, z, 'pine');
   }
 
   // Volcanic biome: Obsidian spikes and dead trees
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 15; i++) {
     const angle = seededRandom() * Math.PI * 2;
-    const radius = seededRandom() * 5000;
+    const radius = seededRandom() * 75;
     const x = biomes.volcanic.center.x + Math.cos(angle) * radius;
     const z = biomes.volcanic.center.z + Math.sin(angle) * radius;
 
@@ -602,9 +625,9 @@ function addBiomeVegetation() {
   }
 
   // Swamp biome: Willow trees and mushrooms
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 25; i++) {
     const angle = seededRandom() * Math.PI * 2;
-    const radius = seededRandom() * 5000;
+    const radius = seededRandom() * 75;
     const x = biomes.swamp.center.x + Math.cos(angle) * radius;
     const z = biomes.swamp.center.z + Math.sin(angle) * radius;
 
@@ -1291,9 +1314,9 @@ function createBase(x, z) {
 
 // Add magical flowers
 function createFlowers() {
-  for (let i = 0; i < 300; i++) { // More flowers for larger map
-    const x = (seededRandom() - 0.5) * 19000;
-    const z = (seededRandom() - 0.5) * 19000;
+  for (let i = 0; i < 60; i++) { // More flowers for larger map
+    const x = (seededRandom() - 0.5) * 280;
+    const z = (seededRandom() - 0.5) * 280;
     const y = getTerrainHeight(x, z);
 
     const flower = new THREE.Group();
@@ -1691,8 +1714,10 @@ function createUnicorn(color, isPlayer = false) {
 }
 
 const player = createUnicorn(0xfff0f5, true);
-const playerGroundHeight = getTerrainHeight(0, 0);
-player.position.set(0, playerGroundHeight + 3.5, 0);
+const playerSpawnX = -40;
+const playerSpawnZ = -40;
+const playerGroundHeight = getTerrainHeight(playerSpawnX, playerSpawnZ);
+player.position.set(playerSpawnX, playerGroundHeight + 3.5, playerSpawnZ);
 scene.add(player);
 
 // Create unicorns in danger
@@ -1789,14 +1814,14 @@ function createDragonEgg(x, z, type = 'fire') {
 // Spawn dragon eggs across the larger map
 const eggTypes = ['fire', 'ice', 'shadow', 'nature'];
 const eggPositions = [
-  { x: 2000, z: -1500, type: 'fire' },
-  { x: -1800, z: 2200, type: 'ice' },
-  { x: 800, z: -2800, type: 'shadow' },
-  { x: -3200, z: 500, type: 'nature' },
-  { x: 2500, z: 2500, type: 'fire' },
-  { x: -2400, z: -2400, type: 'ice' },
-  { x: 3000, z: 200, type: 'shadow' },
-  { x: 200, z: 3200, type: 'nature' }
+  { x: 30, z: -22, type: 'fire' },
+  { x: -27, z: 33, type: 'ice' },
+  { x: 12, z: -42, type: 'shadow' },
+  { x: -48, z: 7, type: 'nature' },
+  { x: 37, z: 37, type: 'fire' },
+  { x: -36, z: -36, type: 'ice' },
+  { x: 45, z: 3, type: 'shadow' },
+  { x: 3, z: 48, type: 'nature' }
 ];
 
 eggPositions.forEach(pos => {
@@ -1805,40 +1830,40 @@ eggPositions.forEach(pos => {
 });
 
 const dangerPositions = [
-  // FOREST BIOME (5 unicorns) - centered at (-5000, -5000)
-  { x: -5000, z: -5000, protection: 'base', biome: 'forest' },      // Unicorn 0 - Forest stronghold
-  { x: -4200, z: -5800, protection: 'boss', biome: 'forest' },      // Unicorn 1 - Forest boss
-  { x: -5800, z: -4200, protection: 'boss', biome: 'forest' },      // Unicorn 2 - Forest boss
-  { x: -4500, z: -4500, protection: 'none', biome: 'forest' },      // Unicorn 3 - Forest free
-  { x: -5500, z: -5500, protection: 'none', biome: 'forest' },      // Unicorn 4 - Forest free
+  // FOREST BIOME (5 unicorns) - centered at (-75, -75)
+  { x: -75, z: -75, protection: 'base', biome: 'forest' },      // Unicorn 0 - Forest stronghold
+  { x: -63, z: -87, protection: 'boss', biome: 'forest' },      // Unicorn 1 - Forest boss
+  { x: -87, z: -63, protection: 'boss', biome: 'forest' },      // Unicorn 2 - Forest boss
+  { x: -67, z: -67, protection: 'none', biome: 'forest' },      // Unicorn 3 - Forest free
+  { x: -82, z: -82, protection: 'none', biome: 'forest' },      // Unicorn 4 - Forest free
 
-  // DESERT BIOME (5 unicorns) - centered at (5000, -5000)
-  { x: 5000, z: -5000, protection: 'base', biome: 'desert' },       // Unicorn 5 - Desert stronghold
-  { x: 5800, z: -4200, protection: 'boss', biome: 'desert' },       // Unicorn 6 - Desert boss
-  { x: 4200, z: -5800, protection: 'boss', biome: 'desert' },       // Unicorn 7 - Desert boss
-  { x: 5500, z: -5500, protection: 'none', biome: 'desert' },       // Unicorn 8 - Desert free
-  { x: 4500, z: -4500, protection: 'none', biome: 'desert' },       // Unicorn 9 - Desert free
+  // DESERT BIOME (5 unicorns) - centered at (75, -75)
+  { x: 75, z: -75, protection: 'base', biome: 'desert' },       // Unicorn 5 - Desert stronghold
+  { x: 87, z: -63, protection: 'boss', biome: 'desert' },       // Unicorn 6 - Desert boss
+  { x: 63, z: -87, protection: 'boss', biome: 'desert' },       // Unicorn 7 - Desert boss
+  { x: 82, z: -82, protection: 'none', biome: 'desert' },       // Unicorn 8 - Desert free
+  { x: 67, z: -67, protection: 'none', biome: 'desert' },       // Unicorn 9 - Desert free
 
-  // SNOW BIOME (5 unicorns) - centered at (0, 7000)
-  { x: 0, z: 7000, protection: 'base', biome: 'snow' },             // Unicorn 10 - Snow stronghold
-  { x: -800, z: 7800, protection: 'boss', biome: 'snow' },          // Unicorn 11 - Snow boss
-  { x: 800, z: 6200, protection: 'boss', biome: 'snow' },           // Unicorn 12 - Snow boss
-  { x: -500, z: 6500, protection: 'none', biome: 'snow' },          // Unicorn 13 - Snow free
-  { x: 500, z: 7500, protection: 'none', biome: 'snow' },           // Unicorn 14 - Snow free
+  // SNOW BIOME (5 unicorns) - centered at (0, 105)
+  { x: 0, z: 105, protection: 'base', biome: 'snow' },             // Unicorn 10 - Snow stronghold
+  { x: -12, z: 117, protection: 'boss', biome: 'snow' },          // Unicorn 11 - Snow boss
+  { x: 12, z: 93, protection: 'boss', biome: 'snow' },           // Unicorn 12 - Snow boss
+  { x: -7, z: 97, protection: 'none', biome: 'snow' },          // Unicorn 13 - Snow free
+  { x: 7, z: 112, protection: 'none', biome: 'snow' },           // Unicorn 14 - Snow free
 
-  // VOLCANIC BIOME (5 unicorns) - centered at (5000, 5000)
-  { x: 5000, z: 5000, protection: 'base', biome: 'volcanic' },      // Unicorn 15 - Volcanic stronghold
-  { x: 5800, z: 5800, protection: 'boss', biome: 'volcanic' },      // Unicorn 16 - Volcanic boss
-  { x: 4200, z: 4200, protection: 'boss', biome: 'volcanic' },      // Unicorn 17 - Volcanic boss
-  { x: 5500, z: 4500, protection: 'none', biome: 'volcanic' },      // Unicorn 18 - Volcanic free
-  { x: 4500, z: 5500, protection: 'none', biome: 'volcanic' },      // Unicorn 19 - Volcanic free
+  // VOLCANIC BIOME (5 unicorns) - centered at (75, 75)
+  { x: 75, z: 75, protection: 'base', biome: 'volcanic' },      // Unicorn 15 - Volcanic stronghold
+  { x: 87, z: 87, protection: 'boss', biome: 'volcanic' },      // Unicorn 16 - Volcanic boss
+  { x: 63, z: 63, protection: 'boss', biome: 'volcanic' },      // Unicorn 17 - Volcanic boss
+  { x: 82, z: 67, protection: 'none', biome: 'volcanic' },      // Unicorn 18 - Volcanic free
+  { x: 67, z: 82, protection: 'none', biome: 'volcanic' },      // Unicorn 19 - Volcanic free
 
-  // SWAMP BIOME (5 unicorns) - centered at (-5000, 5000)
-  { x: -5000, z: 5000, protection: 'base', biome: 'swamp' },        // Unicorn 20 - Swamp stronghold
-  { x: -5800, z: 5800, protection: 'boss', biome: 'swamp' },        // Unicorn 21 - Swamp boss
-  { x: -4200, z: 4200, protection: 'boss', biome: 'swamp' },        // Unicorn 22 - Swamp boss
-  { x: -5500, z: 4500, protection: 'none', biome: 'swamp' },        // Unicorn 23 - Swamp free
-  { x: -4500, z: 5500, protection: 'none', biome: 'swamp' }         // Unicorn 24 - Swamp free
+  // SWAMP BIOME (5 unicorns) - centered at (-75, 75)
+  { x: -75, z: 75, protection: 'base', biome: 'swamp' },        // Unicorn 20 - Swamp stronghold
+  { x: -87, z: 87, protection: 'boss', biome: 'swamp' },        // Unicorn 21 - Swamp boss
+  { x: -63, z: 63, protection: 'boss', biome: 'swamp' },        // Unicorn 22 - Swamp boss
+  { x: -82, z: 67, protection: 'none', biome: 'swamp' },        // Unicorn 23 - Swamp free
+  { x: -67, z: 82, protection: 'none', biome: 'swamp' }         // Unicorn 24 - Swamp free
 ];
 
 dangerPositions.forEach((pos, index) => {
@@ -2294,7 +2319,7 @@ function resetGame() {
   gameState.hasShield = false;
 
   // Reset player position
-  player.position.set(0, playerGroundHeight + 3.5, 0);
+  player.position.set(playerSpawnX, playerGroundHeight + 3.5, playerSpawnZ);
   player.rotation.y = 0;
 
   // Reset camera
@@ -2716,7 +2741,7 @@ function animate() {
 
   // Player movement with sprint
   const isSprinting = keys['f'] && gameState.magicPower > 0;
-  const baseSpeed = isSprinting ? 16 : 8; // Double speed when sprinting
+  const baseSpeed = isSprinting ? 50 : 25; // Double speed when sprinting
   const moveSpeed = baseSpeed * delta;
   const direction = new THREE.Vector3();
 

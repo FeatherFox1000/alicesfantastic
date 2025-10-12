@@ -728,7 +728,7 @@
       <h1>UNICORNS UNITE</h1>
       <p>Save the unicorns with your magical powers!</p>
       <p class="tip">For best results use fullscreen in pause</p>
-      <button id="start-button">cavecat</button>
+      <button id="start-button">ENTER</button>
     </div>
 
     <div id="game-ui">
@@ -855,15 +855,6 @@
       </div>
     </div>
 
-    <script type="module">
-      // Ensure DOM is fully loaded before initializing the game
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', async () => {
-          await import('/main.js');
-        });
-      } else {
-        import('/main.js');
-      }
-    </script>
+    <script type="module" src="/main.js"></script>
   </body>
 </html>
