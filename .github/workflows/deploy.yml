@@ -36,6 +36,12 @@ jobs:
       - name: Build Unicorns Unite game
         run: npm run build:unicorns-unite
 
+      - name: Install Creator game dependencies
+        run: cd games/creator-game && npm ci
+
+      - name: Build Creator game
+        run: npm run build:creator
+
       - name: Build main site
         run: npm run build
 

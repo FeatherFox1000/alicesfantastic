@@ -4,9 +4,9 @@
 
 .page-hero {
   background: linear-gradient(135deg, #fdeded 0%, #ffd4e5 100%);
-  padding: 4rem 2rem;
+  padding: 2rem;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(123, 20, 201, 0.1);
+  box-shadow: 0 2px 10px rgba(123, 20, 201, 0.1);
 }
 
 [data-theme="dark"] .page-hero {
@@ -14,11 +14,11 @@
 }
 
 .page-hero h1 {
-  font-size: 3.5rem;
+  font-size: 2rem;
   color: #7b14c9;
   margin: 0;
-  font-weight: 800;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] .page-hero h1 {
@@ -227,8 +227,12 @@ body.game-focused {
 }
 
 @media (max-width: 768px) {
+  .page-hero {
+    padding: 1.5rem 1rem;
+  }
+
   .page-hero h1 {
-    font-size: 2.5rem;
+    font-size: 1.75rem;
   }
 
   .game-intro {

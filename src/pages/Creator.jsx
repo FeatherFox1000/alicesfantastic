@@ -46,14 +46,13 @@ function Creator() {
   return (
     <div className="page creator">
       <div className="page-hero">
-        <h1>Welcome to Creator</h1>
-        <p className="hero-subtitle">Unleash Your Imagination!</p>
+        <h1>Creator</h1>
       </div>
 
       <div className="page-content">
         <section className="intro-section">
           <p className="game-intro">
-            The Creator game enables users to build personalized 2D worlds using prebuilt shape blocks. Players can design structures, explore their creations as a character, and share their work with others.
+            Build personalized 2D worlds using prebuilt shape blocks. Design structures, create custom characters, and share your creations with others.
           </p>
         </section>
 
@@ -66,7 +65,7 @@ function Creator() {
           >
             <iframe
               ref={iframeRef}
-              src="/creator/index.html"
+              src={import.meta.env.DEV ? 'http://localhost:5175/' : '/creator/index.html'}
               title="Creator Game"
               className="game-iframe"
             />
