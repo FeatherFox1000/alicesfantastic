@@ -68,7 +68,6 @@ function UnicornsUnite() {
               src={import.meta.env.DEV ? 'http://localhost:5174/' : `/unicorns-unite/index.html?v=${Date.now()}`}
               title="Unicorns Unite Game"
               className="game-iframe"
-              allowFullScreen
             />
           </div>
           <div className="game-instructions">

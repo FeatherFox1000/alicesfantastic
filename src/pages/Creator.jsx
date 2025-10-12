@@ -69,7 +69,6 @@ function Creator() {
               src="/creator/index.html"
               title="Creator Game"
               className="game-iframe"
-              allowFullScreen
             />
           </div>
           <div className="game-instructions">
