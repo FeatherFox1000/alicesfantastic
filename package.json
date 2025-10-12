@@ -4,15 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run dev:website\" \"npm run dev:unicorns-unite\" \"npm run dev:creator\" --names \"website,unicorns,creator\" --prefix-colors \"cyan,magenta,yellow\"",
+    "dev:website": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "dev:unicorns-unite": "cd games/unicorns-unite && npm run dev",
     "build:unicorns-unite": "cd games/unicorns-unite && npm run build && rm -rf ../../public/unicorns-unite-game && cp -r dist ../../public/unicorns-unite-game",
     "dev:creator": "cd games/creator-game && npm run dev",
-    "build:creator": "cd games/creator-game && npm run build && rm -rf ../../public/creator-game && cp -r dist ../../public/creator-game",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:unicorns-unite\" \"npm run dev:creator\" --names \"website,unicorns,creator\" --prefix-colors \"cyan,magenta,yellow\""
+    "build:creator": "cd games/creator-game && npm run build && rm -rf ../../public/creator-game && cp -r dist ../../public/creator-game"
   },
   "dependencies": {
     "react": "^19.1.1",
