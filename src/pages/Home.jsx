@@ -22,6 +22,9 @@ function Home() {
               <p className="game-description">
                 A magical game where you can play as a unicorn, and use your magic!
               </p>
+              <p className="game-note">
+                This image is the original idea for the game Unicorns Unite
+              </p>
             </div>
           </Link>
 

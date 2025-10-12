@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "dev:unicorns-unite": "cd games/unicorns-unite && npm run dev",
-    "build:unicorns-unite": "cd games/unicorns-unite && npm run build && rm -rf ../../public/unicorns-unite && cp -r dist ../../public/unicorns-unite"
+    "build:unicorns-unite": "cd games/unicorns-unite && npm run build && rm -rf ../../public/unicorns-unite && cp -r dist ../../public/unicorns-unite",
+    "dev:creator": "cd games/creator-game && npm run dev",
+    "build:creator": "cd games/creator-game && npm run build && rm -rf ../../public/creator && cp -r dist ../../public/creator"
   },
   "dependencies": {
     "react": "^19.1.1",

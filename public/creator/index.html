@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator - Build Your World</title>
+  <script type="module" crossorigin src="/assets/index-DJuc596L.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-gsk-VqP1.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Creator</h1>
+            <div id="top-controls">
+                <div id="mode-controls">
+                    <button id="build-mode-btn" class="mode-btn active">Build Mode</button>
+                    <button id="play-mode-btn" class="mode-btn">Play Mode</button>
+                    <button id="delete-mode-btn" class="mode-btn">🗑️ Delete</button>
+                </div>
+
+                <div class="control-section">
+                    <label>Shapes:</label>
+                    <div id="shape-palette">
+                        <button class="shape-btn" data-shape="square">
+                            <div class="shape-preview square"></div>
+                        </button>
+                        <button class="shape-btn" data-shape="circle">
+                            <div class="shape-preview circle"></div>
+                        </button>
+                        <button class="shape-btn" data-shape="triangle">
+                            <div class="shape-preview triangle"></div>
+                        </button>
+                        <button class="shape-btn" data-shape="rectangle">
+                            <div class="shape-preview rectangle"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <label>Colors:</label>
+                    <div id="color-palette">
+                        <button class="color-btn" data-color="#FF6B6B" style="background: #FF6B6B;"></button>
+                        <button class="color-btn" data-color="#4ECDC4" style="background: #4ECDC4;"></button>
+                        <button class="color-btn" data-color="#45B7D1" style="background: #45B7D1;"></button>
+                        <button class="color-btn" data-color="#FFA07A" style="background: #FFA07A;"></button>
+                        <button class="color-btn" data-color="#98D8C8" style="background: #98D8C8;"></button>
+                        <button class="color-btn" data-color="#F7DC6F" style="background: #F7DC6F;"></button>
+                        <button class="color-btn" data-color="#BB8FCE" style="background: #BB8FCE;"></button>
+                        <button class="color-btn" data-color="#85C1E2" style="background: #85C1E2;"></button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <button id="create-custom-btn" class="custom-create-btn">+ Custom</button>
+                    <div id="custom-shapes-list"></div>
+                </div>
+
+                <div id="world-controls">
+                    <button id="customize-character-btn">👤 Character</button>
+                    <button id="save-btn">Save</button>
+                    <button id="load-btn">Load</button>
+                    <button id="share-btn">Share</button>
+                    <button id="clear-btn">Clear</button>
+                </div>
+            </div>
+        </header>
+
+        <div id="main-container">
+
+            <main id="canvas-container">
+                <canvas id="game-canvas"></canvas>
+                <div id="instructions">
+                    <p><strong>Build Mode:</strong> Click shapes, then click on canvas to place. Right-click to delete.</p>
+                    <p><strong>Play Mode:</strong> Use Arrow Keys or WASD to move. Click "👤 Character" to customize!</p>
+                </div>
+            </main>
+        </div>
+
+        <!-- Custom Shape Editor Modal -->
+        <div id="custom-editor-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Create Custom Shape</h2>
+                    <button id="close-editor" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="editor-controls">
+                        <input type="color" id="editor-color" value="#667eea">
+                        <button id="clear-editor">Clear</button>
+                    </div>
+                    <canvas id="shape-editor-canvas"></canvas>
+                    <div class="editor-actions">
+                        <input type="text" id="shape-name" placeholder="Shape name..." maxlength="20">
+                        <button id="save-custom-shape">Save Shape</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Character Builder Modal -->
+        <div id="character-customizer-modal" class="modal">
+            <div class="modal-content character-builder-content">
+                <div class="modal-header">
+                    <h2>Build Your Character</h2>
+                    <button id="close-character-customizer" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body character-builder">
+                    <div class="builder-controls">
+                        <h3>Select Color</h3>
+                        <div class="builder-color-palette">
+                            <button class="builder-color-btn" data-color="#FF6B6B" style="background: #FF6B6B;"></button>
+                            <button class="builder-color-btn" data-color="#4ECDC4" style="background: #4ECDC4;"></button>
+                            <button class="builder-color-btn" data-color="#45B7D1" style="background: #45B7D1;"></button>
+                            <button class="builder-color-btn" data-color="#FFA07A" style="background: #FFA07A;"></button>
+                            <button class="builder-color-btn" data-color="#98D8C8" style="background: #98D8C8;"></button>
+                            <button class="builder-color-btn" data-color="#F7DC6F" style="background: #F7DC6F;"></button>
+                            <button class="builder-color-btn" data-color="#BB8FCE" style="background: #BB8FCE;"></button>
+                            <button class="builder-color-btn" data-color="#85C1E2" style="background: #85C1E2;"></button>
+                            <button class="builder-color-btn" data-color="#FFFFFF" style="background: #FFFFFF;"></button>
+                            <button class="builder-color-btn" data-color="#000000" style="background: #000000;"></button>
+                        </div>
+                        <button id="clear-character-builder">Clear</button>
+                        <button id="use-default-character">Use Default</button>
+                    </div>
+                    <div class="builder-canvas-container">
+                        <canvas id="character-builder-canvas"></canvas>
+                        <p class="builder-hint">Click to place blocks, right-click to erase</p>
+                    </div>
+                    <button id="save-character" class="save-character-btn">Save Character</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
