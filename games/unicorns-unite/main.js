@@ -267,7 +267,9 @@ const gameState = {
   canUseShield: true,
   hasShield: false,
   bossesDefeated: 0,
-  basesDestroyed: 0
+  basesDestroyed: 0,
+  isDragon: false,
+  dragonTransformTimer: 0
 };
 
 // Setup scene
@@ -1039,6 +1041,11 @@ function checkTreeCollision(x, z, radius = 2) {
 
 // Check collision with stronghold walls (box collision)
 function checkStrongholdCollision(x, z, radius = 2) {
+  // Dragons can pass through stronghold walls without being attacked
+  if (gameState.isDragon) {
+    return false;
+  }
+
   for (const stronghold of strongholdPositions) {
     // Calculate distance from point to the stronghold walls
     const halfSize = stronghold.size / 2;
@@ -2534,6 +2541,34 @@ document.getElementById('save-and-end-button').addEventListener('click', () => {
   resetGame();
 });
 
+// Tranforemahen (Dragon transformation) button
+document.getElementById('tranforemahen-button').addEventListener('click', () => {
+  if (collectedEggs >= 10 && !gameState.isDragon) {
+    // Transform into dragon
+    gameState.isDragon = true;
+    gameState.dragonTransformTimer = 60; // 60 seconds (1 minute)
+
+    // Visual feedback
+    showMessage('🐉 DRAGON TRANSFORMATION! You are now a dragon for 1 minute!');
+
+    // Change player appearance to dragon-like
+    player.traverse((child) => {
+      if (child.isMesh) {
+        child.material.color.setHex(0xff0000); // Red dragon color
+        child.material.emissive.setHex(0xff4400);
+        child.material.emissiveIntensity = 0.5;
+      }
+    });
+
+    // Resume game
+    togglePauseMenu();
+  } else if (gameState.isDragon) {
+    showMessage('⏳ You are already transformed!');
+  } else {
+    showMessage(`🥚 Need 10 dragon eggs! You have ${collectedEggs}/10`);
+  }
+});
+
 // Reset game function
 function resetGame() {
   // Reset game state
@@ -2966,6 +3001,28 @@ function animate() {
 
   const delta = clock.getDelta();
   const time = clock.getElapsedTime();
+
+  // Handle dragon transformation timer
+  if (gameState.isDragon && gameState.dragonTransformTimer > 0) {
+    gameState.dragonTransformTimer -= delta;
+
+    if (gameState.dragonTransformTimer <= 0) {
+      // Transform back to unicorn
+      gameState.isDragon = false;
+      gameState.dragonTransformTimer = 0;
+
+      // Reset player appearance
+      player.traverse((child) => {
+        if (child.isMesh) {
+          child.material.color.copy(customization.bodyColor);
+          child.material.emissive.setHex(0x000000);
+          child.material.emissiveIntensity = 0;
+        }
+      });
+
+      showMessage('✨ Transformation ended - You are a unicorn again!');
+    }
+  }
 
   // Player movement with sprint
   const isSprinting = keys['f'] && gameState.magicPower > 0;
