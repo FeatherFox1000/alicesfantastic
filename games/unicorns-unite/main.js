@@ -272,6 +272,237 @@ const gameState = {
   dragonTransformTimer: 0
 };
 
+// Side Quest System
+const sideQuests = [
+  {
+    id: 'explorer',
+    title: 'World Explorer',
+    description: 'Visit all 5 biomes in the magical realm',
+    type: 'explore',
+    target: 5,
+    progress: 0,
+    completed: false,
+    reward: { type: 'magicPower', value: 50 },
+    biomes: new Set(),
+    checkProgress: function(position) {
+      const biome = getBiomeAtPosition(position);
+      if (biome && !this.biomes.has(biome)) {
+        this.biomes.add(biome);
+        this.progress = this.biomes.size;
+        return this.progress >= this.target;
+      }
+      return false;
+    }
+  },
+  {
+    id: 'savior',
+    title: 'Early Savior',
+    description: 'Save your first 5 unicorns',
+    type: 'save',
+    target: 5,
+    progress: 0,
+    completed: false,
+    reward: { type: 'message', value: 'Champion Badge' },
+    checkProgress: function(unicornsSaved) {
+      this.progress = Math.min(unicornsSaved, this.target);
+      return this.progress >= this.target;
+    }
+  },
+  {
+    id: 'dragonSlayer',
+    title: 'Dragon Slayer',
+    description: 'Defeat 3 stronghold bosses',
+    type: 'combat',
+    target: 3,
+    progress: 0,
+    completed: false,
+    reward: { type: 'magicPower', value: 100 },
+    checkProgress: function(bossesDefeated) {
+      this.progress = Math.min(bossesDefeated, this.target);
+      return this.progress >= this.target;
+    }
+  },
+  {
+    id: 'mageMaster',
+    title: 'Mage Master',
+    description: 'Cast 20 magic spells',
+    type: 'spell',
+    target: 20,
+    progress: 0,
+    completed: false,
+    reward: { type: 'message', value: 'Reduced Spell Cost' },
+    checkProgress: function() {
+      return this.progress >= this.target;
+    }
+  },
+  {
+    id: 'defender',
+    title: 'Steadfast Defender',
+    description: 'Use your shield 10 times',
+    type: 'shield',
+    target: 10,
+    progress: 0,
+    completed: false,
+    reward: { type: 'message', value: 'Extended Shield Duration' },
+    checkProgress: function() {
+      return this.progress >= this.target;
+    }
+  },
+  {
+    id: 'liberator',
+    title: 'Great Liberator',
+    description: 'Destroy all 5 enemy strongholds',
+    type: 'destroy',
+    target: 5,
+    progress: 0,
+    completed: false,
+    reward: { type: 'magicPower', value: 150 },
+    checkProgress: function(basesDestroyed) {
+      this.progress = Math.min(basesDestroyed, this.target);
+      return this.progress >= this.target;
+    }
+  },
+  {
+    id: 'speedRunner',
+    title: 'Speed Runner',
+    description: 'Save 10 unicorns in under 5 minutes',
+    type: 'timed',
+    target: 10,
+    progress: 0,
+    completed: false,
+    reward: { type: 'message', value: 'Speed Champion Title' },
+    startTime: null,
+    timeLimit: 300000, // 5 minutes in milliseconds
+    checkProgress: function(unicornsSaved) {
+      if (!this.startTime) this.startTime = Date.now();
+      const elapsed = Date.now() - this.startTime;
+      this.progress = unicornsSaved;
+      return unicornsSaved >= this.target && elapsed <= this.timeLimit;
+    }
+  }
+];
+
+// Helper function to determine biome from position
+function getBiomeAtPosition(pos) {
+  const x = pos.x;
+  const z = pos.z;
+
+  // Forest: Northwest
+  if (x < -30 && z < -30) return 'forest';
+  // Desert: Northeast
+  if (x > 30 && z < -30) return 'desert';
+  // Snow: North
+  if (z > 60) return 'snow';
+  // Volcanic: Southeast
+  if (x > 30 && z > 30) return 'volcanic';
+  // Swamp: Southwest
+  if (x < -30 && z > 30) return 'swamp';
+
+  return null;
+}
+
+// Update quest UI
+function updateQuestUI() {
+  const questList = document.getElementById('quest-list');
+  if (!questList) return;
+
+  questList.innerHTML = '';
+
+  const activeQuests = sideQuests.filter(q => !q.completed);
+  const completedQuests = sideQuests.filter(q => q.completed);
+
+  // Show active quests first
+  activeQuests.forEach(quest => {
+    const questItem = document.createElement('div');
+    questItem.className = 'quest-item';
+
+    const title = document.createElement('div');
+    title.className = 'quest-title';
+    title.textContent = quest.title;
+
+    const description = document.createElement('div');
+    description.className = 'quest-description';
+    description.textContent = quest.description;
+
+    const progress = document.createElement('div');
+    progress.className = 'quest-progress';
+    progress.textContent = `Progress: ${quest.progress}/${quest.target}`;
+
+    const reward = document.createElement('div');
+    reward.className = 'quest-reward';
+    reward.textContent = `Reward: ${quest.reward.value}`;
+
+    questItem.appendChild(title);
+    questItem.appendChild(description);
+    questItem.appendChild(progress);
+    questItem.appendChild(reward);
+
+    questList.appendChild(questItem);
+  });
+
+  // Show completed quests
+  completedQuests.forEach(quest => {
+    const questItem = document.createElement('div');
+    questItem.className = 'quest-item completed';
+
+    const title = document.createElement('div');
+    title.className = 'quest-title';
+    title.textContent = '✓ ' + quest.title;
+
+    const description = document.createElement('div');
+    description.className = 'quest-description';
+    description.textContent = 'COMPLETED!';
+
+    questItem.appendChild(title);
+    questItem.appendChild(description);
+
+    questList.appendChild(questItem);
+  });
+}
+
+// Check and complete quests
+function checkQuestCompletion(questId, ...args) {
+  const quest = sideQuests.find(q => q.id === questId);
+  if (!quest || quest.completed) return;
+
+  if (quest.checkProgress(...args)) {
+    quest.completed = true;
+
+    // Award rewards
+    if (quest.reward.type === 'magicPower') {
+      gameState.magicPower = Math.min(100, gameState.magicPower + quest.reward.value);
+    }
+
+    showMessage(`🎉 Quest Complete: ${quest.title}!\n✨ Reward: ${quest.reward.value}`);
+    playQuestCompleteSound();
+    updateQuestUI();
+  }
+}
+
+// Sound for quest completion
+function playQuestCompleteSound() {
+  const now = audioContext.currentTime;
+
+  // Triumphant ascending chime
+  [0, 0.1, 0.2, 0.3].forEach((offset, i) => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = 'sine';
+    const freq = 600 + (i * 150);
+    osc.frequency.setValueAtTime(freq, now + offset);
+
+    gain.gain.setValueAtTime(0.15, now + offset);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.6);
+
+    osc.connect(gain);
+    gain.connect(sfxGainNode);
+
+    osc.start(now + offset);
+    osc.stop(now + offset + 0.6);
+  });
+}
+
 // Setup scene
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xe6f0ff, 0.002);
@@ -2248,6 +2479,9 @@ function startGame() {
     // Try to load saved game
     loadSavedGame();
 
+    // Initialize quest UI
+    updateQuestUI();
+
     // Auto-enable pointer lock when game starts
     renderer.domElement.requestPointerLock();
   }
@@ -2653,15 +2887,18 @@ document.getElementById('toggle-ui-button').addEventListener('click', () => {
   const infoPanel = document.getElementById('info-panel');
   const controls = document.getElementById('controls');
   const abilityBar = document.getElementById('ability-bar');
+  const questPanel = document.getElementById('quest-panel');
 
   if (uiVisible) {
     infoPanel.classList.remove('ui-panel-hidden');
     controls.classList.remove('ui-panel-hidden');
     abilityBar.classList.remove('ui-panel-hidden');
+    questPanel.classList.remove('ui-panel-hidden');
   } else {
     infoPanel.classList.add('ui-panel-hidden');
     controls.classList.add('ui-panel-hidden');
     abilityBar.classList.add('ui-panel-hidden');
+    questPanel.classList.add('ui-panel-hidden');
   }
 });
 
@@ -2807,6 +3044,14 @@ function castSpell() {
 
   playSpellSound();
 
+  // Track spell casting quest
+  const spellQuest = sideQuests.find(q => q.id === 'mageMaster');
+  if (spellQuest && !spellQuest.completed) {
+    spellQuest.progress++;
+    checkQuestCompletion('mageMaster');
+    updateQuestUI();
+  }
+
   document.getElementById('spell-ability').classList.add('cooldown');
 
   // Create magical spell
@@ -2897,6 +3142,14 @@ function activateShield() {
   updateUI();
 
   playShieldSound();
+
+  // Track shield usage quest
+  const shieldQuest = sideQuests.find(q => q.id === 'defender');
+  if (shieldQuest && !shieldQuest.completed) {
+    shieldQuest.progress++;
+    checkQuestCompletion('defender');
+    updateQuestUI();
+  }
 
   document.getElementById('shield-ability').classList.add('cooldown');
 
@@ -3056,6 +3309,15 @@ function animate() {
     // Only move if not colliding with trees or strongholds
     if (!checkTreeCollision(newX, newZ) && !checkStrongholdCollision(newX, newZ)) {
       player.position.add(rotatedDir.multiplyScalar(moveSpeed));
+
+      // Track biome exploration quest
+      const explorerQuest = sideQuests.find(q => q.id === 'explorer');
+      if (explorerQuest && !explorerQuest.completed) {
+        if (explorerQuest.checkProgress(player.position)) {
+          checkQuestCompletion('explorer', player.position);
+        }
+        updateQuestUI();
+      }
 
       // Drain magic when sprinting
       if (isSprinting) {
@@ -3235,6 +3497,10 @@ function animate() {
 
             showMessage('⚔️ Boss Defeated! ⚔️');
 
+            // Track boss defeat quest
+            checkQuestCompletion('dragonSlayer', gameState.bossesDefeated);
+            updateQuestUI();
+
             // Clear boss reference from unicorn
             const unicornIdx = boss.userData.unicornIndex;
             if (unicornsInDanger[unicornIdx]) {
@@ -3271,6 +3537,10 @@ function animate() {
             base.userData.destroyed = true;
             gameState.basesDestroyed++;
             showMessage('💥 Base Destroyed! 💥');
+
+            // Track base destruction quest
+            checkQuestCompletion('liberator', gameState.basesDestroyed);
+            updateQuestUI();
 
             // Clear base reference from unicorn
             const unicornIdx = base.userData.unicornIndex;
@@ -3311,6 +3581,11 @@ function animate() {
             updateUI();
 
             playUnicornSaveSound();
+
+            // Track unicorn saving quests
+            checkQuestCompletion('savior', gameState.unicornsSaved);
+            checkQuestCompletion('speedRunner', gameState.unicornsSaved);
+            updateQuestUI();
 
             showMessage('✨ Unicorn Saved! ✨');
 

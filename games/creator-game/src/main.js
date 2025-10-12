@@ -21,6 +21,12 @@ class CreatorGame {
         this.mouseX = 0;
         this.mouseY = 0;
 
+        // Drag state
+        this.isDragging = false;
+        this.draggedObject = null;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
+
         // Undo history
         this.history = [];
         this.maxHistorySize = 50;
@@ -60,6 +66,7 @@ class CreatorGame {
     init() {
         this.shapeEditor = new ShapeEditor(this);
         this.characterCustomizer = new CharacterCustomizer(this);
+        this.loadTheme();
         this.setupEventListeners();
         this.render();
         this.gameLoop();
@@ -118,12 +125,48 @@ class CreatorGame {
             this.switchMode('delete');
         });
 
-        // Canvas click for placing/deleting objects
-        this.canvas.addEventListener('click', (e) => {
+        // Canvas mouse events for dragging and placing
+        this.canvas.addEventListener('mousedown', (e) => {
             if (this.mode === 'build') {
-                this.placeObject(e);
+                const worldX = e.clientX - this.canvas.getBoundingClientRect().left + this.cameraX;
+                const worldY = e.clientY - this.canvas.getBoundingClientRect().top + this.cameraY;
+
+                // Check if clicking on an existing object
+                const clickedObject = this.getObjectAt(worldX, worldY);
+
+                if (clickedObject && e.shiftKey) {
+                    // Shift+click to drag existing object
+                    this.isDragging = true;
+                    this.draggedObject = clickedObject;
+                    this.dragOffsetX = worldX - clickedObject.x;
+                    this.dragOffsetY = worldY - clickedObject.y;
+                    this.saveToHistory();
+                } else if (!clickedObject) {
+                    // Place new object if not clicking on existing one
+                    this.placeObject(e);
+                }
             } else if (this.mode === 'delete') {
                 this.deleteObjectAtMouse(e);
+            }
+        });
+
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (this.isDragging && this.draggedObject) {
+                const worldX = e.clientX - this.canvas.getBoundingClientRect().left + this.cameraX;
+                const worldY = e.clientY - this.canvas.getBoundingClientRect().top + this.cameraY;
+
+                // Snap to grid
+                this.draggedObject.x = Math.floor((worldX - this.dragOffsetX) / this.gridSize) * this.gridSize;
+                this.draggedObject.y = Math.floor((worldY - this.dragOffsetY) / this.gridSize) * this.gridSize;
+
+                this.render();
+            }
+        });
+
+        this.canvas.addEventListener('mouseup', (e) => {
+            if (this.isDragging) {
+                this.isDragging = false;
+                this.draggedObject = null;
             }
         });
 
@@ -152,11 +195,13 @@ class CreatorGame {
         });
 
         // World controls
+        document.getElementById('theme-toggle').addEventListener('click', () => this.toggleTheme());
         document.getElementById('undo-btn').addEventListener('click', () => this.undo());
         document.getElementById('save-btn').addEventListener('click', () => this.saveWorld());
         document.getElementById('load-btn').addEventListener('click', () => this.loadWorld());
         document.getElementById('share-btn').addEventListener('click', () => this.shareWorld());
         document.getElementById('clear-btn').addEventListener('click', () => this.clearWorld());
+        document.getElementById('about-btn').addEventListener('click', () => this.openAboutModal());
 
         // Canvas right-click for deletion
         this.canvas.addEventListener('contextmenu', (e) => {
@@ -187,6 +232,11 @@ class CreatorGame {
 
         document.getElementById('load-from-file').addEventListener('click', () => {
             this.loadWorldFromFile();
+        });
+
+        // About modal
+        document.getElementById('close-about').addEventListener('click', () => {
+            this.closeAboutModal();
         });
 
         // First person mode toggle
@@ -223,24 +273,22 @@ class CreatorGame {
             this.canvas.style.cursor = 'crosshair';
             firstPersonBtn.style.display = 'none';
             this.firstPersonMode = false;
-            this.cameraX = 0;
-            this.cameraY = 0;
+            // Keep camera position for unlimited workspace - don't reset
         } else if (mode === 'delete') {
             document.getElementById('delete-mode-btn').classList.add('active');
             this.canvas.classList.remove('play-mode');
             this.canvas.style.cursor = 'not-allowed';
             firstPersonBtn.style.display = 'none';
             this.firstPersonMode = false;
-            this.cameraX = 0;
-            this.cameraY = 0;
+            // Keep camera position for unlimited workspace - don't reset
         } else if (mode === 'play') {
             document.getElementById('play-mode-btn').classList.add('active');
             this.canvas.classList.add('play-mode');
             this.canvas.style.cursor = 'default';
             firstPersonBtn.style.display = 'inline-block';
-            // Reset player position
-            this.player.x = 100;
-            this.player.y = 100;
+            // Reset player position to center of current view
+            this.player.x = this.cameraX + this.canvas.width / 2;
+            this.player.y = this.cameraY + this.canvas.height / 2;
             this.player.velocityY = 0;
         }
     }
@@ -318,23 +366,44 @@ class CreatorGame {
         this.render();
     }
 
+    getObjectAt(worldX, worldY) {
+        // Find object at the given world coordinates
+        for (let i = this.objects.length - 1; i >= 0; i--) {
+            const obj = this.objects[i];
+            const width = obj.shape === 'rectangle' ? obj.width * 1.5 : obj.width;
+            const height = obj.shape === 'rectangle' ? obj.height * 0.75 : obj.height;
+
+            if (worldX >= obj.x && worldX < obj.x + width &&
+                worldY >= obj.y && worldY < obj.y + height) {
+                return obj;
+            }
+        }
+        return null;
+    }
+
     drawGrid() {
         this.ctx.strokeStyle = '#f0f0f0';
         this.ctx.lineWidth = 1;
 
+        // Calculate grid bounds based on camera position for unlimited workspace
+        const startX = Math.floor(this.cameraX / this.gridSize) * this.gridSize;
+        const endX = startX + this.canvas.width + this.gridSize * 2;
+        const startY = Math.floor(this.cameraY / this.gridSize) * this.gridSize;
+        const endY = startY + this.canvas.height + this.gridSize * 2;
+
         // Vertical lines
-        for (let x = 0; x <= this.canvas.width; x += this.gridSize) {
+        for (let x = startX; x <= endX; x += this.gridSize) {
             this.ctx.beginPath();
-            this.ctx.moveTo(x, 0);
-            this.ctx.lineTo(x, this.canvas.height);
+            this.ctx.moveTo(x, startY);
+            this.ctx.lineTo(x, endY);
             this.ctx.stroke();
         }
 
         // Horizontal lines
-        for (let y = 0; y <= this.canvas.height; y += this.gridSize) {
+        for (let y = startY; y <= endY; y += this.gridSize) {
             this.ctx.beginPath();
-            this.ctx.moveTo(0, y);
-            this.ctx.lineTo(this.canvas.width, y);
+            this.ctx.moveTo(startX, y);
+            this.ctx.lineTo(endX, y);
             this.ctx.stroke();
         }
     }
@@ -606,14 +675,14 @@ class CreatorGame {
     }
 
     render() {
-        // Clear canvas
+        // Clear entire canvas viewport
         this.ctx.fillStyle = 'white';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Save context state
         this.ctx.save();
 
-        // Update camera for mouse follow mode
+        // Update camera for mouse follow mode (unlimited workspace)
         if (this.mouseFollowMode && (this.mode === 'build' || this.mode === 'delete')) {
             const edgeThreshold = 200; // Distance from edge to start scrolling
             const scrollSpeed = 5;
@@ -630,13 +699,28 @@ class CreatorGame {
                 this.cameraY += scrollSpeed;
             }
 
-            // Prevent camera from going too far negative
-            if (this.cameraX < -1000) this.cameraX = -1000;
-            if (this.cameraY < -1000) this.cameraY = -1000;
+            // No limits - unlimited workspace!
         }
 
-        // Apply camera transform in play mode or build/delete with mouse follow
-        if (this.mode === 'play' || (this.mouseFollowMode && (this.mode === 'build' || this.mode === 'delete'))) {
+        // Keyboard camera controls for unlimited workspace
+        if (this.mode === 'build' || this.mode === 'delete') {
+            const keyScrollSpeed = 10;
+            if (this.keys['arrowleft'] || this.keys['a']) {
+                this.cameraX -= keyScrollSpeed;
+            }
+            if (this.keys['arrowright'] || this.keys['d']) {
+                this.cameraX += keyScrollSpeed;
+            }
+            if (this.keys['arrowup'] || this.keys['w']) {
+                this.cameraY -= keyScrollSpeed;
+            }
+            if (this.keys['arrowdown'] || this.keys['s']) {
+                this.cameraY += keyScrollSpeed;
+            }
+        }
+
+        // Apply camera transform in play mode or build/delete modes (unlimited workspace)
+        if (this.mode === 'play' || this.mode === 'build' || this.mode === 'delete') {
             this.ctx.translate(-this.cameraX, -this.cameraY);
         }
 
@@ -716,6 +800,16 @@ class CreatorGame {
 
     closeLoadWorldsModal() {
         const modal = document.getElementById('load-worlds-modal');
+        modal.classList.remove('active');
+    }
+
+    openAboutModal() {
+        const modal = document.getElementById('about-modal');
+        modal.classList.add('active');
+    }
+
+    closeAboutModal() {
+        const modal = document.getElementById('about-modal');
         modal.classList.remove('active');
     }
 
@@ -991,6 +1085,34 @@ class CreatorGame {
         if (confirm('Delete this custom shape?')) {
             this.customShapes.splice(index, 1);
             this.renderCustomShapes();
+        }
+    }
+
+    toggleTheme() {
+        const body = document.body;
+        const isDark = body.classList.contains('dark-mode');
+        const themeToggle = document.getElementById('theme-toggle');
+
+        if (isDark) {
+            body.classList.remove('dark-mode');
+            themeToggle.textContent = '🌙';
+            localStorage.setItem('creator-theme', 'light');
+        } else {
+            body.classList.add('dark-mode');
+            themeToggle.textContent = '☀️';
+            localStorage.setItem('creator-theme', 'dark');
+        }
+    }
+
+    loadTheme() {
+        const savedTheme = localStorage.getItem('creator-theme');
+        const themeToggle = document.getElementById('theme-toggle');
+
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+            themeToggle.textContent = '☀️';
+        } else {
+            themeToggle.textContent = '🌙';
         }
     }
 }

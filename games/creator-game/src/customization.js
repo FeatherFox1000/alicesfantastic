@@ -140,9 +140,14 @@ export class CharacterCustomizer {
         this.canvas = document.getElementById('character-builder-canvas');
         this.ctx = this.canvas.getContext('2d');
         this.gridSize = 10;
-        this.cellSize = 20;
+        this.cellSize = 35;
+
+        // Set canvas size explicitly
         this.canvas.width = this.gridSize * this.cellSize;
         this.canvas.height = this.gridSize * this.cellSize;
+        // Also set style to prevent scaling
+        this.canvas.style.width = this.canvas.width + 'px';
+        this.canvas.style.height = this.canvas.height + 'px';
 
         this.frames = [Array(this.gridSize).fill(null).map(() => Array(this.gridSize).fill(null))];
         this.currentFrameIndex = 0;
@@ -241,6 +246,19 @@ export class CharacterCustomizer {
         // Undo button
         document.getElementById('undo-character-btn').addEventListener('click', () => {
             this.undo();
+        });
+
+        // Load template button
+        document.getElementById('load-character-template').addEventListener('click', () => {
+            this.openLoadTemplateModal();
+        });
+
+        document.getElementById('close-load-character').addEventListener('click', () => {
+            this.closeLoadTemplateModal();
+        });
+
+        document.getElementById('load-character-from-file').addEventListener('click', () => {
+            this.loadTemplateFromFile();
         });
     }
 
@@ -462,7 +480,38 @@ export class CharacterCustomizer {
             return;
         }
 
-        // Save all animation frames
+        // Ask if user wants to save as template
+        const saveAsTemplate = confirm('Would you like to save this character as a template for future use?');
+
+        if (saveAsTemplate) {
+            const templateName = prompt('Enter a name for your character template:', 'My Character');
+            if (templateName) {
+                const templateData = {
+                    name: templateName,
+                    frames: this.frames,
+                    timestamp: new Date().toISOString(),
+                    id: Date.now()
+                };
+
+                const savedTemplates = this.getSavedTemplates();
+                savedTemplates.push(templateData);
+                localStorage.setItem('creator-character-templates', JSON.stringify(savedTemplates));
+
+                // Also download as file
+                const dataStr = JSON.stringify(templateData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${templateName}-${Date.now()}.json`;
+                link.click();
+
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        // Save all animation frames to player
         this.game.player.animationFrames = JSON.parse(JSON.stringify(this.frames));
         this.game.player.customGrid = this.frames[0]; // Keep first frame for compatibility
         this.game.player.width = (maxX - minX + 1) * 4; // Scale up by 4
@@ -474,5 +523,207 @@ export class CharacterCustomizer {
         this.closeCustomizer();
         const frameText = this.frames.length > 1 ? ` with ${this.frames.length} animation frames` : '';
         alert(`Character saved successfully${frameText}!`);
+    }
+
+    saveTemplate() {
+        let hasBlocks = false;
+        for (const frame of this.frames) {
+            for (let y = 0; y < this.gridSize; y++) {
+                for (let x = 0; x < this.gridSize; x++) {
+                    if (frame[y][x]) {
+                        hasBlocks = true;
+                        break;
+                    }
+                }
+                if (hasBlocks) break;
+            }
+            if (hasBlocks) break;
+        }
+
+        if (!hasBlocks) {
+            alert('Please draw your character first!');
+            return;
+        }
+
+        const templateName = prompt('Enter a name for your character template:', 'My Character');
+        if (!templateName) return;
+
+        const templateData = {
+            name: templateName,
+            frames: this.frames,
+            timestamp: new Date().toISOString(),
+            id: Date.now()
+        };
+
+        const savedTemplates = this.getSavedTemplates();
+        savedTemplates.push(templateData);
+        localStorage.setItem('creator-character-templates', JSON.stringify(savedTemplates));
+
+        // Also download as file
+        const dataStr = JSON.stringify(templateData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${templateName}-${Date.now()}.json`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+
+        alert('Character template saved successfully!');
+    }
+
+    getSavedTemplates() {
+        const savedTemplates = localStorage.getItem('creator-character-templates');
+        return savedTemplates ? JSON.parse(savedTemplates) : [];
+    }
+
+    openLoadTemplateModal() {
+        const modal = document.getElementById('load-character-modal');
+        modal.classList.add('active');
+        this.displaySavedTemplates();
+    }
+
+    closeLoadTemplateModal() {
+        const modal = document.getElementById('load-character-modal');
+        modal.classList.remove('active');
+    }
+
+    displaySavedTemplates() {
+        const container = document.getElementById('saved-characters-list');
+        const savedTemplates = this.getSavedTemplates();
+
+        if (savedTemplates.length === 0) {
+            container.innerHTML = '<p class="no-worlds-message">No saved character templates found. Create and save a character to see it here!</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        // Sort by timestamp (newest first)
+        savedTemplates.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        savedTemplates.forEach((template) => {
+            const templateCard = document.createElement('div');
+            templateCard.className = 'world-card';
+
+            const templateInfo = document.createElement('div');
+            templateInfo.className = 'world-info';
+
+            const templateName = document.createElement('h3');
+            templateName.textContent = template.name;
+            templateName.className = 'world-name';
+
+            const templateDate = document.createElement('p');
+            const date = new Date(template.timestamp);
+            templateDate.textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            templateDate.className = 'world-date';
+
+            const templateFrames = document.createElement('p');
+            templateFrames.textContent = `${template.frames.length} frame${template.frames.length !== 1 ? 's' : ''}`;
+            templateFrames.className = 'world-blocks';
+
+            templateInfo.appendChild(templateName);
+            templateInfo.appendChild(templateDate);
+            templateInfo.appendChild(templateFrames);
+
+            const templateActions = document.createElement('div');
+            templateActions.className = 'world-actions';
+
+            const loadBtn = document.createElement('button');
+            loadBtn.textContent = 'Load';
+            loadBtn.className = 'world-action-btn load-btn';
+            loadBtn.addEventListener('click', () => {
+                this.loadSavedTemplate(template);
+            });
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = '⬇️';
+            downloadBtn.className = 'world-action-btn download-btn';
+            downloadBtn.title = 'Download';
+            downloadBtn.addEventListener('click', () => {
+                this.downloadTemplate(template);
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.className = 'world-action-btn delete-btn';
+            deleteBtn.title = 'Delete';
+            deleteBtn.addEventListener('click', () => {
+                this.deleteTemplate(template.id);
+            });
+
+            templateActions.appendChild(loadBtn);
+            templateActions.appendChild(downloadBtn);
+            templateActions.appendChild(deleteBtn);
+
+            templateCard.appendChild(templateInfo);
+            templateCard.appendChild(templateActions);
+
+            container.appendChild(templateCard);
+        });
+    }
+
+    loadSavedTemplate(template) {
+        this.frames = JSON.parse(JSON.stringify(template.frames));
+        this.currentFrameIndex = 0;
+        this.grid = this.frames[0];
+        this.updateFrameIndicator();
+        this.render();
+        this.closeLoadTemplateModal();
+        alert(`Character template "${template.name}" loaded successfully!`);
+    }
+
+    downloadTemplate(template) {
+        const dataStr = JSON.stringify(template, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${template.name}-${template.id}.json`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+    }
+
+    deleteTemplate(templateId) {
+        if (!confirm('Are you sure you want to delete this character template?')) return;
+
+        const savedTemplates = this.getSavedTemplates();
+        const filtered = savedTemplates.filter(t => t.id !== templateId);
+        localStorage.setItem('creator-character-templates', JSON.stringify(filtered));
+        this.displaySavedTemplates();
+    }
+
+    loadTemplateFromFile() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                try {
+                    const templateData = JSON.parse(event.target.result);
+                    this.frames = JSON.parse(JSON.stringify(templateData.frames));
+                    this.currentFrameIndex = 0;
+                    this.grid = this.frames[0];
+                    this.updateFrameIndicator();
+                    this.render();
+                    this.closeLoadTemplateModal();
+                    alert('Character template loaded successfully!');
+                } catch (error) {
+                    alert('Error loading character template file!');
+                }
+            };
+
+            reader.readAsText(file);
+        };
+
+        input.click();
     }
 }

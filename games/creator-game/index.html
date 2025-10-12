@@ -61,12 +61,14 @@
                 </div>
 
                 <div id="world-controls">
+                    <button id="theme-toggle" title="Toggle dark/light mode">🌙</button>
                     <button id="customize-character-btn">👤 Character</button>
                     <button id="undo-btn" disabled>↶ Undo</button>
                     <button id="save-btn">Save</button>
                     <button id="load-btn">Load</button>
                     <button id="share-btn">Share</button>
                     <button id="clear-btn">Clear</button>
+                    <button id="about-btn">ℹ️ About</button>
                 </div>
             </div>
         </header>
@@ -77,6 +79,7 @@
                 <canvas id="game-canvas"></canvas>
                 <div id="instructions">
                     <p><strong>Build Mode:</strong> Click shapes, then click on canvas to place. Right-click to delete.</p>
+                    <p><strong>Navigation:</strong> Use WASD or Arrow Keys to pan around the unlimited workspace. Enable "🖱️ Mouse Follow" to scroll by moving near edges.</p>
                     <p><strong>Play Mode:</strong> Use Arrow Keys or WASD to move. Click "👤 Character" to customize!</p>
                 </div>
             </main>
@@ -140,6 +143,7 @@
                             <button class="builder-color-btn" data-color="#000000" style="background: #000000;"></button>
                         </div>
                         <button id="undo-character-btn" disabled>↶ Undo</button>
+                        <button id="load-character-template">📂 Load Template</button>
                         <button id="clear-character-builder">Clear</button>
                         <button id="use-default-character">Use Default</button>
                     </div>
@@ -155,6 +159,64 @@
                         </div>
                     </div>
                     <button id="save-character" class="save-character-btn">Save Character</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Load Character Templates Modal -->
+        <div id="load-character-modal" class="modal">
+            <div class="modal-content load-worlds-content">
+                <div class="modal-header">
+                    <h2>Load Character Template</h2>
+                    <button id="close-load-character" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="saved-characters-list"></div>
+                    <button id="load-character-from-file" class="secondary-action-btn">📁 Load from File</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Creator Modal -->
+        <div id="about-modal" class="modal">
+            <div class="modal-content about-content">
+                <div class="modal-header">
+                    <h2>About the Creator</h2>
+                    <button id="close-about" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body about-body">
+                    <div class="creator-info">
+                        <h3>Creator Game</h3>
+                        <p>A creative sandbox game where you can build worlds, customize characters, and bring your imagination to life!</p>
+
+                        <h3>Features</h3>
+                        <ul>
+                            <li>Unlimited workspace with pan and scroll navigation</li>
+                            <li>Build Mode: Place shapes and create structures</li>
+                            <li>Play Mode: Interact with your creations</li>
+                            <li>Custom Shape Creator: Draw your own unique shapes</li>
+                            <li>Character Customizer: Design animated characters</li>
+                            <li>Save & Share: Export and share your worlds</li>
+                            <li>Dark/Light Mode themes</li>
+                        </ul>
+
+                        <h3>Controls</h3>
+                        <ul>
+                            <li><strong>Build Mode:</strong> Click shapes, then click canvas to place</li>
+                            <li><strong>Navigate:</strong> WASD or Arrow Keys to pan</li>
+                            <li><strong>Delete:</strong> Right-click or Delete Mode</li>
+                            <li><strong>Drag:</strong> Hold Shift + Click to drag blocks</li>
+                            <li><strong>Play Mode:</strong> WASD or Arrow Keys to move character</li>
+                        </ul>
+
+                        <h3>Created with</h3>
+                        <p>Built with vanilla JavaScript and HTML5 Canvas</p>
+
+                        <div class="version-info">
+                            <p>Version 1.0</p>
+                            <p>Made with ❤️ for creative builders everywhere</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
