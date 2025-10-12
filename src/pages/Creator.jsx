@@ -22,6 +22,13 @@ function Creator() {
   };
 
   useEffect(() => {
+    // Exit fullscreen on component mount to prevent refresh issues
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {
+        // Ignore errors if already exited
+      });
+    }
+
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
@@ -29,6 +36,10 @@ function Creator() {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      // Exit fullscreen when component unmounts
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
     };
   }, []);
 
