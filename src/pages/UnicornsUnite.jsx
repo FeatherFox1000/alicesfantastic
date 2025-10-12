@@ -65,7 +65,7 @@ function UnicornsUnite() {
           >
             <iframe
               ref={iframeRef}
-              src={import.meta.env.DEV ? 'http://localhost:5174/' : `/unicorns-unite/index.html?v=${Date.now()}`}
+              src={import.meta.env.DEV ? 'http://localhost:5174/' : `/unicorns-unite-game/index.html?v=${Date.now()}`}
               title="Unicorns Unite Game"
               className="game-iframe"
             />

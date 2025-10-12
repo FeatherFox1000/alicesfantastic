@@ -102,7 +102,7 @@ function Creator() {
           >
             <iframe
               ref={iframeRef}
-              src={import.meta.env.DEV ? 'http://localhost:5175/' : '/creator/index.html'}
+              src={import.meta.env.DEV ? 'http://localhost:5175/' : '/creator-game/index.html'}
               title="Creator Game"
               className="game-iframe"
             />
