@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Creator - Build Your World</title>
-  <script type="module" crossorigin src="/assets/index-DJuc596L.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-gsk-VqP1.css">
+  <script type="module" crossorigin src="./assets/index--06PKei3.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-5_gRomCx.css">
 </head>
 <body>
     <div id="app">
@@ -16,6 +16,8 @@
                     <button id="build-mode-btn" class="mode-btn active">Build Mode</button>
                     <button id="play-mode-btn" class="mode-btn">Play Mode</button>
                     <button id="delete-mode-btn" class="mode-btn">🗑️ Delete</button>
+                    <button id="first-person-btn" class="mode-btn" style="display: none;">👁️ First Person</button>
+                    <button id="mouse-follow-btn" class="mode-btn" style="display: inline-block;">🖱️ Mouse Follow</button>
                 </div>
 
                 <div class="control-section">
@@ -47,6 +49,10 @@
                         <button class="color-btn" data-color="#F7DC6F" style="background: #F7DC6F;"></button>
                         <button class="color-btn" data-color="#BB8FCE" style="background: #BB8FCE;"></button>
                         <button class="color-btn" data-color="#85C1E2" style="background: #85C1E2;"></button>
+                        <div class="color-picker-container">
+                            <input type="color" id="custom-color-picker" value="#FF6B6B" title="Choose custom color">
+                            <label for="custom-color-picker" class="color-picker-label">🎨</label>
+                        </div>
                     </div>
                 </div>
 
@@ -57,6 +63,7 @@
 
                 <div id="world-controls">
                     <button id="customize-character-btn">👤 Character</button>
+                    <button id="undo-btn" disabled>↶ Undo</button>
                     <button id="save-btn">Save</button>
                     <button id="load-btn">Load</button>
                     <button id="share-btn">Share</button>
@@ -97,6 +104,20 @@
             </div>
         </div>
 
+        <!-- Load Worlds Modal -->
+        <div id="load-worlds-modal" class="modal">
+            <div class="modal-content load-worlds-content">
+                <div class="modal-header">
+                    <h2>Load World</h2>
+                    <button id="close-load-worlds" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="saved-worlds-list"></div>
+                    <button id="load-from-file" class="secondary-action-btn">📁 Load from File</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Character Builder Modal -->
         <div id="character-customizer-modal" class="modal">
             <div class="modal-content character-builder-content">
@@ -119,12 +140,20 @@
                             <button class="builder-color-btn" data-color="#FFFFFF" style="background: #FFFFFF;"></button>
                             <button class="builder-color-btn" data-color="#000000" style="background: #000000;"></button>
                         </div>
+                        <button id="undo-character-btn" disabled>↶ Undo</button>
                         <button id="clear-character-builder">Clear</button>
                         <button id="use-default-character">Use Default</button>
                     </div>
                     <div class="builder-canvas-container">
                         <canvas id="character-builder-canvas"></canvas>
                         <p class="builder-hint">Click to place blocks, right-click to erase</p>
+                        <div class="animation-controls">
+                            <button id="prev-frame-btn" class="frame-nav-btn">◀ Previous</button>
+                            <span id="frame-indicator">Frame 1 of 1</span>
+                            <button id="next-frame-btn" class="frame-nav-btn">Next ▶</button>
+                            <button id="add-frame-btn" class="frame-action-btn">+ Add Frame</button>
+                            <button id="delete-frame-btn" class="frame-action-btn">🗑️ Delete Frame</button>
+                        </div>
                     </div>
                     <button id="save-character" class="save-character-btn">Save Character</button>
                 </div>
