@@ -5,6 +5,32 @@ function Creator() {
   const iframeRef = useRef(null);
   const wrapperRef = useRef(null);
   const [isHovering, setIsHovering] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      wrapperRef.current?.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch((err) => {
+        console.error('Error attempting to enable fullscreen:', err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   useEffect(() => {
     // Add/remove class to body to prevent scrolling when hovering over game
@@ -69,6 +95,14 @@ function Creator() {
               title="Creator Game"
               className="game-iframe"
             />
+            <button
+              className="fullscreen-button"
+              onClick={toggleFullscreen}
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+              title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            >
+              {isFullscreen ? '⤓' : '⤢'}
+            </button>
           </div>
           <div className="game-instructions">
             <h3>How to Play</h3>
@@ -82,6 +116,26 @@ function Creator() {
             <p className="game-objective">
               <strong>Objective:</strong> Build amazing worlds, customize your character, and share your creations!
             </p>
+          </div>
+        </section>
+
+        <section className="updates-section">
+          <h2 className="updates-title">What's New</h2>
+          <div className="update-card">
+            <div className="update-header">
+              <span className="update-badge">Latest</span>
+              <span className="update-date">October 12, 2025</span>
+            </div>
+            <h3>Major Feature Update!</h3>
+            <ul className="update-list">
+              <li><strong>Animated Characters:</strong> Bring your characters to life with multi-frame animations! Create walking cycles and custom movements.</li>
+              <li><strong>First-Person Mode:</strong> Experience your world through your character's eyes with immersive first-person perspective.</li>
+              <li><strong>Mouse Follow Building:</strong> Extend your building range infinitely! The camera now follows your mouse for limitless creativity.</li>
+              <li><strong>Undo Everything:</strong> Made a mistake? New undo buttons in both the world builder and character creator let you step back through your changes.</li>
+              <li><strong>Custom Colors:</strong> Use the color picker to select any color you can imagine for your blocks and characters.</li>
+              <li><strong>Save & Load Worlds:</strong> Save multiple worlds to your browser and switch between projects seamlessly.</li>
+              <li><strong>Fullscreen Mode:</strong> Immerse yourself in building with a dedicated fullscreen button.</li>
+            </ul>
           </div>
         </section>
 

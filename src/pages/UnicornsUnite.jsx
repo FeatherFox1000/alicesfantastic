@@ -84,6 +84,24 @@ function UnicornsUnite() {
           </div>
         </section>
 
+        <section className="updates-section">
+          <h2 className="updates-title">What's New</h2>
+          <div className="update-card">
+            <div className="update-header">
+              <span className="update-badge">Latest</span>
+              <span className="update-date">September 2025</span>
+            </div>
+            <h3>Game Launch!</h3>
+            <ul className="update-list">
+              <li><strong>Rescue Mission:</strong> Save 5 unicorns in danger across the magical world!</li>
+              <li><strong>Magic System:</strong> Cast powerful spells with the space bar to help other unicorns.</li>
+              <li><strong>Protective Shield:</strong> Use Shift to activate your defensive shield and protect yourself.</li>
+              <li><strong>Immersive Controls:</strong> Smooth WASD/Arrow key movement with mouse-look camera control.</li>
+              <li><strong>Beautiful 3D World:</strong> Explore a vibrant magical landscape with colorful environments.</li>
+            </ul>
+          </div>
+        </section>
+
         <div className="info-grid">
           <section className="info-card">
             <div className="card-icon">🦄</div>

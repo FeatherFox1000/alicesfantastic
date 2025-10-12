@@ -144,11 +144,15 @@ export class CharacterCustomizer {
         this.canvas.width = this.gridSize * this.cellSize;
         this.canvas.height = this.gridSize * this.cellSize;
 
-        this.grid = Array(this.gridSize).fill(null).map(() =>
-            Array(this.gridSize).fill(null)
-        );
+        this.frames = [Array(this.gridSize).fill(null).map(() => Array(this.gridSize).fill(null))];
+        this.currentFrameIndex = 0;
+        this.grid = this.frames[0];
         this.selectedColor = '#FF6B6B';
         this.isDrawing = false;
+
+        // Undo history for character builder
+        this.history = [];
+        this.maxHistorySize = 30;
 
         this.setupListeners();
     }
@@ -166,6 +170,7 @@ export class CharacterCustomizer {
         // Canvas drawing
         this.canvas.addEventListener('mousedown', (e) => {
             this.isDrawing = true;
+            this.saveToHistory(); // Save before starting to draw
             this.paint(e);
         });
 
@@ -215,6 +220,28 @@ export class CharacterCustomizer {
         document.getElementById('close-character-customizer').addEventListener('click', () => {
             this.closeCustomizer();
         });
+
+        // Animation frame controls
+        document.getElementById('prev-frame-btn').addEventListener('click', () => {
+            this.previousFrame();
+        });
+
+        document.getElementById('next-frame-btn').addEventListener('click', () => {
+            this.nextFrame();
+        });
+
+        document.getElementById('add-frame-btn').addEventListener('click', () => {
+            this.addFrame();
+        });
+
+        document.getElementById('delete-frame-btn').addEventListener('click', () => {
+            this.deleteFrame();
+        });
+
+        // Undo button
+        document.getElementById('undo-character-btn').addEventListener('click', () => {
+            this.undo();
+        });
     }
 
     paint(e) {
@@ -224,14 +251,16 @@ export class CharacterCustomizer {
 
         if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
             this.grid[y][x] = this.selectedColor;
+            this.frames[this.currentFrameIndex] = this.grid;
             this.render();
         }
     }
 
     clear() {
-        this.grid = Array(this.gridSize).fill(null).map(() =>
+        this.frames[this.currentFrameIndex] = Array(this.gridSize).fill(null).map(() =>
             Array(this.gridSize).fill(null)
         );
+        this.grid = this.frames[this.currentFrameIndex];
         this.render();
     }
 
@@ -295,13 +324,27 @@ export class CharacterCustomizer {
 
     openCustomizer() {
         // Load current character if it exists
-        if (this.game.player.customGrid) {
-            this.grid = JSON.parse(JSON.stringify(this.game.player.customGrid));
+        if (this.game.player.animationFrames && this.game.player.animationFrames.length > 0) {
+            this.frames = JSON.parse(JSON.stringify(this.game.player.animationFrames));
+            this.currentFrameIndex = 0;
+            this.grid = this.frames[0];
+        } else if (this.game.player.customGrid) {
+            this.frames = [JSON.parse(JSON.stringify(this.game.player.customGrid))];
+            this.currentFrameIndex = 0;
+            this.grid = this.frames[0];
         } else {
+            this.frames = [Array(this.gridSize).fill(null).map(() => Array(this.gridSize).fill(null))];
+            this.currentFrameIndex = 0;
+            this.grid = this.frames[0];
             this.useDefault();
         }
 
+        // Clear undo history when opening customizer
+        this.history = [];
+        this.updateUndoButton();
+
         document.getElementById('character-customizer-modal').classList.add('active');
+        this.updateFrameIndicator();
         this.render();
     }
 
@@ -309,19 +352,107 @@ export class CharacterCustomizer {
         document.getElementById('character-customizer-modal').classList.remove('active');
     }
 
+    previousFrame() {
+        if (this.currentFrameIndex > 0) {
+            this.currentFrameIndex--;
+            this.grid = this.frames[this.currentFrameIndex];
+            this.updateFrameIndicator();
+            this.render();
+        }
+    }
+
+    nextFrame() {
+        if (this.currentFrameIndex < this.frames.length - 1) {
+            this.currentFrameIndex++;
+            this.grid = this.frames[this.currentFrameIndex];
+            this.updateFrameIndicator();
+            this.render();
+        }
+    }
+
+    addFrame() {
+        // Create a copy of the current frame as starting point
+        const newFrame = JSON.parse(JSON.stringify(this.frames[this.currentFrameIndex]));
+        this.frames.push(newFrame);
+        this.currentFrameIndex = this.frames.length - 1;
+        this.grid = this.frames[this.currentFrameIndex];
+        this.updateFrameIndicator();
+        this.render();
+    }
+
+    deleteFrame() {
+        if (this.frames.length <= 1) {
+            alert('You must have at least one frame!');
+            return;
+        }
+
+        if (confirm('Delete this frame?')) {
+            this.frames.splice(this.currentFrameIndex, 1);
+            if (this.currentFrameIndex >= this.frames.length) {
+                this.currentFrameIndex = this.frames.length - 1;
+            }
+            this.grid = this.frames[this.currentFrameIndex];
+            this.updateFrameIndicator();
+            this.render();
+        }
+    }
+
+    saveToHistory() {
+        const stateCopy = {
+            frames: JSON.parse(JSON.stringify(this.frames)),
+            currentFrameIndex: this.currentFrameIndex
+        };
+        this.history.push(stateCopy);
+        if (this.history.length > this.maxHistorySize) {
+            this.history.shift();
+        }
+        this.updateUndoButton();
+    }
+
+    undo() {
+        if (this.history.length === 0) return;
+        const previousState = this.history.pop();
+        this.frames = previousState.frames;
+        this.currentFrameIndex = previousState.currentFrameIndex;
+        this.grid = this.frames[this.currentFrameIndex];
+        this.updateFrameIndicator();
+        this.updateUndoButton();
+        this.render();
+    }
+
+    updateUndoButton() {
+        const undoBtn = document.getElementById('undo-character-btn');
+        if (undoBtn) {
+            undoBtn.disabled = this.history.length === 0;
+        }
+    }
+
+    updateFrameIndicator() {
+        const indicator = document.getElementById('frame-indicator');
+        indicator.textContent = `Frame ${this.currentFrameIndex + 1} of ${this.frames.length}`;
+
+        const prevBtn = document.getElementById('prev-frame-btn');
+        const nextBtn = document.getElementById('next-frame-btn');
+
+        prevBtn.disabled = this.currentFrameIndex === 0;
+        nextBtn.disabled = this.currentFrameIndex === this.frames.length - 1;
+    }
+
     saveCharacter() {
-        // Calculate bounding box
+        // Calculate bounding box from all frames
         let minX = this.gridSize, maxX = 0, minY = this.gridSize, maxY = 0;
         let hasBlocks = false;
 
-        for (let y = 0; y < this.gridSize; y++) {
-            for (let x = 0; x < this.gridSize; x++) {
-                if (this.grid[y][x]) {
-                    hasBlocks = true;
-                    minX = Math.min(minX, x);
-                    maxX = Math.max(maxX, x);
-                    minY = Math.min(minY, y);
-                    maxY = Math.max(maxY, y);
+        for (const frame of this.frames) {
+            for (let y = 0; y < this.gridSize; y++) {
+                for (let x = 0; x < this.gridSize; x++) {
+                    if (frame[y][x]) {
+                        hasBlocks = true;
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
                 }
             }
         }
@@ -331,13 +462,17 @@ export class CharacterCustomizer {
             return;
         }
 
-        // Save the grid and dimensions
-        this.game.player.customGrid = JSON.parse(JSON.stringify(this.grid));
+        // Save all animation frames
+        this.game.player.animationFrames = JSON.parse(JSON.stringify(this.frames));
+        this.game.player.customGrid = this.frames[0]; // Keep first frame for compatibility
         this.game.player.width = (maxX - minX + 1) * 4; // Scale up by 4
         this.game.player.height = (maxY - minY + 1) * 4;
         this.game.player.isCustom = true;
+        this.game.player.currentAnimationFrame = 0;
+        this.game.player.animationSpeed = 0.15; // Frames per update
 
         this.closeCustomizer();
-        alert('Character saved successfully!');
+        const frameText = this.frames.length > 1 ? ` with ${this.frames.length} animation frames` : '';
+        alert(`Character saved successfully${frameText}!`);
     }
 }

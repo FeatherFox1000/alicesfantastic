@@ -14,6 +14,16 @@ class CreatorGame {
         this.selectedColor = '#FF6B6B';
         this.gridSize = 40;
         this.objects = [];
+        this.firstPersonMode = false;
+        this.mouseFollowMode = false;
+        this.cameraX = 0;
+        this.cameraY = 0;
+        this.mouseX = 0;
+        this.mouseY = 0;
+
+        // Undo history
+        this.history = [];
+        this.maxHistorySize = 50;
 
         // Player state
         this.player = {
@@ -28,7 +38,10 @@ class CreatorGame {
             isJumping: false,
             gravity: 0.5,
             color: '#FF1744',
-            eyeColor: 'white'
+            eyeColor: 'white',
+            currentAnimationFrame: 0,
+            animationCounter: 0,
+            animationSpeed: 0.15
         };
 
         // Input state
@@ -79,7 +92,17 @@ class CreatorGame {
                 document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedColor = btn.dataset.color;
+                // Update color picker to match
+                document.getElementById('custom-color-picker').value = this.selectedColor;
             });
+        });
+
+        // Custom color picker
+        const colorPicker = document.getElementById('custom-color-picker');
+        colorPicker.addEventListener('input', (e) => {
+            this.selectedColor = e.target.value;
+            // Remove active class from preset color buttons
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
         });
 
         // Mode switching
@@ -108,6 +131,13 @@ class CreatorGame {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
 
+            // Undo with Ctrl+Z or Cmd+Z
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                this.undo();
+                return;
+            }
+
             // Delete object in build mode
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (this.mode === 'build') {
@@ -122,6 +152,7 @@ class CreatorGame {
         });
 
         // World controls
+        document.getElementById('undo-btn').addEventListener('click', () => this.undo());
         document.getElementById('save-btn').addEventListener('click', () => this.saveWorld());
         document.getElementById('load-btn').addEventListener('click', () => this.loadWorld());
         document.getElementById('share-btn').addEventListener('click', () => this.shareWorld());
@@ -148,6 +179,32 @@ class CreatorGame {
         document.getElementById('customize-character-btn').addEventListener('click', () => {
             this.characterCustomizer.openCustomizer();
         });
+
+        // Load worlds modal
+        document.getElementById('close-load-worlds').addEventListener('click', () => {
+            this.closeLoadWorldsModal();
+        });
+
+        document.getElementById('load-from-file').addEventListener('click', () => {
+            this.loadWorldFromFile();
+        });
+
+        // First person mode toggle
+        document.getElementById('first-person-btn').addEventListener('click', () => {
+            this.toggleFirstPerson();
+        });
+
+        // Mouse follow mode toggle
+        document.getElementById('mouse-follow-btn').addEventListener('click', () => {
+            this.toggleMouseFollow();
+        });
+
+        // Track mouse position
+        this.canvas.addEventListener('mousemove', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            this.mouseX = e.clientX - rect.left;
+            this.mouseY = e.clientY - rect.top;
+        });
     }
 
     switchMode(mode) {
@@ -158,18 +215,29 @@ class CreatorGame {
         document.getElementById('play-mode-btn').classList.remove('active');
         document.getElementById('delete-mode-btn').classList.remove('active');
 
+        const firstPersonBtn = document.getElementById('first-person-btn');
+
         if (mode === 'build') {
             document.getElementById('build-mode-btn').classList.add('active');
             this.canvas.classList.remove('play-mode');
             this.canvas.style.cursor = 'crosshair';
+            firstPersonBtn.style.display = 'none';
+            this.firstPersonMode = false;
+            this.cameraX = 0;
+            this.cameraY = 0;
         } else if (mode === 'delete') {
             document.getElementById('delete-mode-btn').classList.add('active');
             this.canvas.classList.remove('play-mode');
             this.canvas.style.cursor = 'not-allowed';
+            firstPersonBtn.style.display = 'none';
+            this.firstPersonMode = false;
+            this.cameraX = 0;
+            this.cameraY = 0;
         } else if (mode === 'play') {
             document.getElementById('play-mode-btn').classList.add('active');
             this.canvas.classList.add('play-mode');
             this.canvas.style.cursor = 'default';
+            firstPersonBtn.style.display = 'inline-block';
             // Reset player position
             this.player.x = 100;
             this.player.y = 100;
@@ -177,10 +245,39 @@ class CreatorGame {
         }
     }
 
+    toggleFirstPerson() {
+        this.firstPersonMode = !this.firstPersonMode;
+        const btn = document.getElementById('first-person-btn');
+
+        if (this.firstPersonMode) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+            this.cameraX = 0;
+            this.cameraY = 0;
+        }
+    }
+
+    toggleMouseFollow() {
+        this.mouseFollowMode = !this.mouseFollowMode;
+        const btn = document.getElementById('mouse-follow-btn');
+
+        if (this.mouseFollowMode) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+            this.cameraX = 0;
+            this.cameraY = 0;
+        }
+    }
+
     placeObject(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / this.gridSize) * this.gridSize;
-        const y = Math.floor((e.clientY - rect.top) / this.gridSize) * this.gridSize;
+        let x = Math.floor((e.clientX - rect.left + this.cameraX) / this.gridSize) * this.gridSize;
+        let y = Math.floor((e.clientY - rect.top + this.cameraY) / this.gridSize) * this.gridSize;
+
+        // Save current state to history before making changes
+        this.saveToHistory();
 
         const obj = {
             shape: this.selectedShape,
@@ -208,8 +305,11 @@ class CreatorGame {
 
     deleteObjectAtMouse(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / this.gridSize) * this.gridSize;
-        const y = Math.floor((e.clientY - rect.top) / this.gridSize) * this.gridSize;
+        const x = Math.floor((e.clientX - rect.left + this.cameraX) / this.gridSize) * this.gridSize;
+        const y = Math.floor((e.clientY - rect.top + this.cameraY) / this.gridSize) * this.gridSize;
+
+        // Save current state to history before making changes
+        this.saveToHistory();
 
         this.objects = this.objects.filter(obj =>
             !(obj.x === x && obj.y === y)
@@ -300,12 +400,51 @@ class CreatorGame {
     }
 
     drawPlayer() {
-        if (this.player.isCustom && this.player.customGrid) {
-            // Draw custom character from grid
+        if (this.player.isCustom && this.player.animationFrames && this.player.animationFrames.length > 0) {
+            // Draw custom character with animation from grid
             const gridSize = 10;
             const cellSize = 4; // Scale factor from editor (20px / 5 = 4px per cell)
 
+            // Get current animation frame
+            const currentFrame = this.player.animationFrames[Math.floor(this.player.currentAnimationFrame)];
+
             // Calculate bounding box to properly position the character
+            let minX = gridSize, maxX = 0, minY = gridSize, maxY = 0;
+            let hasBlocks = false;
+
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    if (currentFrame[y][x]) {
+                        hasBlocks = true;
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+
+            // Draw each cell of the custom character
+            if (hasBlocks) {
+                for (let y = 0; y < gridSize; y++) {
+                    for (let x = 0; x < gridSize; x++) {
+                        if (currentFrame[y][x]) {
+                            this.ctx.fillStyle = currentFrame[y][x];
+                            this.ctx.fillRect(
+                                this.player.x + (x - minX) * cellSize,
+                                this.player.y + (y - minY) * cellSize,
+                                cellSize,
+                                cellSize
+                            );
+                        }
+                    }
+                }
+            }
+        } else if (this.player.isCustom && this.player.customGrid) {
+            // Draw custom character without animation (legacy support)
+            const gridSize = 10;
+            const cellSize = 4;
+
             let minX = gridSize, maxX = 0, minY = gridSize, maxY = 0;
             let hasBlocks = false;
 
@@ -321,7 +460,6 @@ class CreatorGame {
                 }
             }
 
-            // Draw each cell of the custom character
             if (hasBlocks) {
                 for (let y = 0; y < gridSize; y++) {
                     for (let x = 0; x < gridSize; x++) {
@@ -370,12 +508,27 @@ class CreatorGame {
 
     updatePlayer() {
         // Horizontal movement
+        const isMoving = this.keys['arrowleft'] || this.keys['a'] || this.keys['arrowright'] || this.keys['d'];
+
         if (this.keys['arrowleft'] || this.keys['a']) {
             this.player.velocityX = -this.player.speed;
         } else if (this.keys['arrowright'] || this.keys['d']) {
             this.player.velocityX = this.player.speed;
         } else {
             this.player.velocityX = 0;
+        }
+
+        // Update animation when moving
+        if (isMoving && this.player.animationFrames && this.player.animationFrames.length > 1) {
+            this.player.animationCounter += this.player.animationSpeed;
+            if (this.player.animationCounter >= this.player.animationFrames.length) {
+                this.player.animationCounter = 0;
+            }
+            this.player.currentAnimationFrame = this.player.animationCounter;
+        } else {
+            // Reset to first frame when not moving
+            this.player.currentAnimationFrame = 0;
+            this.player.animationCounter = 0;
         }
 
         // Jump
@@ -401,10 +554,18 @@ class CreatorGame {
             this.player.isJumping = false;
         }
 
-        // Boundary checks
-        if (this.player.x < 0) this.player.x = 0;
-        if (this.player.x + this.player.width > this.canvas.width) {
-            this.player.x = this.canvas.width - this.player.width;
+        // Update camera to follow player in play mode
+        if (this.mode === 'play') {
+            if (this.firstPersonMode) {
+                // Position camera at player's eye level (about 20% down from top of character)
+                const eyeLevel = this.player.y + this.player.height * 0.2;
+                this.cameraX = this.player.x + this.player.width / 2 - this.canvas.width / 2;
+                this.cameraY = eyeLevel - this.canvas.height / 2;
+            } else {
+                // Center camera on player in regular play mode
+                this.cameraX = this.player.x + this.player.width / 2 - this.canvas.width / 2;
+                this.cameraY = this.player.y + this.player.height / 2 - this.canvas.height / 2;
+            }
         }
     }
 
@@ -449,6 +610,36 @@ class CreatorGame {
         this.ctx.fillStyle = 'white';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // Save context state
+        this.ctx.save();
+
+        // Update camera for mouse follow mode
+        if (this.mouseFollowMode && (this.mode === 'build' || this.mode === 'delete')) {
+            const edgeThreshold = 200; // Distance from edge to start scrolling
+            const scrollSpeed = 5;
+
+            if (this.mouseX < edgeThreshold) {
+                this.cameraX -= scrollSpeed;
+            } else if (this.mouseX > this.canvas.width - edgeThreshold) {
+                this.cameraX += scrollSpeed;
+            }
+
+            if (this.mouseY < edgeThreshold) {
+                this.cameraY -= scrollSpeed;
+            } else if (this.mouseY > this.canvas.height - edgeThreshold) {
+                this.cameraY += scrollSpeed;
+            }
+
+            // Prevent camera from going too far negative
+            if (this.cameraX < -1000) this.cameraX = -1000;
+            if (this.cameraY < -1000) this.cameraY = -1000;
+        }
+
+        // Apply camera transform in play mode or build/delete with mouse follow
+        if (this.mode === 'play' || (this.mouseFollowMode && (this.mode === 'build' || this.mode === 'delete'))) {
+            this.ctx.translate(-this.cameraX, -this.cameraY);
+        }
+
         // Draw grid in build and delete mode
         if (this.mode === 'build' || this.mode === 'delete') {
             this.drawGrid();
@@ -459,10 +650,13 @@ class CreatorGame {
             this.drawObject(obj);
         }
 
-        // Draw player in play mode
-        if (this.mode === 'play') {
+        // Draw player in play mode (but not in first-person mode)
+        if (this.mode === 'play' && !this.firstPersonMode) {
             this.drawPlayer();
         }
+
+        // Restore context state
+        this.ctx.restore();
     }
 
     gameLoop() {
@@ -475,18 +669,29 @@ class CreatorGame {
     }
 
     saveWorld() {
+        const worldName = prompt('Enter a name for your world:', 'My World');
+        if (!worldName) return;
+
         const worldData = {
+            name: worldName,
             objects: this.objects,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            id: Date.now()
         };
 
+        // Save to localStorage
+        const savedWorlds = this.getSavedWorlds();
+        savedWorlds.push(worldData);
+        localStorage.setItem('creator-saved-worlds', JSON.stringify(savedWorlds));
+
+        // Also download as file
         const dataStr = JSON.stringify(worldData, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(dataBlob);
 
         const link = document.createElement('a');
         link.href = url;
-        link.download = `creator-world-${Date.now()}.json`;
+        link.download = `${worldName}-${Date.now()}.json`;
         link.click();
 
         URL.revokeObjectURL(url);
@@ -494,7 +699,133 @@ class CreatorGame {
         alert('World saved successfully!');
     }
 
+    getSavedWorlds() {
+        const savedWorlds = localStorage.getItem('creator-saved-worlds');
+        return savedWorlds ? JSON.parse(savedWorlds) : [];
+    }
+
     loadWorld() {
+        this.openLoadWorldsModal();
+    }
+
+    openLoadWorldsModal() {
+        const modal = document.getElementById('load-worlds-modal');
+        modal.classList.add('active');
+        this.displaySavedWorlds();
+    }
+
+    closeLoadWorldsModal() {
+        const modal = document.getElementById('load-worlds-modal');
+        modal.classList.remove('active');
+    }
+
+    displaySavedWorlds() {
+        const container = document.getElementById('saved-worlds-list');
+        const savedWorlds = this.getSavedWorlds();
+
+        if (savedWorlds.length === 0) {
+            container.innerHTML = '<p class="no-worlds-message">No saved worlds found. Create and save a world to see it here!</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        // Sort by timestamp (newest first)
+        savedWorlds.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        savedWorlds.forEach((world) => {
+            const worldCard = document.createElement('div');
+            worldCard.className = 'world-card';
+
+            const worldInfo = document.createElement('div');
+            worldInfo.className = 'world-info';
+
+            const worldName = document.createElement('h3');
+            worldName.textContent = world.name;
+            worldName.className = 'world-name';
+
+            const worldDate = document.createElement('p');
+            const date = new Date(world.timestamp);
+            worldDate.textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            worldDate.className = 'world-date';
+
+            const worldBlocks = document.createElement('p');
+            worldBlocks.textContent = `${world.objects.length} blocks`;
+            worldBlocks.className = 'world-blocks';
+
+            worldInfo.appendChild(worldName);
+            worldInfo.appendChild(worldDate);
+            worldInfo.appendChild(worldBlocks);
+
+            const worldActions = document.createElement('div');
+            worldActions.className = 'world-actions';
+
+            const loadBtn = document.createElement('button');
+            loadBtn.textContent = 'Load';
+            loadBtn.className = 'world-action-btn load-btn';
+            loadBtn.addEventListener('click', () => {
+                this.loadSavedWorld(world);
+            });
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = '⬇️';
+            downloadBtn.className = 'world-action-btn download-btn';
+            downloadBtn.title = 'Download';
+            downloadBtn.addEventListener('click', () => {
+                this.downloadWorld(world);
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.className = 'world-action-btn delete-btn';
+            deleteBtn.title = 'Delete';
+            deleteBtn.addEventListener('click', () => {
+                this.deleteSavedWorld(world.id);
+            });
+
+            worldActions.appendChild(loadBtn);
+            worldActions.appendChild(downloadBtn);
+            worldActions.appendChild(deleteBtn);
+
+            worldCard.appendChild(worldInfo);
+            worldCard.appendChild(worldActions);
+
+            container.appendChild(worldCard);
+        });
+    }
+
+    loadSavedWorld(world) {
+        this.objects = world.objects || [];
+        this.history = []; // Clear history when loading a world
+        this.updateUndoButton();
+        this.render();
+        this.closeLoadWorldsModal();
+        alert(`World "${world.name}" loaded successfully!`);
+    }
+
+    downloadWorld(world) {
+        const dataStr = JSON.stringify(world, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${world.name}-${world.id}.json`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+    }
+
+    deleteSavedWorld(worldId) {
+        if (!confirm('Are you sure you want to delete this world?')) return;
+
+        const savedWorlds = this.getSavedWorlds();
+        const filtered = savedWorlds.filter(w => w.id !== worldId);
+        localStorage.setItem('creator-saved-worlds', JSON.stringify(filtered));
+        this.displaySavedWorlds();
+    }
+
+    loadWorldFromFile() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.json';
@@ -507,7 +838,10 @@ class CreatorGame {
                 try {
                     const worldData = JSON.parse(event.target.result);
                     this.objects = worldData.objects || [];
+                    this.history = []; // Clear history when loading from file
+                    this.updateUndoButton();
                     this.render();
+                    this.closeLoadWorldsModal();
                     alert('World loaded successfully!');
                 } catch (error) {
                     alert('Error loading world file!');
@@ -543,8 +877,40 @@ class CreatorGame {
 
     clearWorld() {
         if (confirm('Are you sure you want to clear your entire world? This cannot be undone.')) {
+            this.saveToHistory();
             this.objects = [];
             this.render();
+        }
+    }
+
+    saveToHistory() {
+        // Create a deep copy of the current objects array
+        const stateCopy = JSON.parse(JSON.stringify(this.objects));
+        this.history.push(stateCopy);
+
+        // Limit history size
+        if (this.history.length > this.maxHistorySize) {
+            this.history.shift();
+        }
+
+        this.updateUndoButton();
+    }
+
+    undo() {
+        if (this.history.length === 0) return;
+
+        // Restore the previous state
+        this.objects = this.history.pop();
+        this.render();
+        this.updateUndoButton();
+    }
+
+    updateUndoButton() {
+        const undoBtn = document.getElementById('undo-btn');
+        if (this.history.length > 0) {
+            undoBtn.disabled = false;
+        } else {
+            undoBtn.disabled = true;
         }
     }
 

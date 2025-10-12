@@ -226,6 +226,126 @@ body.game-focused {
   border-left-color: #e91e63;
 }
 
+/* Updates Section */
+.updates-section {
+  margin: 3rem 0;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.updates-title {
+  font-size: 2.5rem;
+  color: #7b14c9;
+  margin: 0 0 2rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+[data-theme="dark"] .updates-title {
+  color: #e91e63;
+}
+
+.update-card {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .update-card {
+  background: var(--color-card-bg);
+  border-color: rgba(233, 30, 99, 0.3);
+}
+
+.update-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(123, 20, 201, 0.2);
+}
+
+.update-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.update-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #7b14c9 0%, #9d4edd 100%);
+  color: white;
+  padding: 0.5rem 1.2rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.update-date {
+  color: #666;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .update-date {
+  color: var(--color-text-light);
+}
+
+.update-card h3 {
+  font-size: 1.8rem;
+  color: #7b14c9;
+  margin: 0 0 1.5rem;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .update-card h3 {
+  color: #e91e63;
+}
+
+.update-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.update-list li {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.8;
+  padding: 0.75rem 0 0.75rem 2rem;
+  position: relative;
+  border-bottom: 1px solid rgba(123, 20, 201, 0.1);
+}
+
+[data-theme="dark"] .update-list li {
+  color: var(--color-text-light);
+  border-bottom-color: rgba(233, 30, 99, 0.1);
+}
+
+.update-list li:last-child {
+  border-bottom: none;
+}
+
+.update-list li::before {
+  content: '✨';
+  position: absolute;
+  left: 0;
+  font-size: 1.2rem;
+}
+
+.update-list li strong {
+  color: #7b14c9;
+}
+
+[data-theme="dark"] .update-list li strong {
+  color: #e91e63;
+}
+
 @media (max-width: 768px) {
   .page-hero {
     padding: 1.5rem 1rem;

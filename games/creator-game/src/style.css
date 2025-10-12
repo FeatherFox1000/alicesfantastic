@@ -140,6 +140,41 @@ header h1 {
     transform: scale(1.15);
 }
 
+.color-picker-container {
+    position: relative;
+    width: 30px;
+    height: 30px;
+}
+
+#custom-color-picker {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+}
+
+.color-picker-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 25%, #45B7D1 50%, #F7DC6F 75%, #BB8FCE 100%);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.color-picker-container:hover .color-picker-label {
+    border-color: #333;
+    transform: scale(1.15);
+}
+
 #mode-controls {
     display: flex;
     gap: 0.5rem;
@@ -574,4 +609,194 @@ header h1 {
 .save-character-btn:hover {
     background: #5568d3;
     transform: translateY(-2px);
+}
+
+/* Load Worlds Modal */
+.load-worlds-content {
+    max-width: 600px;
+}
+
+#saved-worlds-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.no-worlds-message {
+    text-align: center;
+    color: #999;
+    padding: 3rem 1rem;
+    font-size: 1.1rem;
+}
+
+.world-card {
+    background: #f9f9f9;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.world-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.world-info {
+    flex: 1;
+}
+
+.world-name {
+    font-size: 1.2rem;
+    color: #667eea;
+    margin: 0 0 0.25rem;
+    font-weight: 700;
+}
+
+.world-date {
+    font-size: 0.85rem;
+    color: #888;
+    margin: 0.25rem 0;
+}
+
+.world-blocks {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0.25rem 0 0;
+    font-weight: 600;
+}
+
+.world-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.world-action-btn {
+    background: white;
+    border: 2px solid #ddd;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    font-size: 0.9rem;
+}
+
+.world-action-btn:hover {
+    transform: translateY(-2px);
+}
+
+.world-action-btn.load-btn {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.world-action-btn.load-btn:hover {
+    background: #5568d3;
+}
+
+.world-action-btn.download-btn {
+    font-size: 1.2rem;
+}
+
+.world-action-btn.download-btn:hover {
+    background: #4ECDC4;
+    border-color: #4ECDC4;
+}
+
+.world-action-btn.delete-btn {
+    font-size: 1.2rem;
+}
+
+.world-action-btn.delete-btn:hover {
+    background: #ff6b6b;
+    border-color: #ff6b6b;
+}
+
+.secondary-action-btn {
+    width: 100%;
+    background: white;
+    border: 2px solid #667eea;
+    color: #667eea;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    font-size: 1rem;
+}
+
+.secondary-action-btn:hover {
+    background: #f0f4ff;
+    transform: translateY(-2px);
+}
+
+/* Animation Controls */
+.animation-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+#frame-indicator {
+    font-weight: 600;
+    color: #667eea;
+    padding: 0.5rem 1rem;
+    background: #f0f4ff;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.frame-nav-btn, .frame-action-btn {
+    background: white;
+    border: 2px solid #ddd;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    font-size: 0.85rem;
+}
+
+.frame-nav-btn:hover {
+    background: #f0f4ff;
+    border-color: #667eea;
+}
+
+.frame-nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.frame-action-btn {
+    font-size: 0.8rem;
+}
+
+.frame-action-btn:hover {
+    background: #f0f4ff;
+    border-color: #667eea;
+}
+
+#add-frame-btn {
+    background: #4ECDC4;
+    color: white;
+    border-color: #4ECDC4;
+}
+
+#add-frame-btn:hover {
+    background: #45b8b0;
+}
+
+#delete-frame-btn:hover {
+    background: #ff6b6b;
+    color: white;
+    border-color: #ff6b6b;
 }
