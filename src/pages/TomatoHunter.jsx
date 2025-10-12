@@ -62,7 +62,7 @@ function TomatoHunter() {
             onMouseLeave={() => setIsHovering(false)}
           >
             <iframe
-              src="/tomato-hunter/index.html"
+              src="/tomato-hunter-game/index.html"
               title="Tomato Hunter Game"
               className="game-iframe"
             />
