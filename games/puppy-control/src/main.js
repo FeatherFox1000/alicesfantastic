@@ -87,28 +87,42 @@ class PuppyControl {
         // Generate platforms going up
         let currentY = this.worldHeight - 200;
         const platformGap = 120; // Vertical gap between platforms
+        const maxHorizontalDistance = 200; // Max horizontal distance between platforms
+        let lastPlatformCenterX = 600; // Start from middle of ground
 
         while (currentY > this.finishLineY) {
             // Random platform configuration
             const platformWidth = 100 + Math.random() * 150;
-            const platformX = Math.random() * (1200 - platformWidth);
 
-            platforms.push({
+            // Position platform within jumping distance of last platform
+            const minX = Math.max(0, lastPlatformCenterX - maxHorizontalDistance);
+            const maxX = Math.min(this.canvas.width - platformWidth, lastPlatformCenterX + maxHorizontalDistance);
+            const platformX = minX + Math.random() * (maxX - minX);
+
+            const newPlatform = {
                 x: platformX,
                 y: currentY,
                 width: platformWidth,
                 height: 20,
                 color: '#654321',
                 type: 'normal'
-            });
+            };
+            platforms.push(newPlatform);
 
-            // Sometimes add extra platforms for variety
+            // Update last platform center for next iteration
+            lastPlatformCenterX = platformX + platformWidth / 2;
+
+            // Sometimes add extra platforms for variety (within reach)
             if (Math.random() > 0.6) {
-                const extraX = Math.random() * (1200 - 120);
+                const extraWidth = 120;
+                const extraMinX = Math.max(0, lastPlatformCenterX - maxHorizontalDistance);
+                const extraMaxX = Math.min(this.canvas.width - extraWidth, lastPlatformCenterX + maxHorizontalDistance);
+                const extraX = extraMinX + Math.random() * (extraMaxX - extraMinX);
+
                 platforms.push({
                     x: extraX,
                     y: currentY - 60,
-                    width: 120,
+                    width: extraWidth,
                     height: 20,
                     color: '#654321',
                     type: 'normal'
@@ -118,11 +132,16 @@ class PuppyControl {
             currentY -= platformGap;
         }
 
-        // Finish platform at the top
+        // Finish platform at the top (ensure it's reachable)
+        const finishWidth = 400;
+        const finishMinX = Math.max(0, lastPlatformCenterX - maxHorizontalDistance);
+        const finishMaxX = Math.min(this.canvas.width - finishWidth, lastPlatformCenterX + maxHorizontalDistance);
+        const finishX = finishMinX + (finishMaxX - finishMinX) / 2; // Center it within range
+
         platforms.push({
-            x: 400,
+            x: finishX,
             y: this.finishLineY - 30,
-            width: 400,
+            width: finishWidth,
             height: 30,
             color: '#FFD700',
             type: 'finish'
