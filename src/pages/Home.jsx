@@ -70,6 +70,7 @@ function Home() {
         <h2 className="section-title">More Games</h2>
         <div className="games-grid">
           <Link to="/space-pups" className="game-card">
+            <div className="coming-soon-badge">Coming Soon!</div>
             <div className="game-image-wrapper">
               <div className="game-placeholder" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'white', fontSize: '4rem'}}>
                 🚀🐕
