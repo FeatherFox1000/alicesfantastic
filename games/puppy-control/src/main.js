@@ -36,6 +36,15 @@ class PuppyControl {
         this.lobbyPreviewCanvas = null;
         this.lobbyPreviewCtx = null;
 
+        // Mini-game state
+        this.minigameActive = false;
+        this.minigameCanvas = null;
+        this.minigameCtx = null;
+        this.minigameStars = [];
+        this.minigameScore = 0;
+        this.minigameCoins = 0;
+        this.minigameLastSpawn = 0;
+
         // Physics
         this.gravity = 0.6;
         this.jumpPower = 15;
@@ -315,6 +324,9 @@ class PuppyControl {
 
         // Start lobby preview
         this.startLobbyPreview();
+
+        // Start mini-game
+        this.startMinigame();
     }
 
     startLobbyPreview() {
@@ -512,6 +524,139 @@ class PuppyControl {
         }
     }
 
+    // Mini-game methods
+    startMinigame() {
+        this.minigameCanvas = document.getElementById('minigame-canvas');
+        this.minigameCtx = this.minigameCanvas.getContext('2d');
+        this.minigameActive = true;
+        this.minigameStars = [];
+        this.minigameScore = 0;
+        this.minigameCoins = 0;
+        this.minigameLastSpawn = Date.now();
+
+        // Update display
+        document.getElementById('minigame-score').textContent = '0';
+        document.getElementById('minigame-coins').textContent = '0';
+
+        // Add click listener
+        this.minigameCanvas.addEventListener('click', (e) => {
+            const rect = this.minigameCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            this.checkStarClick(x, y);
+        });
+
+        // Start game loop
+        this.minigameLoop();
+    }
+
+    stopMinigame() {
+        this.minigameActive = false;
+
+        // Award coins earned
+        if (this.minigameCoins > 0) {
+            this.customization.coins += this.minigameCoins;
+            this.customization.saveCoins();
+        }
+    }
+
+    minigameLoop() {
+        if (!this.minigameActive) return;
+
+        const now = Date.now();
+
+        // Spawn new stars every 1 second
+        if (now - this.minigameLastSpawn > 1000) {
+            this.spawnStar();
+            this.minigameLastSpawn = now;
+        }
+
+        // Update stars (make them fall)
+        for (let i = this.minigameStars.length - 1; i >= 0; i--) {
+            const star = this.minigameStars[i];
+            star.y += star.speed;
+
+            // Remove stars that fall off screen
+            if (star.y > 250) {
+                this.minigameStars.splice(i, 1);
+            }
+        }
+
+        // Render
+        this.renderMinigame();
+
+        requestAnimationFrame(() => this.minigameLoop());
+    }
+
+    spawnStar() {
+        const star = {
+            x: Math.random() * 270 + 15, // Keep stars within canvas bounds
+            y: -20,
+            size: 20 + Math.random() * 10,
+            speed: 1 + Math.random() * 2,
+            rotation: Math.random() * Math.PI * 2,
+            rotationSpeed: (Math.random() - 0.5) * 0.1
+        };
+        this.minigameStars.push(star);
+    }
+
+    checkStarClick(x, y) {
+        for (let i = this.minigameStars.length - 1; i >= 0; i--) {
+            const star = this.minigameStars[i];
+            const distance = Math.sqrt((x - star.x) ** 2 + (y - star.y) ** 2);
+
+            if (distance < star.size / 2) {
+                // Star was clicked!
+                this.minigameStars.splice(i, 1);
+                this.minigameScore += 1;
+
+                // Award coins every 5 stars
+                if (this.minigameScore % 5 === 0) {
+                    this.minigameCoins += 10;
+                    document.getElementById('minigame-coins').textContent = this.minigameCoins;
+                }
+
+                document.getElementById('minigame-score').textContent = this.minigameScore;
+                return;
+            }
+        }
+    }
+
+    renderMinigame() {
+        // Clear canvas with gradient background
+        const gradient = this.minigameCtx.createLinearGradient(0, 0, 0, 250);
+        gradient.addColorStop(0, '#1a1a2e');
+        gradient.addColorStop(1, '#16213e');
+        this.minigameCtx.fillStyle = gradient;
+        this.minigameCtx.fillRect(0, 0, 300, 250);
+
+        // Draw stars
+        this.minigameStars.forEach(star => {
+            this.minigameCtx.save();
+            this.minigameCtx.translate(star.x, star.y);
+            this.minigameCtx.rotate(star.rotation);
+
+            // Draw star glow
+            const starGradient = this.minigameCtx.createRadialGradient(0, 0, 0, 0, 0, star.size / 2);
+            starGradient.addColorStop(0, '#FFD700');
+            starGradient.addColorStop(0.5, '#FFA500');
+            starGradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            this.minigameCtx.fillStyle = starGradient;
+            this.minigameCtx.beginPath();
+            this.minigameCtx.arc(0, 0, star.size / 2, 0, Math.PI * 2);
+            this.minigameCtx.fill();
+
+            // Draw star emoji
+            this.minigameCtx.font = `${star.size}px Arial`;
+            this.minigameCtx.fillText('⭐', -star.size / 2, star.size / 2);
+
+            // Update rotation
+            star.rotation += star.rotationSpeed;
+
+            this.minigameCtx.restore();
+        });
+    }
+
     updateRoomCodeDisplay() {
         document.getElementById('display-room-code').textContent = this.roomCode;
         document.getElementById('room-code-game').textContent = `Room: ${this.roomCode}`;
@@ -557,6 +702,7 @@ class PuppyControl {
         this.gameStarted = false;
         this.players.clear();
         this.stopLobbyPreview();
+        this.stopMinigame();
         this.showScreen('main-menu');
     }
 
@@ -575,8 +721,9 @@ class PuppyControl {
         this.showScreen('game-screen');
         this.winner = null;
 
-        // Stop lobby preview
+        // Stop lobby preview and mini-game
         this.stopLobbyPreview();
+        this.stopMinigame();
 
         // Get player customization
         const myCustomization = this.customization.getPlayerCustomization();
