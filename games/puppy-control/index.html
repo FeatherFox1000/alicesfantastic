@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puppy Control - Multiplayer Platformer</title>
+    <title>Space Pups - Multiplayer Platformer</title>
     <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
@@ -11,9 +11,15 @@
         <!-- Main Menu Screen -->
         <div id="main-menu" class="screen active">
             <div class="menu-container">
-                <h1>🐕 Puppy Control</h1>
+                <h1>🚀 Space Pups</h1>
                 <p class="subtitle">Multiplayer Platformer Adventure</p>
+                <div class="currency-display">
+                    <span class="coin-icon">🪙</span>
+                    <span id="coin-amount">100</span> Coins
+                </div>
                 <div class="menu-buttons">
+                    <button id="customize-btn" class="menu-btn secondary">🎨 Customize Dog</button>
+                    <button id="open-pack-btn" class="menu-btn secondary">📦 Open Pack (50 coins)</button>
                     <button id="host-btn" class="menu-btn">Host Game</button>
                     <button id="join-btn" class="menu-btn">Join Game</button>
                 </div>
@@ -74,9 +80,27 @@
                         <button id="copy-code-btn" class="icon-btn" title="Copy code">📋</button>
                     </div>
                 </div>
-                <div id="players-list">
-                    <h3>Players (<span id="player-count">0</span>/<span id="max-player-count">4</span>)</h3>
-                    <div id="players-container"></div>
+                <div class="lobby-layout">
+                    <div id="players-list">
+                        <h3>Players (<span id="player-count">0</span>/<span id="max-player-count">4</span>)</h3>
+                        <div id="players-container"></div>
+                    </div>
+                    <div class="lobby-games">
+                        <div id="lobby-preview">
+                            <h3>Your Space Pup</h3>
+                            <p class="preview-instructions">Use Arrow Keys or WASD to move & jump!</p>
+                            <canvas id="lobby-preview-canvas" width="300" height="200"></canvas>
+                        </div>
+                        <div id="lobby-minigame">
+                            <h3>⭐ Catch the Stars!</h3>
+                            <p class="minigame-instructions">Click the falling stars to earn coins!</p>
+                            <div class="minigame-stats">
+                                <span>Score: <strong id="minigame-score">0</strong></span>
+                                <span>Coins: <strong id="minigame-coins">0</strong></span>
+                            </div>
+                            <canvas id="minigame-canvas" width="300" height="250"></canvas>
+                        </div>
+                    </div>
                 </div>
                 <div class="menu-buttons">
                     <button id="start-game-btn" class="menu-btn" style="display: none;">Start Game</button>
@@ -92,6 +116,7 @@
                 <div id="game-info">
                     <span id="room-code-game"></span>
                     <span id="player-name-display"></span>
+                    <button id="fullscreen-btn" class="icon-btn" title="Toggle Fullscreen">⛶</button>
                 </div>
                 <div id="scoreboard">
                     <h3>Players</h3>
@@ -101,6 +126,94 @@
             <canvas id="game-canvas"></canvas>
             <div id="game-controls">
                 <p><strong>Controls:</strong> Arrow Keys or WASD to move • SPACE to jump</p>
+            </div>
+        </div>
+        <!-- Pack Opening Modal -->
+        <div id="pack-modal" class="modal">
+            <div class="modal-content pack-content">
+                <div class="modal-header">
+                    <h2>Open a Pack!</h2>
+                    <button id="close-pack" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="pack-animation">
+                        <div class="pack-box">📦</div>
+                        <button id="open-pack-anim-btn" class="menu-btn">Open Pack!</button>
+                    </div>
+                    <div id="pack-results" style="display: none;">
+                        <h3>You got:</h3>
+                        <div id="pack-items"></div>
+                        <button id="pack-okay-btn" class="menu-btn">Awesome!</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Starter Pack Modal -->
+        <div id="starter-modal" class="modal">
+            <div class="modal-content starter-content">
+                <div class="modal-header">
+                    <h2>🎁 Welcome to Space Pups!</h2>
+                </div>
+                <div class="modal-body">
+                    <p class="starter-intro">Choose your FREE starter item to customize your space dog!</p>
+                    <div class="starter-categories">
+                        <div class="starter-category">
+                            <h3>👑 Hats</h3>
+                            <div id="starter-hats" class="starter-options"></div>
+                        </div>
+                        <div class="starter-category">
+                            <h3>💫 Trails</h3>
+                            <div id="starter-trails" class="starter-options"></div>
+                        </div>
+                        <div class="starter-category">
+                            <h3>✨ Patterns</h3>
+                            <div id="starter-patterns" class="starter-options"></div>
+                        </div>
+                    </div>
+                    <button id="claim-starter-btn" class="menu-btn" disabled>Choose an Item First!</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dog Customization Modal -->
+        <div id="customize-modal" class="modal">
+            <div class="modal-content customize-content">
+                <div class="modal-header">
+                    <h2>Customize Your Dog</h2>
+                    <button id="close-customize" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="customize-layout">
+                        <div class="customize-preview">
+                            <h3>Preview</h3>
+                            <canvas id="preview-canvas" width="200" height="200"></canvas>
+                        </div>
+                        <div class="customize-options">
+                            <div class="customize-section">
+                                <h4>🎨 Base Color</h4>
+                                <div id="color-options" class="options-grid"></div>
+                            </div>
+                            <div class="customize-section">
+                                <h4>👑 Hats</h4>
+                                <div id="hat-options" class="options-grid"></div>
+                            </div>
+                            <div class="customize-section">
+                                <h4>🦴 Accessories</h4>
+                                <div id="accessory-options" class="options-grid"></div>
+                            </div>
+                            <div class="customize-section">
+                                <h4>✨ Patterns</h4>
+                                <div id="pattern-options" class="options-grid"></div>
+                            </div>
+                            <div class="customize-section">
+                                <h4>💫 Trails</h4>
+                                <div id="trail-options" class="options-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="save-customization-btn" class="menu-btn">Save & Close</button>
+                </div>
             </div>
         </div>
     </div>

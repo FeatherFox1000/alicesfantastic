@@ -69,6 +69,21 @@ function Home() {
       <section className="games-section">
         <h2 className="section-title">More Games</h2>
         <div className="games-grid">
+          <Link to="/space-pups" className="game-card">
+            <div className="game-image-wrapper">
+              <div className="game-placeholder" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'white', fontSize: '4rem'}}>
+                🚀🐕
+              </div>
+            </div>
+            <div className="game-content">
+              <h3>Space Pups</h3>
+              <p className="game-date">October 13, 2025</p>
+              <p className="game-description">
+                A multiplayer platformer where space dogs race to the top! Customize your pup and compete with friends using room codes.
+              </p>
+            </div>
+          </Link>
+
           <Link to="/unicorns-unite" className="game-card">
             <div className="game-image-wrapper">
               <img src="/images/unicorns-unite-screenshot.png" alt="Unicorns Unite Game" className="game-image" />

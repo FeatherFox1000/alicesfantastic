@@ -12,6 +12,7 @@ function Header() {
         <nav className="nav">
           <Link to="/unicorns-unite" className="nav-link">Unicorns Unite</Link>
           <Link to="/creator" className="nav-link">Creator</Link>
+          <Link to="/space-pups" className="nav-link">Space Pups</Link>
           <Link to="/tomato-hunter" className="nav-link">Tomato Hunter</Link>
           <Link to="/podcasts" className="nav-link">Podcasts</Link>
           <ThemeToggle />

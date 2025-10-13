@@ -1,4 +1,5 @@
 // Puppy Control - Multiplayer Platformer Game
+import { CustomizationSystem, CUSTOMIZATION_ITEMS } from './customization.js';
 
 class PuppyControl {
     constructor() {
@@ -21,10 +22,19 @@ class PuppyControl {
         // Camera
         this.cameraY = 0;
 
+        // Checkpoints
+        this.checkpoints = [];
+
         // Player state
         this.players = new Map();
         this.myPlayerId = null;
         this.winner = null;
+
+        // Lobby preview
+        this.lobbyPreviewActive = false;
+        this.lobbyPreviewPlayer = null;
+        this.lobbyPreviewCanvas = null;
+        this.lobbyPreviewCtx = null;
 
         // Physics
         this.gravity = 0.6;
@@ -36,6 +46,12 @@ class PuppyControl {
 
         // Generate platforms going up
         this.platforms = this.generatePlatforms();
+
+        // Generate checkpoints
+        this.checkpoints = this.generateCheckpoints();
+
+        // Initialize customization system
+        this.customization = new CustomizationSystem(this);
 
         this.init();
     }
@@ -104,6 +120,29 @@ class PuppyControl {
         });
 
         return platforms;
+    }
+
+    generateCheckpoints() {
+        const checkpoints = [];
+        const checkpointInterval = 600; // Every 600px of height
+
+        // Create checkpoints every 600px going up
+        let currentY = this.worldHeight - checkpointInterval;
+
+        while (currentY > this.finishLineY + 200) {
+            checkpoints.push({
+                x: 500,
+                y: currentY,
+                width: 200,
+                height: 80,
+                activated: false,
+                id: checkpoints.length
+            });
+
+            currentY -= checkpointInterval;
+        }
+
+        return checkpoints;
     }
 
     connectToServer() {
@@ -208,6 +247,11 @@ class PuppyControl {
         document.getElementById('copy-code-btn').addEventListener('click', () => {
             this.copyRoomCode();
         });
+
+        // Fullscreen button
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            this.toggleFullscreen();
+        });
     }
 
     setupKeyboardControls() {
@@ -268,6 +312,204 @@ class PuppyControl {
         if (this.isHost) {
             document.getElementById('start-game-btn').style.display = 'block';
         }
+
+        // Start lobby preview
+        this.startLobbyPreview();
+    }
+
+    startLobbyPreview() {
+        this.lobbyPreviewCanvas = document.getElementById('lobby-preview-canvas');
+        this.lobbyPreviewCtx = this.lobbyPreviewCanvas.getContext('2d');
+        this.lobbyPreviewActive = true;
+
+        // Get player customization
+        const customization = this.customization.getPlayerCustomization();
+        const colorItem = CUSTOMIZATION_ITEMS.colors.find(c => c.id === customization.color);
+
+        // Create preview player
+        this.lobbyPreviewPlayer = {
+            x: 50,
+            y: 150,
+            width: 40,
+            height: 40,
+            velocityX: 0,
+            velocityY: 0,
+            isJumping: false,
+            color: colorItem ? colorItem.color : '#FF6B6B',
+            direction: 1,
+            customization: customization,
+            trail: []
+        };
+
+        // Start animation loop
+        this.lobbyPreviewLoop();
+    }
+
+    stopLobbyPreview() {
+        this.lobbyPreviewActive = false;
+    }
+
+    lobbyPreviewLoop() {
+        if (!this.lobbyPreviewActive) return;
+
+        const player = this.lobbyPreviewPlayer;
+
+        // Handle movement
+        if (this.keys['arrowleft'] || this.keys['a']) {
+            player.velocityX = -5;
+            player.direction = -1;
+        } else if (this.keys['arrowright'] || this.keys['d']) {
+            player.velocityX = 5;
+            player.direction = 1;
+        } else {
+            player.velocityX = 0;
+        }
+
+        // Handle jumping
+        if ((this.keys['arrowup'] || this.keys['w'] || this.keys[' ']) && !player.isJumping) {
+            player.velocityY = -12;
+            player.isJumping = true;
+        }
+
+        // Apply gravity
+        player.velocityY += 0.5;
+
+        // Update position
+        player.x += player.velocityX;
+        player.y += player.velocityY;
+
+        // Ground collision
+        if (player.y >= 150) {
+            player.y = 150;
+            player.velocityY = 0;
+            player.isJumping = false;
+        }
+
+        // Keep in bounds
+        if (player.x < 0) player.x = 0;
+        if (player.x + player.width > 300) player.x = 300 - player.width;
+
+        // Update trail
+        if (Math.abs(player.velocityX) > 0.1 || Math.abs(player.velocityY) > 0.1) {
+            player.trail.push({
+                x: player.x + player.width / 2,
+                y: player.y + player.height / 2,
+                time: Date.now()
+            });
+            if (player.trail.length > 15) {
+                player.trail.shift();
+            }
+        }
+
+        // Render
+        this.renderLobbyPreview();
+
+        requestAnimationFrame(() => this.lobbyPreviewLoop());
+    }
+
+    renderLobbyPreview() {
+        // Clear canvas
+        this.lobbyPreviewCtx.fillStyle = '#87CEEB';
+        this.lobbyPreviewCtx.fillRect(0, 0, 300, 200);
+
+        // Draw ground
+        this.lobbyPreviewCtx.fillStyle = '#2C5F2D';
+        this.lobbyPreviewCtx.fillRect(0, 190, 300, 10);
+
+        // Draw trail
+        this.drawTrailSmall(this.lobbyPreviewPlayer, this.lobbyPreviewCtx);
+
+        // Draw player
+        this.drawPlayerSmall(this.lobbyPreviewPlayer, this.lobbyPreviewCtx);
+    }
+
+    drawTrailSmall(player, ctx) {
+        if (!player.customization || !player.customization.trail || player.customization.trail === 'none') {
+            return;
+        }
+
+        if (player.trail.length < 2) return;
+
+        const trailType = player.customization.trail;
+        const now = Date.now();
+
+        // Simplified trail rendering for lobby
+        for (let i = 0; i < player.trail.length; i++) {
+            const point = player.trail[i];
+            const age = now - point.time;
+            const alpha = Math.max(0, 1 - age / 1000);
+            const size = 4 + (player.trail.length - i) * 0.3;
+
+            if (trailType === 'smoke') {
+                ctx.fillStyle = `rgba(150, 150, 150, ${alpha * 0.5})`;
+            } else if (trailType === 'fire') {
+                ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.7})`;
+            } else if (trailType === 'rainbow') {
+                const hue = (i / player.trail.length) * 360;
+                ctx.fillStyle = `hsla(${hue}, 100%, 60%, ${alpha * 0.6})`;
+            } else if (trailType === 'stars' || trailType === 'hearts') {
+                if (i % 2 === 0) {
+                    ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+                    ctx.font = '10px Arial';
+                    ctx.fillText(trailType === 'stars' ? '⭐' : '💖', point.x - 5, point.y + 5);
+                }
+                continue;
+            } else if (trailType === 'cosmic') {
+                ctx.fillStyle = `rgba(147, 51, 234, ${alpha * 0.8})`;
+            } else {
+                ctx.fillStyle = `rgba(200, 200, 200, ${alpha * 0.5})`;
+            }
+
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    drawPlayerSmall(player, ctx) {
+        const x = player.x;
+        const y = player.y;
+        const dir = player.direction;
+
+        // Draw dog (simplified version)
+        ctx.fillStyle = player.color;
+        ctx.fillRect(x, y + 12, player.width, player.height - 12);
+
+        const headX = dir === 1 ? x + player.width - 18 : x + 3;
+        ctx.fillRect(headX, y, 15, 15);
+
+        // Apply pattern if available
+        if (player.customization && player.customization.pattern && player.customization.pattern !== 'none') {
+            if (player.customization.pattern === 'spots') {
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.arc(x + 10, y + 25, 3, 0, Math.PI * 2);
+                ctx.arc(x + 22, y + 30, 3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (player.customization.pattern === 'sparkle') {
+                ctx.fillStyle = '#FFD700';
+                ctx.font = '12px Arial';
+                ctx.fillText('✨', x + 10, y + 30);
+            }
+        }
+
+        // Draw hat
+        if (player.customization && player.customization.hat && player.customization.hat !== 'none') {
+            const hatItem = CUSTOMIZATION_ITEMS.hats.find(h => h.id === player.customization.hat);
+            if (hatItem) {
+                ctx.font = 'bold 20px Arial';
+                ctx.fillText(hatItem.icon, headX + 2, y - 5);
+            }
+        }
+
+        // Draw accessory
+        if (player.customization && player.customization.accessory && player.customization.accessory !== 'none') {
+            const accItem = CUSTOMIZATION_ITEMS.accessories.find(a => a.id === player.customization.accessory);
+            if (accItem) {
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(accItem.icon, headX + 3, y + 18);
+            }
+        }
     }
 
     updateRoomCodeDisplay() {
@@ -314,6 +556,7 @@ class PuppyControl {
         this.isHost = false;
         this.gameStarted = false;
         this.players.clear();
+        this.stopLobbyPreview();
         this.showScreen('main-menu');
     }
 
@@ -332,9 +575,29 @@ class PuppyControl {
         this.showScreen('game-screen');
         this.winner = null;
 
+        // Stop lobby preview
+        this.stopLobbyPreview();
+
+        // Get player customization
+        const myCustomization = this.customization.getPlayerCustomization();
+
         // Initialize players at the bottom of the world
         this.players.clear();
         playerData.forEach((player, index) => {
+            // Use customization for local player, default colors for others
+            const isMe = player.id === this.myPlayerId;
+            let playerColor = this.getPlayerColor(index);
+            let customization = null;
+
+            if (isMe) {
+                // Get custom color from customization
+                const colorItem = CUSTOMIZATION_ITEMS.colors.find(c => c.id === myCustomization.color);
+                if (colorItem) {
+                    playerColor = colorItem.color;
+                }
+                customization = myCustomization;
+            }
+
             this.players.set(player.id, {
                 id: player.id,
                 name: player.name,
@@ -345,9 +608,14 @@ class PuppyControl {
                 velocityX: 0,
                 velocityY: 0,
                 isJumping: true,
-                color: this.getPlayerColor(index),
+                color: playerColor,
                 direction: 1, // 1 for right, -1 for left
-                highestY: this.worldHeight - 150 // Track highest point reached
+                highestY: this.worldHeight - 150, // Track highest point reached
+                customization: customization, // Store customization data
+                currentCheckpoint: null, // Track last checkpoint reached
+                respawnX: 100 + (index * 100), // Respawn position
+                respawnY: this.worldHeight - 150,
+                trail: [] // Store trail positions
             });
         });
 
@@ -419,6 +687,32 @@ class PuppyControl {
             player.highestY = player.y;
         }
 
+        // Update trail (if player is moving)
+        if (Math.abs(player.velocityX) > 0.1 || Math.abs(player.velocityY) > 0.1) {
+            player.trail.push({
+                x: player.x + player.width / 2,
+                y: player.y + player.height / 2,
+                time: Date.now()
+            });
+
+            // Keep trail to max 20 points
+            if (player.trail.length > 20) {
+                player.trail.shift();
+            }
+        }
+
+        // Check checkpoint collisions
+        this.checkCheckpointCollisions(player);
+
+        // Check if player has fallen off the world (respawn at checkpoint)
+        if (player.y > this.worldHeight + 100) {
+            player.x = player.respawnX;
+            player.y = player.respawnY;
+            player.velocityX = 0;
+            player.velocityY = 0;
+            player.isJumping = true;
+        }
+
         // Check if player reached the finish
         if (player.y <= this.finishLineY && !this.winner) {
             this.winner = player.name;
@@ -426,6 +720,10 @@ class PuppyControl {
                 roomCode: this.roomCode,
                 playerName: player.name
             });
+
+            // Award coins for winning
+            this.customization.coins += 100;
+            this.customization.saveCoins();
         }
 
         // Update camera to follow player
@@ -481,6 +779,28 @@ class PuppyControl {
         }
     }
 
+    checkCheckpointCollisions(player) {
+        for (const checkpoint of this.checkpoints) {
+            // Check if player is touching checkpoint
+            if (player.x < checkpoint.x + checkpoint.width &&
+                player.x + player.width > checkpoint.x &&
+                player.y < checkpoint.y + checkpoint.height &&
+                player.y + player.height > checkpoint.y) {
+
+                // Activate checkpoint if not already activated for this player
+                if (player.currentCheckpoint !== checkpoint.id) {
+                    player.currentCheckpoint = checkpoint.id;
+                    player.respawnX = checkpoint.x + checkpoint.width / 2 - player.width / 2;
+                    player.respawnY = checkpoint.y - player.height - 10;
+                    checkpoint.activated = true;
+
+                    // Visual feedback - could add sound here too
+                    console.log(`Checkpoint ${checkpoint.id} reached!`);
+                }
+            }
+        }
+    }
+
     render() {
         // Clear canvas with sky gradient
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
@@ -495,6 +815,9 @@ class PuppyControl {
 
         // Draw finish line flag
         this.drawFinishFlag();
+
+        // Draw checkpoints
+        this.drawCheckpoints();
 
         // Draw platforms
         for (const platform of this.platforms) {
@@ -514,6 +837,8 @@ class PuppyControl {
 
         // Draw all players
         this.players.forEach(player => {
+            // Draw trail first (behind player)
+            this.drawTrail(player);
             this.drawPlayer(player);
         });
 
@@ -553,6 +878,47 @@ class PuppyControl {
         this.ctx.fillText('FINISH', flagX + 10, flagY + 20);
     }
 
+    drawCheckpoints() {
+        this.checkpoints.forEach(checkpoint => {
+            // Draw checkpoint platform/banner
+            if (checkpoint.activated) {
+                // Activated checkpoint (green)
+                this.ctx.fillStyle = '#4CAF50';
+                this.ctx.strokeStyle = '#2E7D32';
+            } else {
+                // Inactive checkpoint (gray)
+                this.ctx.fillStyle = '#9E9E9E';
+                this.ctx.strokeStyle = '#616161';
+            }
+
+            // Draw checkpoint rectangle
+            this.ctx.fillRect(checkpoint.x, checkpoint.y, checkpoint.width, checkpoint.height);
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeRect(checkpoint.x, checkpoint.y, checkpoint.width, checkpoint.height);
+
+            // Draw flag poles on each side
+            this.ctx.fillStyle = '#8B4513';
+            this.ctx.fillRect(checkpoint.x, checkpoint.y, 5, checkpoint.height);
+            this.ctx.fillRect(checkpoint.x + checkpoint.width - 5, checkpoint.y, 5, checkpoint.height);
+
+            // Draw checkpoint text
+            this.ctx.fillStyle = 'white';
+            this.ctx.font = 'bold 24px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('CHECKPOINT', checkpoint.x + checkpoint.width / 2, checkpoint.y + 35);
+
+            // Draw checkpoint number
+            this.ctx.font = 'bold 18px Arial';
+            this.ctx.fillText(`#${checkpoint.id + 1}`, checkpoint.x + checkpoint.width / 2, checkpoint.y + 60);
+            this.ctx.textAlign = 'left';
+
+            // Draw checkpoint icon/emoji
+            this.ctx.font = '30px Arial';
+            this.ctx.fillText('🏁', checkpoint.x + 10, checkpoint.y + 50);
+            this.ctx.fillText('🏁', checkpoint.x + checkpoint.width - 40, checkpoint.y + 50);
+        });
+    }
+
     drawHeightIndicator() {
         if (!this.myPlayerId || !this.players.has(this.myPlayerId)) return;
 
@@ -583,6 +949,262 @@ class PuppyControl {
         this.ctx.fillStyle = 'white';
         this.ctx.fillText('Reached the top!', this.canvas.width / 2, this.canvas.height / 2 + 40);
         this.ctx.textAlign = 'left';
+    }
+
+    drawTrail(player) {
+        if (!player.customization || !player.customization.trail || player.customization.trail === 'none') {
+            return;
+        }
+
+        if (player.trail.length < 2) return;
+
+        const trailType = player.customization.trail;
+        const now = Date.now();
+
+        // Draw trail based on type
+        if (trailType === 'smoke') {
+            // Gray smoke trail
+            for (let i = 0; i < player.trail.length; i++) {
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1000); // Fade over 1 second
+                const size = 8 + (player.trail.length - i) * 0.5;
+
+                this.ctx.fillStyle = `rgba(150, 150, 150, ${alpha * 0.5})`;
+                this.ctx.beginPath();
+                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        } else if (trailType === 'fire') {
+            // Fire trail (red/orange/yellow)
+            for (let i = 0; i < player.trail.length; i++) {
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 800);
+                const size = 6 + (player.trail.length - i) * 0.6;
+
+                // Color shifts from yellow to orange to red
+                const colorIndex = i / player.trail.length;
+                if (colorIndex < 0.33) {
+                    this.ctx.fillStyle = `rgba(255, 255, 0, ${alpha * 0.7})`;
+                } else if (colorIndex < 0.66) {
+                    this.ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.7})`;
+                } else {
+                    this.ctx.fillStyle = `rgba(255, 50, 0, ${alpha * 0.7})`;
+                }
+
+                this.ctx.beginPath();
+                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        } else if (trailType === 'rainbow') {
+            // Rainbow trail
+            for (let i = 0; i < player.trail.length; i++) {
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1000);
+                const size = 8 + (player.trail.length - i) * 0.4;
+
+                const hue = (i / player.trail.length) * 360;
+                this.ctx.fillStyle = `hsla(${hue}, 100%, 60%, ${alpha * 0.6})`;
+                this.ctx.beginPath();
+                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        } else if (trailType === 'stars') {
+            // Star trail
+            for (let i = 0; i < player.trail.length; i++) {
+                if (i % 3 !== 0) continue; // Sparse stars
+
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1200);
+
+                this.ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+                this.ctx.font = `${12 + Math.random() * 8}px Arial`;
+                this.ctx.fillText('⭐', point.x - 6, point.y + 6);
+            }
+        } else if (trailType === 'hearts') {
+            // Heart trail
+            for (let i = 0; i < player.trail.length; i++) {
+                if (i % 4 !== 0) continue; // Sparse hearts
+
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1000);
+
+                this.ctx.fillStyle = `rgba(255, 100, 150, ${alpha})`;
+                this.ctx.font = `${14 + Math.random() * 6}px Arial`;
+                this.ctx.fillText('💖', point.x - 7, point.y + 7);
+            }
+        } else if (trailType === 'bubbles') {
+            // Bubble trail
+            for (let i = 0; i < player.trail.length; i++) {
+                if (i % 2 !== 0) continue; // Sparse bubbles
+
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1500);
+                const size = 4 + Math.random() * 4;
+
+                this.ctx.strokeStyle = `rgba(173, 216, 230, ${alpha})`;
+                this.ctx.fillStyle = `rgba(200, 230, 255, ${alpha * 0.3})`;
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
+            }
+        } else if (trailType === 'confetti') {
+            // Confetti trail
+            for (let i = 0; i < player.trail.length; i++) {
+                if (i % 3 !== 0) continue;
+
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1000);
+
+                const colors = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#6BCB77', '#A855F7'];
+                const color = colors[i % colors.length];
+
+                this.ctx.fillStyle = `${color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
+                this.ctx.save();
+                this.ctx.translate(point.x, point.y);
+                this.ctx.rotate((i * 45) * Math.PI / 180);
+                this.ctx.fillRect(-2, -4, 4, 8);
+                this.ctx.restore();
+            }
+        } else if (trailType === 'ice') {
+            // Ice/snow trail
+            for (let i = 0; i < player.trail.length; i++) {
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1200);
+                const size = 5 + (player.trail.length - i) * 0.3;
+
+                this.ctx.fillStyle = `rgba(173, 216, 230, ${alpha * 0.8})`;
+                this.ctx.beginPath();
+                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Add sparkle
+                if (i % 4 === 0) {
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    this.ctx.fillRect(point.x - 1, point.y - 3, 2, 6);
+                    this.ctx.fillRect(point.x - 3, point.y - 1, 6, 2);
+                }
+            }
+        } else if (trailType === 'leaves') {
+            // Falling leaves trail
+            for (let i = 0; i < player.trail.length; i++) {
+                if (i % 3 !== 0) continue;
+
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1500);
+
+                this.ctx.fillStyle = `rgba(34, 139, 34, ${alpha})`;
+                this.ctx.font = `${14 + Math.random() * 4}px Arial`;
+                this.ctx.fillText('🍃', point.x - 7, point.y + 7);
+            }
+        } else if (trailType === 'electric') {
+            // Electric/lightning trail
+            for (let i = 0; i < player.trail.length - 1; i++) {
+                const point = player.trail[i];
+                const nextPoint = player.trail[i + 1];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 600);
+
+                this.ctx.strokeStyle = `rgba(255, 255, 0, ${alpha})`;
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(point.x, point.y);
+                this.ctx.lineTo(nextPoint.x + (Math.random() - 0.5) * 5, nextPoint.y);
+                this.ctx.stroke();
+
+                // Add glow
+                this.ctx.strokeStyle = `rgba(173, 216, 230, ${alpha * 0.5})`;
+                this.ctx.lineWidth = 4;
+                this.ctx.stroke();
+            }
+        } else if (trailType === 'sakura') {
+            // Cherry blossom trail
+            for (let i = 0; i < player.trail.length; i++) {
+                if (i % 2 !== 0) continue;
+
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1800);
+
+                this.ctx.fillStyle = `rgba(255, 182, 193, ${alpha})`;
+                this.ctx.font = `${12 + Math.random() * 6}px Arial`;
+                this.ctx.fillText('🌸', point.x - 6, point.y + 6);
+            }
+        } else if (trailType === 'neon') {
+            // Neon trail
+            for (let i = 0; i < player.trail.length; i++) {
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 800);
+                const size = 8 + (player.trail.length - i) * 0.4;
+
+                // Neon glow effect
+                const gradient = this.ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, size);
+                gradient.addColorStop(0, `rgba(0, 255, 255, ${alpha})`);
+                gradient.addColorStop(0.5, `rgba(255, 0, 255, ${alpha * 0.6})`);
+                gradient.addColorStop(1, `rgba(0, 255, 255, ${alpha * 0.2})`);
+
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        } else if (trailType === 'aurora') {
+            // Aurora borealis trail
+            for (let i = 0; i < player.trail.length; i++) {
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 2000);
+                const size = 12 + (player.trail.length - i) * 0.6;
+
+                // Wavy aurora effect
+                const gradient = this.ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, size);
+                const hue = (i * 20 + Date.now() / 50) % 360;
+                gradient.addColorStop(0, `hsla(${hue}, 100%, 70%, ${alpha * 0.8})`);
+                gradient.addColorStop(0.5, `hsla(${hue + 60}, 100%, 60%, ${alpha * 0.5})`);
+                gradient.addColorStop(1, `hsla(${hue + 120}, 100%, 50%, ${alpha * 0.2})`);
+
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        } else if (trailType === 'cosmic') {
+            // Cosmic/galaxy trail
+            for (let i = 0; i < player.trail.length; i++) {
+                const point = player.trail[i];
+                const age = now - point.time;
+                const alpha = Math.max(0, 1 - age / 1500);
+                const size = 10 + (player.trail.length - i) * 0.7;
+
+                // Purple/blue cosmic glow
+                const gradient = this.ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, size);
+                gradient.addColorStop(0, `rgba(147, 51, 234, ${alpha * 0.8})`);
+                gradient.addColorStop(0.5, `rgba(59, 130, 246, ${alpha * 0.5})`);
+                gradient.addColorStop(1, `rgba(30, 58, 138, ${alpha * 0.2})`);
+
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Add sparkle effect
+                if (i % 5 === 0) {
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
+                    this.ctx.fillRect(point.x - 1, point.y - 1, 2, 2);
+                }
+            }
+        }
     }
 
     drawPlayer(player) {
@@ -668,6 +1290,115 @@ class PuppyControl {
         this.ctx.arc(tailX + (dir === 1 ? -6 : 6), y + 5, 3, 0, Math.PI * 2);
         this.ctx.fill();
 
+        // Apply customization if available
+        if (player.customization) {
+            // Draw pattern
+            if (player.customization.pattern === 'spots') {
+                this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                this.ctx.beginPath();
+                this.ctx.arc(x + 10, y + 25, 4, 0, Math.PI * 2);
+                this.ctx.arc(x + 25, y + 30, 5, 0, Math.PI * 2);
+                this.ctx.arc(x + 15, y + 35, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+            } else if (player.customization.pattern === 'dots') {
+                this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                this.ctx.beginPath();
+                this.ctx.arc(x + 8, y + 22, 3, 0, Math.PI * 2);
+                this.ctx.arc(x + 20, y + 22, 3, 0, Math.PI * 2);
+                this.ctx.arc(x + 32, y + 22, 3, 0, Math.PI * 2);
+                this.ctx.arc(x + 14, y + 32, 3, 0, Math.PI * 2);
+                this.ctx.arc(x + 26, y + 32, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+            } else if (player.customization.pattern === 'stripes') {
+                this.ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                for (let i = 0; i < 3; i++) {
+                    this.ctx.fillRect(x + 5, y + 20 + (i * 8), player.width - 10, 3);
+                }
+            } else if (player.customization.pattern === 'zigzag') {
+                this.ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + 5, y + 20);
+                this.ctx.lineTo(x + 12, y + 26);
+                this.ctx.lineTo(x + 19, y + 20);
+                this.ctx.lineTo(x + 26, y + 26);
+                this.ctx.lineTo(x + 33, y + 20);
+                this.ctx.stroke();
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + 5, y + 32);
+                this.ctx.lineTo(x + 12, y + 38);
+                this.ctx.lineTo(x + 19, y + 32);
+                this.ctx.lineTo(x + 26, y + 38);
+                this.ctx.lineTo(x + 33, y + 32);
+                this.ctx.stroke();
+            } else if (player.customization.pattern === 'checkers') {
+                this.ctx.fillStyle = 'rgba(0,0,0,0.25)';
+                for (let row = 0; row < 2; row++) {
+                    for (let col = 0; col < 3; col++) {
+                        if ((row + col) % 2 === 0) {
+                            this.ctx.fillRect(x + 5 + col * 10, y + 20 + row * 10, 10, 10);
+                        }
+                    }
+                }
+            } else if (player.customization.pattern === 'sparkle') {
+                this.ctx.fillStyle = '#FFD700';
+                this.ctx.font = '16px Arial';
+                this.ctx.fillText('✨', x + 5, y + 28);
+                this.ctx.fillText('✨', x + 20, y + 38);
+            } else if (player.customization.pattern === 'flames') {
+                this.ctx.fillStyle = 'rgba(255, 100, 0, 0.6)';
+                this.ctx.font = '14px Arial';
+                this.ctx.fillText('🔥', x + 5, y + 30);
+                this.ctx.fillText('🔥', x + 18, y + 36);
+                this.ctx.fillText('🔥', x + 28, y + 30);
+            } else if (player.customization.pattern === 'stars') {
+                this.ctx.fillStyle = '#FFD700';
+                this.ctx.font = '12px Arial';
+                this.ctx.fillText('⭐', x + 5, y + 25);
+                this.ctx.fillText('⭐', x + 18, y + 30);
+                this.ctx.fillText('⭐', x + 28, y + 38);
+            } else if (player.customization.pattern === 'glow') {
+                this.ctx.shadowColor = '#FFD700';
+                this.ctx.shadowBlur = 15;
+                this.ctx.strokeStyle = '#FFD700';
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(x, y + 12, player.width, player.height - 12);
+                this.ctx.shadowBlur = 0;
+            } else if (player.customization.pattern === 'lightning') {
+                this.ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + 15, y + 15);
+                this.ctx.lineTo(x + 18, y + 25);
+                this.ctx.lineTo(x + 14, y + 25);
+                this.ctx.lineTo(x + 17, y + 35);
+                this.ctx.stroke();
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + 28, y + 18);
+                this.ctx.lineTo(x + 31, y + 28);
+                this.ctx.lineTo(x + 27, y + 28);
+                this.ctx.lineTo(x + 30, y + 38);
+                this.ctx.stroke();
+            }
+
+            // Draw hat
+            const hatItem = CUSTOMIZATION_ITEMS.hats.find(h => h.id === player.customization.hat);
+            if (hatItem && hatItem.id !== 'none') {
+                this.ctx.font = 'bold 24px Arial';
+                const hatX = dir === 1 ? headX + 2 : headX + 2;
+                this.ctx.fillText(hatItem.icon, hatX, y - 5);
+            }
+
+            // Draw accessory
+            const accItem = CUSTOMIZATION_ITEMS.accessories.find(a => a.id === player.customization.accessory);
+            if (accItem && accItem.id !== 'none') {
+                this.ctx.font = 'bold 20px Arial';
+                const accX = dir === 1 ? headX + 3 : headX + 3;
+                this.ctx.fillText(accItem.icon, accX, y + 20);
+            }
+        }
+
         // Player name
         this.ctx.fillStyle = 'white';
         this.ctx.strokeStyle = 'black';
@@ -720,6 +1451,20 @@ class PuppyControl {
             }
             container.appendChild(scoreDiv);
         });
+    }
+
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            // Enter fullscreen
+            document.documentElement.requestFullscreen().catch(err => {
+                console.log(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            // Exit fullscreen
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
     }
 }
 

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:website\" \"npm run dev:unicorns-unite\" \"npm run dev:creator\" --names \"website,unicorns,creator\" --prefix-colors \"cyan,magenta,yellow\"",
+    "dev": "concurrently \"npm run dev:website\" \"npm run dev:unicorns-unite\" \"npm run dev:creator\" \"npm run dev:space-pups\" --names \"website,unicorns,creator,space-pups\" --prefix-colors \"cyan,magenta,yellow,blue\"",
     "dev:website": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -12,7 +12,8 @@
     "dev:unicorns-unite": "cd games/unicorns-unite && npm run dev",
     "build:unicorns-unite": "cd games/unicorns-unite && npm run build && rm -rf ../../public/unicorns-unite-game && cp -r dist ../../public/unicorns-unite-game",
     "dev:creator": "cd games/creator-game && npm run dev",
-    "build:creator": "cd games/creator-game && npm run build && rm -rf ../../public/creator-game && cp -r dist ../../public/creator-game"
+    "build:creator": "cd games/creator-game && npm run build && rm -rf ../../public/creator-game && cp -r dist ../../public/creator-game",
+    "dev:space-pups": "cd games/puppy-control && npm run dev"
   },
   "dependencies": {
     "react": "^19.1.1",
