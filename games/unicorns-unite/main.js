@@ -277,9 +277,9 @@ const sideQuests = [
   {
     id: 'explorer',
     title: 'World Explorer',
-    description: 'Visit all 5 biomes in the magical realm',
+    description: 'Visit all 8 biomes in the magical realm',
     type: 'explore',
-    target: 5,
+    target: 8,
     progress: 0,
     completed: false,
     reward: { type: 'magicPower', value: 50 },
@@ -635,7 +635,7 @@ function createClouds() {
 const clouds = [];
 createClouds();
 
-// Biome definitions - 5 distinct biomes arranged in a circle meeting at the center
+// Biome definitions - 8 distinct biomes arranged in a circle meeting at the center
 const biomes = {
   forest: {
     center: { x: -75, z: -75 },
@@ -676,6 +676,30 @@ const biomes = {
     name: 'Mystic Swamp',
     groundColor: 0x4a5a3a,
     strongholdPos: { x: -75, z: 75 }
+  },
+  crystal: {
+    center: { x: -105, z: 0 },
+    radius: 120,
+    color: 0x7dd3f8,
+    name: 'Crystal Caves',
+    groundColor: 0x9de5ff,
+    strongholdPos: { x: -105, z: 0 }
+  },
+  meadow: {
+    center: { x: 105, z: 0 },
+    radius: 120,
+    color: 0x88d98f,
+    name: 'Mystic Meadow',
+    groundColor: 0xa5e8aa,
+    strongholdPos: { x: 105, z: 0 }
+  },
+  shadow: {
+    center: { x: 0, z: -105 },
+    radius: 120,
+    color: 0x2a2a3a,
+    name: 'Shadow Realm',
+    groundColor: 0x1a1a2a,
+    strongholdPos: { x: 0, z: -105 }
   }
 };
 
@@ -731,6 +755,18 @@ function createGround() {
       // Desert biome: rolling dunes
       height = Math.sin(x * 0.025) * Math.cos(z * 0.025) * 2.0 +
                Math.sin(x * 0.06) * Math.cos(z * 0.06) * 0.8;
+    } else if (biome.type === 'crystal') {
+      // Crystal biome: sharp angular peaks
+      height = Math.abs(Math.sin(x * 0.04) * Math.cos(z * 0.04)) * 2.8 +
+               Math.abs(Math.sin(x * 0.12) * Math.cos(z * 0.12)) * 1.2;
+    } else if (biome.type === 'meadow') {
+      // Meadow biome: smooth rolling hills
+      height = Math.sin(x * 0.02) * Math.cos(z * 0.02) * 1.0 +
+               Math.sin(x * 0.05) * Math.cos(z * 0.05) * 0.4;
+    } else if (biome.type === 'shadow') {
+      // Shadow biome: flat with occasional spikes
+      height = Math.sin(x * 0.01) * Math.cos(z * 0.01) * 0.5 +
+               Math.abs(Math.sin(x * 0.2) * Math.cos(z * 0.2)) * 2.5;
     } else {
       // Forest biome: gentle hills
       height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
@@ -822,6 +858,18 @@ function getTerrainHeight(x, z) {
     // Desert biome: rolling dunes
     height = Math.sin(x * 0.025) * Math.cos(z * 0.025) * 2.0 +
              Math.sin(x * 0.06) * Math.cos(z * 0.06) * 0.8;
+  } else if (biome.type === 'crystal') {
+    // Crystal biome: sharp angular peaks
+    height = Math.abs(Math.sin(x * 0.04) * Math.cos(z * 0.04)) * 2.8 +
+             Math.abs(Math.sin(x * 0.12) * Math.cos(z * 0.12)) * 1.2;
+  } else if (biome.type === 'meadow') {
+    // Meadow biome: smooth rolling hills
+    height = Math.sin(x * 0.02) * Math.cos(z * 0.02) * 1.0 +
+             Math.sin(x * 0.05) * Math.cos(z * 0.05) * 0.4;
+  } else if (biome.type === 'shadow') {
+    // Shadow biome: flat with occasional spikes
+    height = Math.sin(x * 0.01) * Math.cos(z * 0.01) * 0.5 +
+             Math.abs(Math.sin(x * 0.2) * Math.cos(z * 0.2)) * 2.5;
   } else {
     // Forest biome: gentle hills
     height = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.5 +
@@ -1098,6 +1146,43 @@ function addBiomeVegetation() {
       createMushroom(x, z);
     }
   }
+
+  // Crystal biome: Crystals and magical structures
+  for (let i = 0; i < 20; i++) {
+    const angle = seededRandom() * Math.PI * 2;
+    const radius = seededRandom() * 75;
+    const x = biomes.crystal.center.x + Math.cos(angle) * radius;
+    const z = biomes.crystal.center.z + Math.sin(angle) * radius;
+    createCrystal(x, z);
+  }
+
+  // Meadow biome: Flowers and magical trees
+  for (let i = 0; i < 30; i++) {
+    const angle = seededRandom() * Math.PI * 2;
+    const radius = seededRandom() * 75;
+    const x = biomes.meadow.center.x + Math.cos(angle) * radius;
+    const z = biomes.meadow.center.z + Math.sin(angle) * radius;
+
+    if (seededRandom() > 0.6) {
+      createTree(x, z, 'magical');
+    } else {
+      createFlower(x, z);
+    }
+  }
+
+  // Shadow biome: Dark spikes and dead trees
+  for (let i = 0; i < 15; i++) {
+    const angle = seededRandom() * Math.PI * 2;
+    const radius = seededRandom() * 75;
+    const x = biomes.shadow.center.x + Math.cos(angle) * radius;
+    const z = biomes.shadow.center.z + Math.sin(angle) * radius;
+
+    if (seededRandom() > 0.5) {
+      createDarkSpike(x, z);
+    } else {
+      createDeadTree(x, z);
+    }
+  }
 }
 
 // Create cactus for desert biome
@@ -1254,6 +1339,171 @@ function createMushroom(x, z) {
   const groundHeight = getTerrainHeight(x, z);
   mushroom.position.set(x, groundHeight, z);
   scene.add(mushroom);
+  treePositions.push({ x, z, radius: 1.0 });
+}
+
+// Create crystal for crystal biome
+function createCrystal(x, z) {
+  const crystal = new THREE.Group();
+
+  // Crystal material with transparency and glow
+  const crystalMaterial = new THREE.MeshStandardMaterial({
+    color: seededRandom() > 0.5 ? 0x7dd3f8 : 0xa8e3ff,
+    roughness: 0.1,
+    metalness: 0.8,
+    transparent: true,
+    opacity: 0.85,
+    emissive: 0x5bc0de,
+    emissiveIntensity: 0.3
+  });
+
+  // Main crystal - tall hexagonal prism
+  const height = 3 + seededRandom() * 2;
+  const crystalGeometry = new THREE.CylinderGeometry(0.4, 0.5, height, 6);
+  const mainCrystal = new THREE.Mesh(crystalGeometry, crystalMaterial);
+  mainCrystal.position.y = height / 2;
+  mainCrystal.rotation.y = seededRandom() * Math.PI * 2;
+  mainCrystal.castShadow = true;
+  crystal.add(mainCrystal);
+
+  // Top point
+  const topGeometry = new THREE.ConeGeometry(0.4, 1, 6);
+  const top = new THREE.Mesh(topGeometry, crystalMaterial);
+  top.position.y = height + 0.5;
+  top.castShadow = true;
+  crystal.add(top);
+
+  // Smaller crystals around base
+  for (let i = 0; i < 3; i++) {
+    const angle = (i / 3) * Math.PI * 2;
+    const smallHeight = 1 + seededRandom();
+    const smallGeometry = new THREE.CylinderGeometry(0.2, 0.25, smallHeight, 6);
+    const smallCrystal = new THREE.Mesh(smallGeometry, crystalMaterial);
+    smallCrystal.position.set(
+      Math.cos(angle) * 0.6,
+      smallHeight / 2,
+      Math.sin(angle) * 0.6
+    );
+    smallCrystal.rotation.y = seededRandom() * Math.PI * 2;
+    smallCrystal.rotation.z = (seededRandom() - 0.5) * 0.3;
+    smallCrystal.castShadow = true;
+    crystal.add(smallCrystal);
+  }
+
+  const groundHeight = getTerrainHeight(x, z);
+  crystal.position.set(x, groundHeight, z);
+  scene.add(crystal);
+  treePositions.push({ x, z, radius: 1.2 });
+}
+
+// Create flower for meadow biome
+function createFlower(x, z) {
+  const flower = new THREE.Group();
+
+  // Stem
+  const stemMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2d5016,
+    roughness: 0.9
+  });
+  const stemGeometry = new THREE.CylinderGeometry(0.05, 0.08, 1.5, 8);
+  const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+  stem.position.y = 0.75;
+  flower.add(stem);
+
+  // Flower head - multiple petals
+  const petalColors = [0xff69b4, 0xffd700, 0xff6347, 0x9370db, 0x00ff7f];
+  const petalColor = petalColors[Math.floor(seededRandom() * petalColors.length)];
+  const petalMaterial = new THREE.MeshStandardMaterial({
+    color: petalColor,
+    roughness: 0.4,
+    emissive: petalColor,
+    emissiveIntensity: 0.2
+  });
+
+  const petalCount = 5 + Math.floor(seededRandom() * 3);
+  for (let i = 0; i < petalCount; i++) {
+    const angle = (i / petalCount) * Math.PI * 2;
+    const petalGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+    const petal = new THREE.Mesh(petalGeometry, petalMaterial);
+    petal.scale.set(1.2, 0.3, 0.8);
+    petal.position.set(
+      Math.cos(angle) * 0.3,
+      1.5,
+      Math.sin(angle) * 0.3
+    );
+    petal.rotation.z = angle + Math.PI / 2;
+    flower.add(petal);
+  }
+
+  // Center of flower
+  const centerMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffd700,
+    roughness: 0.3,
+    emissive: 0xffaa00,
+    emissiveIntensity: 0.4
+  });
+  const centerGeometry = new THREE.SphereGeometry(0.2, 12, 12);
+  const center = new THREE.Mesh(centerGeometry, centerMaterial);
+  center.position.y = 1.5;
+  flower.add(center);
+
+  const groundHeight = getTerrainHeight(x, z);
+  flower.position.set(x, groundHeight, z);
+  scene.add(flower);
+  treePositions.push({ x, z, radius: 0.6 });
+}
+
+// Create dark spike for shadow biome
+function createDarkSpike(x, z) {
+  const spike = new THREE.Group();
+
+  // Dark material
+  const spikeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a1a2a,
+    roughness: 0.95,
+    metalness: 0.3,
+    emissive: 0x0d0d1a,
+    emissiveIntensity: 0.1
+  });
+
+  // Main spike - tall and sharp
+  const height = 4 + seededRandom() * 3;
+  const spikeGeometry = new THREE.ConeGeometry(0.5, height, 8);
+  const mainSpike = new THREE.Mesh(spikeGeometry, spikeMaterial);
+  mainSpike.position.y = height / 2;
+  mainSpike.castShadow = true;
+  spike.add(mainSpike);
+
+  // Smaller spikes around
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const smallHeight = 1.5 + seededRandom() * 1.5;
+    const smallGeometry = new THREE.ConeGeometry(0.25, smallHeight, 6);
+    const smallSpike = new THREE.Mesh(smallGeometry, spikeMaterial);
+    smallSpike.position.set(
+      Math.cos(angle) * 0.8,
+      smallHeight / 2,
+      Math.sin(angle) * 0.8
+    );
+    smallSpike.rotation.z = (seededRandom() - 0.5) * 0.4;
+    smallSpike.castShadow = true;
+    spike.add(smallSpike);
+  }
+
+  // Purple glow effect at tips
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x6a0dad,
+    transparent: true,
+    opacity: 0.3
+  });
+  const glowGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+  glow.position.y = height;
+  spike.add(glow);
+
+  const groundHeight = getTerrainHeight(x, z);
+  spike.position.set(x, groundHeight, z);
+  scene.add(spike);
   treePositions.push({ x, z, radius: 1.0 });
 }
 
