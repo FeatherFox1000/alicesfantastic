@@ -524,12 +524,14 @@ class PuppyControl {
             }
         }
 
-        // Draw hat
+        // Draw hat (centered on top of head)
         if (player.customization && player.customization.hat && player.customization.hat !== 'none') {
             const hatItem = CUSTOMIZATION_ITEMS.hats.find(h => h.id === player.customization.hat);
             if (hatItem) {
                 ctx.font = 'bold 20px Arial';
-                ctx.fillText(hatItem.icon, headX + 2, y - 5);
+                ctx.textAlign = 'center';
+                ctx.fillText(hatItem.icon, headX + 7.5, y - 2);
+                ctx.textAlign = 'left';
             }
         }
 
@@ -1548,12 +1550,13 @@ class PuppyControl {
                 this.ctx.stroke();
             }
 
-            // Draw hat
+            // Draw hat (centered on top of head)
             const hatItem = CUSTOMIZATION_ITEMS.hats.find(h => h.id === player.customization.hat);
             if (hatItem && hatItem.id !== 'none') {
                 this.ctx.font = 'bold 24px Arial';
-                const hatX = dir === 1 ? headX + 2 : headX + 2;
-                this.ctx.fillText(hatItem.icon, hatX, y - 5);
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(hatItem.icon, headX + 7.5, y - 2);
+                this.ctx.textAlign = 'left';
             }
 
             // Draw accessory
