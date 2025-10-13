@@ -52,7 +52,7 @@ function SpacePups() {
       <div className="page-content">
         <section className="intro-section">
           <p className="game-intro">
-            Space Pups is a multiplayer 2D platformer where you race to the top of a vertical world! Customize your space dog with unique colors, hats, accessories, and patterns. Create or join rooms to compete with friends.
+            Space Pups is a multiplayer 2D platformer where you race to the top of a vertical world! Customize your space dog with 69+ unique items including colors, hats, accessories, patterns, and trails. Play mini-games in the lobby while waiting, then compete with friends in epic vertical races!
           </p>
         </section>
 
@@ -91,14 +91,18 @@ function SpacePups() {
               <span className="update-badge">Latest</span>
               <span className="update-date">October 2025</span>
             </div>
-            <h3>Space Pups Launch!</h3>
+            <h3>Space Pups - Packed with Features!</h3>
             <ul className="update-list">
               <li><strong>Multiplayer Racing:</strong> Race against friends in real-time vertical climbing challenges!</li>
-              <li><strong>Dog Customization:</strong> Unlock colors, hats, accessories, and patterns for your space dog.</li>
-              <li><strong>Pack Opening System:</strong> Open packs with coins to unlock rare and legendary items!</li>
-              <li><strong>Checkpoint System:</strong> Respawn at checkpoints if you fall, no need to start over!</li>
+              <li><strong>69+ Customization Items:</strong> 21 colors, 15 hats, 15 accessories, 11 patterns, and 15 trails!</li>
+              <li><strong>Legendary Trails:</strong> Aurora borealis, cosmic effects, rainbow, fire, electric, and more!</li>
+              <li><strong>Starter Pack:</strong> New players choose 1 FREE item from hats, trails, or patterns to start!</li>
+              <li><strong>Pack Opening System:</strong> Open packs (50 coins) to unlock rare and legendary items!</li>
+              <li><strong>Lobby Activities:</strong> Test your dog with movement controls and play "Catch the Stars!" mini-game</li>
+              <li><strong>Mini-Game Rewards:</strong> Earn bonus coins in lobby by catching falling stars!</li>
+              <li><strong>Checkpoint System:</strong> Respawn at green checkpoints if you fall, no need to start over!</li>
               <li><strong>Room Codes:</strong> Create private rooms and share 6-digit codes with friends.</li>
-              <li><strong>Coin Rewards:</strong> Earn 100 coins for winning races to unlock more customizations!</li>
+              <li><strong>Coin Rewards:</strong> Earn 100 coins for winning races plus bonus coins from mini-games!</li>
             </ul>
           </div>
         </section>
@@ -107,13 +111,19 @@ function SpacePups() {
           <section className="info-card">
             <div className="card-icon">🐕</div>
             <h2>Customization</h2>
-            <p>Personalize your space dog with 10 colors, 7 hats, 6 accessories, and 5 patterns. Collect legendary items!</p>
+            <p>Personalize your space dog with 21 colors, 15 hats, 15 accessories, 11 patterns, and 15 trails! Unlock legendary items like Aurora trails and Alien hats!</p>
+          </section>
+
+          <section className="info-card">
+            <div className="card-icon">⭐</div>
+            <h2>Lobby Mini-Game</h2>
+            <p>Play "Catch the Stars!" while waiting for players. Click falling stars to earn bonus coins - 10 coins for every 5 stars caught!</p>
           </section>
 
           <section className="info-card">
             <div className="card-icon">🎮</div>
             <h2>Multiplayer</h2>
-            <p>Host or join games with up to 8 players. Use room codes to play with your friends!</p>
+            <p>Host or join games with up to 8 players. Test your customized dog in the lobby preview before the race starts!</p>
           </section>
 
           <section className="info-card">
