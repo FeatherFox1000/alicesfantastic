@@ -159,9 +159,9 @@ class PuppyControl {
 
         while (currentY > this.finishLineY + 200) {
             checkpoints.push({
-                x: 500,
+                x: 0,
                 y: currentY,
-                width: 200,
+                width: this.canvas.width, // Full-width so always reachable
                 height: 80,
                 activated: false,
                 id: checkpoints.length
