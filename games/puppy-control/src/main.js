@@ -746,6 +746,11 @@ class PuppyControl {
         this.stopLobbyPreview();
         this.stopMinigame();
 
+        // Reset checkpoint activation states
+        this.checkpoints.forEach(checkpoint => {
+            checkpoint.activated = false;
+        });
+
         // Get player customization
         const myCustomization = this.customization.getPlayerCustomization();
 
