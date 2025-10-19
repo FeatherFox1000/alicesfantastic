@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
+import VisitorCounter from './VisitorCounter';
 import './Header.css';
 
 function Header() {
@@ -15,6 +16,7 @@ function Header() {
           <Link to="/space-pups" className="nav-link">Space Pups</Link>
           <Link to="/tomato-hunter" className="nav-link">Tomato Hunter</Link>
           <Link to="/podcasts" className="nav-link">Podcasts</Link>
+          <VisitorCounter />
           <ThemeToggle />
         </nav>
       </div>
