@@ -1,4 +1,6 @@
-const BASE = 'http://localhost:3003/api';
+const BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:3003/api'
+  : 'https://ai-rp-studio.fly.dev/api';
 
 function headers() {
   const token = localStorage.getItem('airp_token');

@@ -1,0 +1,18 @@
+app = 'ai-rp-studio'
+primary_region = 'sjc'
+
+[build]
+
+[env]
+  PORT = '3003'
+
+[http_service]
+  internal_port = 3003
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[mounts]
+  source = 'ai_rp_data'
+  destination = '/data'
