@@ -175,7 +175,10 @@ class PuppyControl {
 
     connectToServer() {
         // Connect to Socket.io server
-        this.socket = io('http://localhost:3002');
+        const serverUrl = window.location.hostname === 'localhost'
+            ? 'http://localhost:3002'
+            : 'https://space-pups-game.fly.dev';
+        this.socket = io(serverUrl);
 
         this.socket.on('connect', () => {
             console.log('Connected to server');

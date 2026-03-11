@@ -65,7 +65,7 @@ function SpacePups() {
           >
             <iframe
               ref={iframeRef}
-              src="http://localhost:3002"
+              src={import.meta.env.DEV ? 'http://localhost:3002' : 'https://space-pups-game.fly.dev'}
               title="Space Pups Game"
               className="game-iframe"
             />
