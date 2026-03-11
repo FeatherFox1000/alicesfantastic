@@ -105,6 +105,7 @@ function Creator() {
               src={import.meta.env.DEV ? 'http://localhost:5175/' : '/creator-game/index.html'}
               title="Creator Game"
               className="game-iframe"
+              style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none'}}
             />
             <button
               className="fullscreen-button"
