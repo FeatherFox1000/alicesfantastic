@@ -1,45 +1,6 @@
 import './TomatoHunter.css';
-import { useEffect, useState } from 'react';
 
 function TomatoHunter() {
-  const [isHovering, setIsHovering] = useState(false);
-
-  useEffect(() => {
-    // Add/remove class to body to prevent scrolling when hovering over game
-    if (isHovering) {
-      document.body.classList.add('game-focused');
-    } else {
-      document.body.classList.remove('game-focused');
-    }
-
-    return () => {
-      document.body.classList.remove('game-focused');
-    };
-  }, [isHovering]);
-
-  useEffect(() => {
-    // Always prevent arrow keys and space from scrolling on this page
-    const handleKeyDown = (e) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Shift'].includes(e.key)) {
-        e.preventDefault();
-        return false;
-      }
-    };
-
-    const handleWheel = (e) => {
-      if (isHovering) {
-        e.preventDefault();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('wheel', handleWheel);
-    };
-  }, [isHovering]);
 
   return (
     <div className="page tomato-hunter">
@@ -51,22 +12,19 @@ function TomatoHunter() {
         <section className="intro-section">
           <p className="game-intro">
             This is Alice's first game created on Construct! In Tomato Hunter, you have to hunt tomatoes.
-            There is only one level. It's still fun though!
+            Scroll down to also play <strong>Tomato Hunter 2</strong> — a brand new version with 5 levels of platformer action!
           </p>
         </section>
 
         <section className="game-container">
-          <div
-            className="game-wrapper"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-          >
-            <iframe
-              src="/tomato-hunter-game/index.html"
-              title="Tomato Hunter Game"
-              className="game-iframe"
-            />
-          </div>
+          <h2 className="game-section-title">🍅 Original Game</h2>
+          <p className="game-section-desc">The original Construct 3 version — Alice's very first game!</p>
+          <a href="/tomato-hunter-game/index.html" target="_blank" rel="noopener noreferrer" className="open-fullscreen-btn">
+            🍅 Tomato Hunter Unleashed
+          </a>
+          <a href="/tomato-hunter-v2/index.html" target="_blank" rel="noopener noreferrer" className="open-fullscreen-btn">
+            🍅 Tomato Hunter +
+          </a>
           <div className="game-instructions">
             <h3>How to Play</h3>
             <ul>

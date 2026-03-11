@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:website\" \"npm run dev:unicorns-unite\" \"npm run dev:creator\" \"npm run dev:space-pups\" --names \"website,unicorns,creator,space-pups\" --prefix-colors \"cyan,magenta,yellow,blue\"",
+    "dev": "concurrently \"npm run dev:website\" \"npm run dev:unicorns-unite\" \"npm run dev:creator\" \"npm run dev:space-pups\" \"npm run dev:ai-rp-studio\" --names \"website,unicorns,creator,space-pups,ai-rp\" --prefix-colors \"cyan,magenta,yellow,blue,green\"",
     "dev:website": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -13,7 +13,8 @@
     "build:unicorns-unite": "cd games/unicorns-unite && npm run build && rm -rf ../../public/unicorns-unite-game && cp -r dist ../../public/unicorns-unite-game",
     "dev:creator": "cd games/creator-game && npm run dev",
     "build:creator": "cd games/creator-game && npm run build && rm -rf ../../public/creator-game && cp -r dist ../../public/creator-game",
-    "dev:space-pups": "cd games/puppy-control && npm run dev"
+    "dev:space-pups": "cd games/puppy-control && npm run dev",
+    "dev:ai-rp-studio": "cd games/ai-rp-studio && npm run dev"
   },
   "dependencies": {
     "cors": "^2.8.5",

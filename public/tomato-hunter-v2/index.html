@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tomato Hunter 2</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; background: #111; overflow: hidden; }
+    canvas { display: block; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const GW = 854, GH = 480;
+
+// Canvas resolution stays fixed; CSS stretches it to fill the iframe
+canvas.width = GW;
+canvas.height = GH;
+
+// Sprite sheet — set onload/onerror BEFORE src so it's never missed
+// Player sprite: x=1,  y=1,  w=36, h=51
+// Tomato sprite: x=39, y=33, w=24, h=25
+const sheet = new Image();
+let sheetReady = false;
+let loopStarted = false;
+function startLoop() { if (!loopStarted) { loopStarted = true; loop(); } }
+sheet.onload  = () => { sheetReady = true;  startLoop(); };
+sheet.onerror = () => { sheetReady = false; startLoop(); }; // run without sprites on failure
+sheet.src = '/tomato-hunter-game/images/shared-0-sheet0.webp';
+// Safety: start loop even if image events never fire (e.g. already-cached edge cases)
+setTimeout(startLoop, 500);
+
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    r = typeof r === 'number' ? r : (Array.isArray(r) ? r[0] : 8);
+    this.beginPath();
+    this.moveTo(x+r,y); this.lineTo(x+w-r,y); this.arcTo(x+w,y,x+w,y+r,r);
+    this.lineTo(x+w,y+h-r); this.arcTo(x+w,y+h,x+w-r,y+h,r);
+    this.lineTo(x+r,y+h); this.arcTo(x,y+h,x,y+h-r,r);
+    this.lineTo(x,y+r); this.arcTo(x,y,x+r,y,r);
+    this.closePath(); return this;
+  };
+}
+
+// ── INPUT ─────────────────────────────────────────────
+const keys = new Set();
+let anyKeyPressed = false;
+window.addEventListener('keydown', e => {
+  if (!keys.has(e.code)) anyKeyPressed = true;
+  keys.add(e.code);
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup', e => keys.delete(e.code));
+function consumeKey() { if (anyKeyPressed) { anyKeyPressed = false; return true; } return false; }
+
+// ── LEVEL DATA ────────────────────────────────────────
+// Platform y = top surface. Tomato.y = platform.y - 24.
+// Enemy: { left, right, speed } — y auto-calculated as platform.y - EH.
+// DynPlat: oscillates. pos = origin + sin(tick*freq + phase) * amplitude.
+// Spikes: { x, y, w } — kill on overlap.
+
+const EH = 24; // enemy height
+
+const LEVELS = [
+  // ── LEVEL 1: The Garden ── no enemies, tutorial ──────
+  {
+    name: 'Level 1', subtitle: 'The Garden',
+    sky: ['#87ceeb','#c8f0c8'], platColor: '#4a8a57', grassColor: '#6ab876',
+    platforms: [
+      { x:0,   y:440, w:854, h:40 },
+      { x:80,  y:362, w:160, h:18 },
+      { x:310, y:325, w:150, h:18 },
+      { x:525, y:355, w:170, h:18 },
+      { x:685, y:290, w:145, h:18 },
+    ],
+    dynPlats: [],
+    enemies: [],
+    spikes: [],
+    tomatoes: [
+      { x:148, y:338 }, { x:230, y:416 }, { x:368, y:301 },
+      { x:460, y:416 }, { x:592, y:331 }, { x:742, y:266 }, { x:760, y:416 },
+    ],
+    playerStart: { x:50, y:389 },
+  },
+
+  // ── LEVEL 2: Stepping Stones ── 1 enemy ──────────────
+  {
+    name: 'Level 2', subtitle: 'Stepping Stones',
+    sky: ['#ffeaa0','#ffb347'], platColor: '#9b6914', grassColor: '#c48a1e',
+    platforms: [
+      { x:0,   y:440, w:854, h:40 },
+      { x:70,  y:382, w:130, h:18 },
+      { x:230, y:325, w:130, h:18 },
+      { x:395, y:265, w:130, h:18 },
+      { x:560, y:325, w:130, h:18 },
+      { x:715, y:382, w:130, h:18 },
+    ],
+    dynPlats: [],
+    // Enemy sits on the top step — player must time their crossing
+    enemies: [
+      { x:418, y:265-EH, left:395, right:497, speed:0.6, dir:1 },
+    ],
+    spikes: [],
+    tomatoes: [
+      { x:40,  y:416 }, { x:120, y:358 }, { x:280, y:301 },
+      { x:447, y:241 }, { x:610, y:301 }, { x:765, y:358 },
+      { x:500, y:416 }, { x:810, y:416 },
+    ],
+    playerStart: { x:30, y:389 },
+  },
+
+  // ── LEVEL 3: Two Towers ── 2 enemies, 1 moving plat ──
+  // Fixed layout: tower tops connect seamlessly to bridge (no gaps).
+  {
+    name: 'Level 3', subtitle: 'Two Towers',
+    sky: ['#d8b4fe','#818cf8'], platColor: '#5a3a8a', grassColor: '#7c5ab8',
+    platforms: [
+      { x:0,   y:440, w:220, h:40 },   // left ground
+      { x:634, y:440, w:220, h:40 },   // right ground
+      // Left tower — top (x=25, w=175) ends at 200 = bridge start
+      { x:30,  y:368, w:180, h:18 },
+      { x:15,  y:290, w:185, h:18 },
+      { x:30,  y:210, w:170, h:18 },
+      { x:25,  y:135, w:175, h:18 },
+      // Bridge — x=200 matches left tower top end; x+w=654 = right tower top start
+      { x:200, y:135, w:454, h:18 },
+      // Right tower — top starts at 654 = bridge end
+      { x:654, y:135, w:175, h:18 },
+      { x:654, y:210, w:170, h:18 },
+      { x:654, y:290, w:185, h:18 },
+      { x:634, y:368, w:180, h:18 },
+    ],
+    // Moving platform oscillates horizontally in the mid-gap,
+    // giving players an alternative route or bonus collectible platform.
+    dynPlats: [
+      { ox:337, oy:285, w:130, h:16, ax:100, ay:0, freq:0.018, phase:0 },
+    ],
+    enemies: [
+      { x:50,  y:290-EH, left:15,  right:170, speed:0.7, dir: 1 },
+      { x:720, y:290-EH, left:664, right:820, speed:0.7, dir:-1 },
+    ],
+    spikes: [],
+    tomatoes: [
+      { x:95,  y:416 }, { x:700, y:416 },
+      { x:95,  y:344 }, { x:740, y:344 },
+      { x:60,  y:266 }, { x:710, y:266 },
+      { x:60,  y:111 }, { x:740, y:111 },
+      { x:420, y:111 },
+    ],
+    playerStart: { x:50, y:389 },
+  },
+
+  // ── LEVEL 4: The Gauntlet ── 3 enemies, 2 moving plats, spikes ──
+  {
+    name: 'Level 4', subtitle: 'The Gauntlet',
+    sky: ['#bbf7d0','#4ade80'], platColor: '#166534', grassColor: '#16a34a',
+    platforms: [
+      { x:0,   y:440, w:110, h:40 },
+      { x:215, y:440, w:110, h:40 },
+      { x:430, y:440, w:110, h:40 },
+      { x:644, y:440, w:210, h:40 },
+      { x:100, y:396, w:90,  h:16 },
+      { x:325, y:396, w:90,  h:16 },
+      { x:545, y:396, w:90,  h:16 },
+      { x:50,  y:344, w:90,  h:16 },
+      { x:215, y:344, w:90,  h:16 },
+      { x:380, y:344, w:90,  h:16 },
+      { x:545, y:344, w:90,  h:16 },
+      { x:710, y:344, w:120, h:16 },
+      { x:120, y:292, w:90,  h:16 },
+      { x:290, y:292, w:90,  h:16 },
+      { x:455, y:292, w:90,  h:16 },
+      { x:620, y:292, w:90,  h:16 },
+      { x:50,  y:240, w:90,  h:16 },
+      { x:240, y:240, w:90,  h:16 },
+      { x:400, y:240, w:90,  h:16 },
+      { x:570, y:240, w:90,  h:16 },
+      { x:720, y:240, w:110, h:16 },
+      { x:160, y:185, w:90,  h:16 },
+      { x:350, y:185, w:90,  h:16 },
+      { x:540, y:185, w:90,  h:16 },
+      { x:255, y:135, w:90,  h:16 },
+      { x:455, y:135, w:90,  h:16 },
+    ],
+    dynPlats: [
+      // Slides left-right across a row-3 gap
+      { ox:490, oy:292, w:80, h:16, ax:65, ay:0, freq:0.022, phase:0 },
+      // Bobs up-down between row-4 and row-5
+      { ox:340, oy:210, w:75, h:16, ax:0, ay:40, freq:0.016, phase:1.5 },
+    ],
+    enemies: [
+      { x:215, y:344-EH, left:215, right:281, speed:0.8, dir: 1 },
+      { x:545, y:344-EH, left:545, right:611, speed:0.8, dir:-1 },
+      { x:720, y:240-EH, left:720, right:806, speed:0.9, dir: 1 },
+    ],
+    // Spikes in the ground gaps — touch them and restart
+    spikes: [
+      { x:115, y:440, w:95  },   // gap 1
+      { x:330, y:440, w:95  },   // gap 2
+      { x:545, y:440, w:94  },   // gap 3
+    ],
+    tomatoes: [
+      { x:40,  y:416 }, { x:255, y:416 }, { x:470, y:416 }, { x:730, y:416 },
+      { x:360, y:372 }, { x:580, y:372 },
+      { x:155, y:268 }, { x:490, y:268 },
+      { x:280, y:111 }, { x:480, y:111 },
+    ],
+    playerStart: { x:30, y:389 },
+  },
+
+  // ── LEVEL 5: Tomato Madness! ── 4 enemies, 2 moving plats, spikes ──
+  {
+    name: 'Level 5', subtitle: 'Tomato Madness!',
+    sky: ['#fca5a5','#f97316'], platColor: '#991b1b', grassColor: '#dc2626',
+    platforms: [
+      { x:0,   y:440, w:110, h:40 },
+      { x:744, y:440, w:110, h:40 },
+      { x:130, y:412, w:75, h:16 },
+      { x:245, y:380, w:75, h:16 },
+      { x:360, y:412, w:75, h:16 },
+      { x:475, y:380, w:75, h:16 },
+      { x:590, y:412, w:75, h:16 },
+      { x:665, y:380, w:79, h:16 },
+      { x:55,  y:342, w:80, h:16 },
+      { x:185, y:310, w:80, h:16 },
+      { x:310, y:342, w:80, h:16 },
+      { x:435, y:310, w:80, h:16 },
+      { x:560, y:342, w:80, h:16 },
+      { x:680, y:310, w:80, h:16 },
+      { x:120, y:258, w:80, h:16 },
+      { x:420, y:258, w:80, h:16 },
+      { x:690, y:258, w:100,h:16 },
+      { x:200, y:168, w:100,h:16 },
+      { x:555, y:168, w:100,h:16 },
+      // Summit
+      { x:327, y:82,  w:200,h:16 },
+    ],
+    dynPlats: [
+      // The summit approach oscillates — hard to time!
+      { ox:270, oy:222, w:80, h:16, ax:80, ay:0,  freq:0.020, phase:0   },
+      // Near-top vertical bobber
+      { ox:370, oy:132, w:120,h:16, ax:0,  ay:35, freq:0.018, phase:1.0 },
+    ],
+    enemies: [
+      { x:200, y:310-EH, left:185, right:241, speed:0.9, dir: 1 },
+      { x:455, y:310-EH, left:435, right:491, speed:0.9, dir:-1 },
+      { x:120, y:258-EH, left:120, right:176, speed:1.0, dir: 1 },
+      { x:690, y:258-EH, left:690, right:766, speed:1.0, dir:-1 },
+    ],
+    spikes: [
+      { x:115, y:440, w:125 },   // left gap
+      { x:634, y:440, w:105 },   // right gap
+    ],
+    tomatoes: [
+      { x:40,  y:416 }, { x:776, y:416 },
+      { x:160, y:388 }, { x:390, y:388 }, { x:618, y:388 },
+      { x:85,  y:318 }, { x:340, y:318 }, { x:590, y:318 },
+      { x:448, y:234 }, { x:718, y:234 },
+      { x:416, y:58  },
+    ],
+    playerStart: { x:30, y:389 },
+  },
+];
+
+// ── PHYSICS ───────────────────────────────────────────
+const GRAVITY    = 0.45;
+const JUMP_FORCE = -11.5;
+const MOVE_SPEED = 2.5;
+const PW = 36, PH = 51;
+
+// ── GAME STATE ────────────────────────────────────────
+let state = 'title';
+let levelIdx = 0, totalTomatoes = 0, tick = 0;
+let player = {}, platforms = [], dynPlats = [], enemies = [], spikes = [], tomatoes = [];
+let flashAlpha = 0, deathFlash = 0, transitionDelay = 0, transitionReady = false;
+
+function initLevel(idx) {
+  const lvl = LEVELS[idx];
+  player = { x:lvl.playerStart.x, y:lvl.playerStart.y, vx:0, vy:0, onGround:false, facing:1, walkCycle:0 };
+  platforms  = lvl.platforms.slice();
+  dynPlats   = lvl.dynPlats.map(d => ({ ...d, phase: d.phase }));
+  enemies    = lvl.enemies.map(e => ({ ...e }));
+  spikes     = lvl.spikes.slice();
+  tomatoes   = lvl.tomatoes.map((t,i) => ({ ...t, collected:false, bob:i*1.1 }));
+  flashAlpha = 0; deathFlash = 0;
+  transitionDelay = 0; transitionReady = false; anyKeyPressed = false;
+}
+
+function getDynPlatRect(d) {
+  return {
+    x: d.ox + Math.sin(tick * d.freq + d.phase) * d.ax,
+    y: d.oy + Math.sin(tick * d.freq + d.phase) * d.ay,
+    w: d.w, h: d.h,
+  };
+}
+
+// ── UPDATE ────────────────────────────────────────────
+function update() {
+  const left  = keys.has('ArrowLeft')  || keys.has('KeyA');
+  const right = keys.has('ArrowRight') || keys.has('KeyD');
+  const jump  = keys.has('ArrowUp')    || keys.has('KeyW') || keys.has('Space');
+
+  if (deathFlash > 0) { deathFlash--; if (deathFlash === 0) initLevel(levelIdx); return; }
+
+  if      (left)  { player.vx = -MOVE_SPEED; player.facing = -1; }
+  else if (right) { player.vx =  MOVE_SPEED; player.facing =  1; }
+  else            { player.vx = 0; }
+
+  if (jump && player.onGround) { player.vy = JUMP_FORCE; player.onGround = false; }
+  player.vy = Math.min(player.vy + GRAVITY, 16);
+  player.x  = Math.max(0, Math.min(GW - PW, player.x + player.vx));
+
+  const prevBottom = player.y + PH;
+  player.y += player.vy;
+  player.onGround = false;
+
+  // Collide with all platforms (static + dynamic)
+  const allPlats = [...platforms, ...dynPlats.map(getDynPlatRect)];
+  for (const p of allPlats) {
+    const ox = player.x + PW > p.x + 2 && player.x < p.x + p.w - 2;
+    if (!ox) continue;
+    if (player.vy >= 0 && player.y + PH >= p.y && prevBottom <= p.y + 4) {
+      player.y = p.y - PH; player.vy = 0; player.onGround = true;
+    }
+    if (player.vy < 0 && player.y <= p.y + p.h && player.y + PH > p.y + p.h) {
+      player.y = p.y + p.h; player.vy = 0;
+    }
+  }
+
+  if (player.onGround && (left || right)) player.walkCycle += 0.18;
+  if (player.y > GH + 80) { initLevel(levelIdx); return; }
+
+  // Move enemies
+  for (const e of enemies) {
+    e.x += e.speed * e.dir;
+    if (e.x <= e.left || e.x + EH >= e.right) { e.dir *= -1; e.x = Math.max(e.left, Math.min(e.right - EH, e.x)); }
+  }
+
+  // Check spike collision
+  for (const s of spikes) {
+    if (player.x + PW > s.x && player.x < s.x + s.w &&
+        player.y + PH >= s.y && player.y + PH <= s.y + 20) {
+      deathFlash = 30; return;
+    }
+  }
+
+  // Check enemy collision
+  for (const e of enemies) {
+    if (player.x + PW > e.x + 3 && player.x < e.x + EH - 3 &&
+        player.y + PH > e.y + 3 && player.y < e.y + EH - 3) {
+      deathFlash = 30; return;
+    }
+  }
+
+  // Collect tomatoes
+  for (const t of tomatoes) {
+    if (t.collected) continue;
+    if (player.x + PW > t.x && player.x < t.x + 24 && player.y + PH > t.y && player.y < t.y + 24) {
+      t.collected = true; totalTomatoes++; flashAlpha = 1;
+    }
+  }
+  if (flashAlpha > 0) flashAlpha -= 0.06;
+
+  if (tomatoes.length > 0 && tomatoes.every(t => t.collected)) {
+    state = 'levelComplete'; transitionDelay = 90; anyKeyPressed = false;
+  }
+}
+
+// ── DRAW HELPERS ──────────────────────────────────────
+function drawSky(lvl) {
+  const g = ctx.createLinearGradient(0,0,0,GH);
+  g.addColorStop(0,lvl.sky[0]); g.addColorStop(1,lvl.sky[1]);
+  ctx.fillStyle = g; ctx.fillRect(0,0,GW,GH);
+}
+
+function drawClouds() {
+  ctx.fillStyle = 'rgba(255,255,255,0.60)';
+  [[160,70,28],[390,55,35],[640,85,24],[755,50,20],[50,105,18]].forEach(([x,y,r]) => {
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,Math.PI*2); ctx.arc(x+r,y-r*.3,r*.8,0,Math.PI*2); ctx.arc(x+r*2,y,r*.9,0,Math.PI*2);
+    ctx.fill();
+  });
+}
+
+function drawOnePlat(p, platColor, grassColor) {
+  ctx.fillStyle = platColor;  ctx.fillRect(p.x, p.y, p.w, p.h);
+  ctx.fillStyle = grassColor; ctx.fillRect(p.x, p.y, p.w, 5);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(p.x, p.y+p.h-3, p.w, 3);
+  ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fillRect(p.x, p.y, 3, p.h);
+}
+
+function drawPlatforms(lvl) {
+  for (const p of platforms) drawOnePlat(p, lvl.platColor, lvl.grassColor);
+  for (const d of dynPlats) {
+    const p = getDynPlatRect(d);
+    // Moving platforms glow slightly
+    drawOnePlat(p, lvl.platColor, '#ffe066');
+    // Pulsing top highlight to signal movement
+    ctx.fillStyle = `rgba(255,220,50,${0.25 + 0.15*Math.sin(tick*0.1)})`;
+    ctx.fillRect(p.x, p.y, p.w, 4);
+  }
+}
+
+function drawSpikes(lvl) {
+  for (const s of spikes) {
+    const count = Math.floor(s.w / 14);
+    ctx.fillStyle = '#555';
+    for (let i = 0; i < count; i++) {
+      const sx = s.x + i * 14 + 1;
+      ctx.beginPath();
+      ctx.moveTo(sx, s.y); ctx.lineTo(sx+6, s.y-12); ctx.lineTo(sx+12, s.y);
+      ctx.closePath(); ctx.fill();
+    }
+    // Spike base bar
+    ctx.fillStyle = '#333';
+    ctx.fillRect(s.x, s.y, s.w, 4);
+  }
+}
+
+function drawEnemy(e) {
+  const ex = e.x, ey = e.y;
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.20)';
+  ctx.beginPath(); ctx.ellipse(ex+12,ey+EH+1,10,3,0,0,Math.PI*2); ctx.fill();
+  // Horns
+  ctx.fillStyle = '#bb0000';
+  [[5,13],[11,17]].forEach(([hx,bx]) => {
+    ctx.beginPath(); ctx.moveTo(ex+hx,ey+4); ctx.lineTo(ex+hx+4,ey-5); ctx.lineTo(ex+bx,ey+4); ctx.closePath(); ctx.fill();
+  });
+  // Body
+  ctx.fillStyle = '#e63030';
+  ctx.beginPath(); ctx.roundRect(ex,ey+3,EH,EH-3,5); ctx.fill();
+  // Eyes
+  ctx.fillStyle = 'white';
+  ctx.beginPath(); ctx.ellipse(ex+8, ey+12,3.5,4,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(ex+16,ey+12,3.5,4,0,0,Math.PI*2); ctx.fill();
+  // Pupils shift toward movement direction
+  const pd = e.dir;
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.ellipse(ex+8 +pd,ey+13,2,2.5,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(ex+16+pd,ey+13,2,2.5,0,0,Math.PI*2); ctx.fill();
+  // Angry brows
+  ctx.strokeStyle='#800'; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.moveTo(ex+4,ey+6); ctx.lineTo(ex+12,ey+8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ex+12,ey+8); ctx.lineTo(ex+20,ey+6); ctx.stroke();
+}
+
+function drawTomato(t) {
+  const bob = Math.sin(tick*0.04+t.bob)*3;
+  ctx.fillStyle='rgba(0,0,0,0.18)';
+  ctx.beginPath(); ctx.ellipse(t.x+12,t.y+bob+27,9,3,0,0,Math.PI*2); ctx.fill();
+  if (sheetReady) {
+    ctx.drawImage(sheet,39,33,24,25,t.x,t.y+bob,24,25);
+  } else {
+    ctx.fillStyle='#e02010'; ctx.beginPath(); ctx.arc(t.x+12,t.y+bob+12,10,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function drawPlayer() {
+  const px=player.x, py=player.y, f=player.facing;
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.ellipse(px+PW/2,py+PH+1,14,3.5,0,0,Math.PI*2); ctx.fill();
+  if (sheetReady) {
+    ctx.save();
+    if (f<0) { ctx.scale(-1,1); ctx.drawImage(sheet,1,1,36,51,-(px+PW),py,PW,PH); }
+    else      { ctx.drawImage(sheet,1,1,36,51,px,py,PW,PH); }
+    ctx.restore();
+  } else {
+    ctx.fillStyle='#fff'; ctx.fillRect(px+4,py+10,28,35);
+    ctx.fillStyle='#555'; ctx.fillRect(px+6,py,24,14);
+  }
+}
+
+function drawHUD() {
+  const lvl = LEVELS[levelIdx];
+  const remaining = tomatoes.filter(t=>!t.collected).length;
+  ctx.fillStyle='rgba(0,0,0,0.55)';
+  ctx.beginPath(); ctx.roundRect(10,10,230,52,12); ctx.fill();
+  ctx.textAlign='left'; ctx.fillStyle='#fff'; ctx.font='bold 13px Arial';
+  ctx.fillText(`${lvl.name}: ${lvl.subtitle}`,22,30);
+  ctx.fillStyle='#fca5a5'; ctx.font='13px Arial';
+  ctx.fillText(`\uD83C\uDF45 ${remaining} of ${tomatoes.length} remaining`,22,50);
+
+  // Collect flash
+  if (flashAlpha > 0) {
+    ctx.fillStyle=`rgba(255,120,50,${flashAlpha*0.28})`; ctx.fillRect(0,0,GW,GH);
+  }
+  // Death flash
+  if (deathFlash > 0) {
+    ctx.fillStyle=`rgba(220,0,0,${(deathFlash/30)*0.55})`; ctx.fillRect(0,0,GW,GH);
+    ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.font='bold 28px Arial';
+    ctx.fillText('ouch! try again!', GW/2, GH/2);
+  }
+}
+
+// ── SCREENS ───────────────────────────────────────────
+function drawDecorTomato(x,y) {
+  if (sheetReady) { ctx.drawImage(sheet,39,33,24,25,x-12,y-12,24,25); }
+  else { ctx.fillStyle='#e02010'; ctx.beginPath(); ctx.arc(x,y,10,0,Math.PI*2); ctx.fill(); }
+}
+
+function drawTitle() {
+  const g=ctx.createLinearGradient(0,0,0,GH);
+  g.addColorStop(0,'#87ceeb'); g.addColorStop(1,'#c8f0c8');
+  ctx.fillStyle=g; ctx.fillRect(0,0,GW,GH); drawClouds();
+  ctx.fillStyle='#3d7a4a'; ctx.fillRect(0,430,GW,50);
+  ctx.fillStyle='#5a9a67'; ctx.fillRect(0,430,GW,7);
+  [180,310,427,545,660].forEach((x,i)=>drawDecorTomato(x,400+Math.sin(tick*0.04+i)*5));
+
+  ctx.fillStyle='rgba(0,0,0,0.65)';
+  ctx.beginPath(); ctx.roundRect(GW/2-260,60,520,230,20); ctx.fill();
+  ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.textAlign='center';
+  ctx.fillStyle='#fff'; ctx.font='bold 50px Arial';
+  ctx.fillText('\uD83C\uDF45 Tomato Hunter 2',GW/2,138);
+  ctx.fillStyle='#fde68a'; ctx.font='21px Arial';
+  ctx.fillText('5 levels — enemies, moving platforms & spikes!',GW/2,175);
+  ctx.fillStyle='#fca5a5'; ctx.font='17px Arial';
+  ctx.fillText('Touch a red enemy or spike = restart the level!',GW/2,205);
+  ctx.fillStyle='#bbf7d0';
+  ctx.fillText('Collect every tomato to advance!',GW/2,232);
+
+  ctx.fillStyle='rgba(0,0,0,0.48)';
+  ctx.beginPath(); ctx.roundRect(GW/2-185,308,370,80,14); ctx.fill();
+  ctx.fillStyle='#e0e0e0'; ctx.font='17px Arial';
+  ctx.fillText('Arrow Keys / WASD: Move',GW/2,334);
+  ctx.fillText('\u2191 / W / Space: Jump',GW/2,360);
+
+  ctx.fillStyle=(tick%60<30)?'#86efac':'#4ade80';
+  ctx.font='bold 24px Arial';
+  ctx.fillText('Press any key to start!',GW/2,422);
+}
+
+function drawLevelComplete() {
+  ctx.fillStyle='rgba(0,0,0,0.60)'; ctx.fillRect(0,0,GW,GH);
+  const isLast = levelIdx >= LEVELS.length-1;
+  ctx.fillStyle='rgba(15,15,50,0.93)';
+  ctx.beginPath(); ctx.roundRect(GW/2-240,GH/2-135,480,270,22); ctx.fill();
+  ctx.strokeStyle='#fbbf24'; ctx.lineWidth=3; ctx.stroke();
+  ctx.textAlign='center';
+  ctx.fillStyle='#fbbf24'; ctx.font='bold 44px Arial';
+  ctx.fillText('\u2B50 Level Complete! \u2B50',GW/2,GH/2-80);
+  ctx.fillStyle='#fff'; ctx.font='22px Arial';
+  ctx.fillText('All tomatoes collected! \uD83C\uDF45',GW/2,GH/2-40);
+  ctx.fillStyle='#86efac'; ctx.font='20px Arial';
+  ctx.fillText(`Level ${levelIdx+1} of ${LEVELS.length} done!`,GW/2,GH/2-5);
+  if (transitionReady) {
+    ctx.fillStyle=(tick%60<30)?'#86efac':'#4ade80'; ctx.font='bold 22px Arial';
+    ctx.fillText(isLast?'Press any key for your score!':`Press any key for Level ${levelIdx+2}!`,GW/2,GH/2+60);
+  } else {
+    ctx.fillStyle='#9ca3af'; ctx.font='18px Arial';
+    ctx.fillText('Get ready\u2026',GW/2,GH/2+60);
+  }
+}
+
+function drawGameComplete() {
+  const g=ctx.createLinearGradient(0,0,GW,GH);
+  g.addColorStop(0,'#1e1b4b'); g.addColorStop(1,'#312e81');
+  ctx.fillStyle=g; ctx.fillRect(0,0,GW,GH);
+  for (let i=0;i<18;i++) {
+    const x=(Math.sin(i*3.7+tick*0.02)*0.5+0.5)*GW;
+    const y=((i*27+tick*1.3)%(GH+50))-25;
+    drawDecorTomato(x,y);
+  }
+  ctx.fillStyle='rgba(0,0,0,0.72)';
+  ctx.beginPath(); ctx.roundRect(GW/2-270,GH/2-175,540,345,24); ctx.fill();
+  ctx.strokeStyle='#fbbf24'; ctx.lineWidth=3; ctx.stroke();
+  ctx.textAlign='center';
+  ctx.fillStyle='#fbbf24'; ctx.font='bold 52px Arial';
+  ctx.fillText('\uD83C\uDF45 YOU WIN! \uD83C\uDF45',GW/2,GH/2-115);
+  ctx.fillStyle='#fff'; ctx.font='26px Arial';
+  ctx.fillText('All 5 levels completed!',GW/2,GH/2-70);
+  ctx.fillStyle='#fde68a'; ctx.font='22px Arial';
+  ctx.fillText(`Total tomatoes hunted: ${totalTomatoes} \uD83C\uDF45`,GW/2,GH/2-30);
+  ctx.fillStyle='#c4b5fd'; ctx.font='20px Arial';
+  ctx.fillText("You're a true Tomato Hunter!",GW/2,GH/2+10);
+  ctx.fillStyle='#86efac'; ctx.font='17px Arial';
+  ctx.fillText("Alice's game, now with even more fun!",GW/2,GH/2+45);
+  ctx.fillStyle=(tick%60<30)?'#86efac':'#4ade80'; ctx.font='bold 22px Arial';
+  ctx.fillText('Press any key to play again!',GW/2,GH/2+115);
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────
+function loop() {
+  requestAnimationFrame(loop);
+  try {
+  tick++;
+  ctx.clearRect(0,0,GW,GH);
+
+  if (state==='title') {
+    drawTitle();
+    if (consumeKey()) { levelIdx=0; totalTomatoes=0; initLevel(0); state='playing'; }
+    return;
+  }
+  if (state==='gameComplete') {
+    drawGameComplete();
+    if (consumeKey()) state='title';
+    return;
+  }
+
+  const lvl = LEVELS[levelIdx];
+  drawSky(lvl); drawClouds(); drawPlatforms(lvl); drawSpikes(lvl);
+  for (const t of tomatoes) if (!t.collected) drawTomato(t);
+  for (const e of enemies) drawEnemy(e);
+
+  if (state==='playing') {
+    update(); drawPlayer(); drawHUD(); return;
+  }
+
+  if (state==='levelComplete') {
+    drawPlayer(); drawHUD();
+    if (transitionDelay>0) {
+      transitionDelay--;
+      if (transitionDelay===0) { transitionReady=true; anyKeyPressed=false; }
+    }
+    drawLevelComplete();
+    if (transitionReady && consumeKey()) {
+      if (levelIdx>=LEVELS.length-1) state='gameComplete';
+      else { levelIdx++; initLevel(levelIdx); state='playing'; }
+    }
+  }
+  } catch(err) {
+    // Draw error message so we can debug visually
+    ctx.fillStyle='#111'; ctx.fillRect(0,0,GW,GH);
+    ctx.fillStyle='#f87171'; ctx.font='bold 18px Arial'; ctx.textAlign='center';
+    ctx.fillText('Game error: ' + err.message, GW/2, GH/2);
+    ctx.fillStyle='#fde68a'; ctx.font='14px Arial';
+    ctx.fillText('Check browser console (F12) for details', GW/2, GH/2+30);
+    console.error('[TH2] loop error:', err);
+  }
+}
+
+</script>
+</body>
+</html>

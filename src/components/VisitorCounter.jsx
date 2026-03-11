@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './VisitorCounter.css';
 
 function VisitorCounter() {
   const [visitorCount, setVisitorCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const tracked = useRef(false);
 
   useEffect(() => {
+    if (tracked.current) return;
+    tracked.current = true;
+
     // Generate or get session ID (persists for this browser session)
     let sessionId = sessionStorage.getItem('visitorSessionId');
     if (!sessionId) {

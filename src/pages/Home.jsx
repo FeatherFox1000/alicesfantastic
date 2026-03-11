@@ -69,8 +69,23 @@ function Home() {
       <section className="games-section">
         <h2 className="section-title">More Games</h2>
         <div className="games-grid">
+          <Link to="/ai-rp-studio" className="game-card">
+            <div className="game-image-wrapper">
+              <div className="game-placeholder" style={{background: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #a855f7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'white', fontSize: '4rem'}}>
+                🐾✨
+              </div>
+            </div>
+            <div className="game-content">
+              <div className="game-badge" style={{background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', display: 'inline-block', padding: '2px 8px', borderRadius: '8px', fontSize: '0.75rem', marginBottom: '4px'}}>NEW!</div>
+              <h3>AI RP Studio</h3>
+              <p className="game-date">March 2026</p>
+              <p className="game-description">
+                Create your own world and character, then chat with an AI storytelling companion! Role-play as anything — a brave dragon, a playful puppy, a space explorer, or anything you can imagine!
+              </p>
+            </div>
+          </Link>
+
           <Link to="/space-pups" className="game-card">
-            <div className="coming-soon-badge">Coming Soon!</div>
             <div className="game-image-wrapper">
               <div className="game-placeholder" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'white', fontSize: '4rem'}}>
                 🚀🐕
@@ -80,7 +95,7 @@ function Home() {
               <h3>Space Pups</h3>
               <p className="game-date">October 13, 2025</p>
               <p className="game-description">
-                A multiplayer platformer where space dogs race to the top! Customize your pup and compete with friends using room codes.
+                Multiplayer platformer racing game! Customize your space dog with 69+ items and compete with up to 8 friends in vertical climbing races.
               </p>
             </div>
           </Link>
