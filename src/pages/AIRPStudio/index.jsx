@@ -22,13 +22,14 @@ export default function AIRPStudio() {
       .finally(() => setLoading(false));
   }, []);
 
-  function handleLogin(username) {
-    setUser({ username });
+  function handleLogin(data) {
+    setUser({ username: data.username || data, email: data.email });
     setPage('dashboard');
   }
 
   function handleLogout() {
     localStorage.removeItem('airp_token');
+    localStorage.removeItem('airp_password');
     setUser(null);
     setPage('dashboard');
     setSelectedCharacter(null);
@@ -65,7 +66,7 @@ export default function AIRPStudio() {
     return (
       <div className="airp-loading-screen">
         <div className="airp-loading-icon">🐾</div>
-        <p>Loading AI RP Studio...</p>
+        <p>Loading The Sandbox...</p>
       </div>
     );
   }
@@ -106,6 +107,7 @@ export default function AIRPStudio() {
   return (
     <Dashboard
       username={user.username}
+      email={user.email}
       onSelectCharacter={handleSelectCharacter}
       onCreateCharacter={handleCreateCharacter}
       onEditCharacter={handleEditCharacter}

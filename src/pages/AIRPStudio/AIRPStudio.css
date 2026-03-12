@@ -145,6 +145,89 @@
   margin-bottom: 2rem;
 }
 .airp-dashboard-header h2 { margin: 0; font-size: 1.6rem; color: white; }
+.airp-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.airp-btn-icon {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.airp-btn-icon:hover { background: rgba(255,255,255,0.2); }
+
+/* Settings modal */
+.airp-settings-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+.airp-settings-card {
+  background: linear-gradient(135deg, #1a1035 0%, #2a1654 100%);
+  border: 1px solid #5a3d8a;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 40px rgba(120, 60, 200, 0.4);
+}
+.airp-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.airp-settings-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.3rem;
+}
+.airp-settings-close {
+  background: none;
+  border: none;
+  color: #c9b3f5;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.airp-settings-close:hover { color: white; }
+.airp-settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.airp-settings-field label {
+  display: block;
+  font-size: 0.8rem;
+  color: #c9b3f5;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+.airp-settings-field p {
+  margin: 0;
+  color: white;
+  font-size: 1.05rem;
+  background: rgba(255,255,255,0.08);
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
 .airp-character-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

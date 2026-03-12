@@ -23,43 +23,43 @@ function Home() {
 
       <section className="featured-game">
         <div className="featured-badge">NEW!</div>
-        <div className="featured-content">
+        <div className="featured-content" style={{background: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #a855f7 100%)'}}>
           <div className="featured-text">
-            <h2>Creator - Build Your World!</h2>
+            <h2>The Sandbox - Create Your Story!</h2>
             <p className="featured-description">
-              The ultimate 2D world-building game where you become the creator! Design personalized
-              worlds using prebuilt shapes, custom blocks, and your imagination. Build amazing structures,
-              create your own character pixel-by-pixel, and explore your creations in play mode.
+              Build your own world, create a character, and dive into an AI-powered roleplay adventure!
+              Be a brave dragon, a playful puppy, a space explorer — anything you can imagine. The AI
+              storyteller brings your character to life in any world you dream up.
             </p>
             <div className="featured-highlights">
               <div className="highlight-item">
-                <span className="highlight-icon">🎨</span>
-                <span>Custom Shape Editor</span>
+                <span className="highlight-icon">🌍</span>
+                <span>Custom Worlds</span>
               </div>
               <div className="highlight-item">
-                <span className="highlight-icon">👤</span>
-                <span>Character Builder</span>
+                <span className="highlight-icon">🐾</span>
+                <span>Any Character</span>
               </div>
               <div className="highlight-item">
-                <span className="highlight-icon">🎮</span>
-                <span>Play Mode</span>
+                <span className="highlight-icon">🤖</span>
+                <span>AI Storytelling</span>
               </div>
               <div className="highlight-item">
-                <span className="highlight-icon">🔗</span>
-                <span>Share Creations</span>
+                <span className="highlight-icon">💾</span>
+                <span>Save Adventures</span>
               </div>
             </div>
-            <Link to="/creator" className="play-button">Play Creator Now!</Link>
+            <Link to="/ai-rp-studio" className="play-button" style={{color: '#7c3aed'}}>Play The Sandbox!</Link>
           </div>
           <div className="featured-preview">
-            <Link to="/creator" className="preview-link">
+            <Link to="/ai-rp-studio" className="preview-link">
               <img
-                src="/images/creator-screenshot.png"
-                alt="Creator Game Screenshot"
+                src="/images/ai-rp-studio-screenshot.png"
+                alt="The Sandbox Screenshot"
                 className="preview-screenshot"
               />
               <div className="preview-overlay">
-                <span className="preview-overlay-text">Click to Play Full Game →</span>
+                <span className="preview-overlay-text" style={{color: '#7c3aed'}}>Click to Play →</span>
               </div>
             </Link>
           </div>
@@ -69,33 +69,28 @@ function Home() {
       <section className="games-section">
         <h2 className="section-title">More Games</h2>
         <div className="games-grid">
-          <Link to="/ai-rp-studio" className="game-card">
+          <Link to="/space-pups" className="game-card">
             <div className="game-image-wrapper">
-              <div className="game-placeholder" style={{background: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #a855f7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'white', fontSize: '4rem'}}>
-                🐾✨
-              </div>
+              <img src="/images/space-pups-screenshot.png" alt="Space Pups Game" className="game-image" />
             </div>
             <div className="game-content">
-              <div className="game-badge" style={{background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white', display: 'inline-block', padding: '2px 8px', borderRadius: '8px', fontSize: '0.75rem', marginBottom: '4px'}}>NEW!</div>
-              <h3>AI RP Studio</h3>
-              <p className="game-date">March 2026</p>
+              <h3>Space Pups</h3>
+              <p className="game-date">October 2025</p>
               <p className="game-description">
-                Create your own world and character, then chat with an AI storytelling companion! Role-play as anything — a brave dragon, a playful puppy, a space explorer, or anything you can imagine!
+                Multiplayer platformer racing game! Customize your space dog with 69+ items and compete with up to 8 friends in vertical climbing races.
               </p>
             </div>
           </Link>
 
-          <Link to="/space-pups" className="game-card">
+          <Link to="/creator" className="game-card">
             <div className="game-image-wrapper">
-              <div className="game-placeholder" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'white', fontSize: '4rem'}}>
-                🚀🐕
-              </div>
+              <img src="/images/creator-screenshot.png" alt="Creator Game" className="game-image" />
             </div>
             <div className="game-content">
-              <h3>Space Pups</h3>
-              <p className="game-date">October 13, 2025</p>
+              <h3>Creator</h3>
+              <p className="game-date">February 2025</p>
               <p className="game-description">
-                Multiplayer platformer racing game! Customize your space dog with 69+ items and compete with up to 8 friends in vertical climbing races.
+                The ultimate 2D world-building game! Design worlds using prebuilt shapes, custom blocks, and your imagination. Build amazing structures and explore in play mode.
               </p>
             </div>
           </Link>
@@ -110,7 +105,7 @@ function Home() {
             </div>
             <div className="game-content">
               <h3>Unicorns Unite</h3>
-              <p className="game-date">September 27, 2022</p>
+              <p className="game-date">September 2022</p>
               <p className="game-description">
                 A magical 3D adventure where you play as a unicorn and use your magic to help other unicorns in danger!
               </p>
@@ -123,7 +118,7 @@ function Home() {
             </div>
             <div className="game-content">
               <h3>Tomato Hunter</h3>
-              <p className="game-date">May 21, 2023</p>
+              <p className="game-date">May 2023</p>
               <p className="game-description">
                 Alice's first game on Construct. You have to hunt tomatoes. There is only one level. It's still fun though!
               </p>

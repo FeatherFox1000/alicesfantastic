@@ -112,7 +112,7 @@
   grid-template-columns: 1.2fr 1fr;
   gap: 2rem;
   align-items: center;
-  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.3);
 }
 
 .featured-text {

@@ -7,7 +7,7 @@ const router = express.Router();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 function buildSystemPrompt(character) {
-  return `You are a magical storytelling companion in AI RP Studio, a fantasy role-playing adventure game designed for children ages 6-14.
+  return `You are a magical storytelling companion in The Sandbox, a fantasy role-playing adventure game designed for children ages 6-14.
 
 The player has created the following world and character:
 

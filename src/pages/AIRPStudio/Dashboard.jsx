@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { api } from './api';
 import './AIRPStudio.css';
 
-export default function Dashboard({ username, onSelectCharacter, onCreateCharacter, onEditCharacter, onLogout }) {
+export default function Dashboard({ username, email, onSelectCharacter, onCreateCharacter, onEditCharacter, onLogout }) {
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     api.getCharacters()
@@ -36,8 +37,38 @@ export default function Dashboard({ username, onSelectCharacter, onCreateCharact
           <h2>Welcome back, <span className="airp-username">{username}</span>! 🌟</h2>
           <p className="airp-subtitle">Choose a character to continue your adventure</p>
         </div>
-        <button className="airp-btn-ghost" onClick={onLogout}>Log out</button>
+        <div className="airp-header-buttons">
+          <button className="airp-btn-icon" onClick={() => setShowSettings(true)} title="Account settings">
+            ⚙️
+          </button>
+          <button className="airp-btn-ghost" onClick={onLogout}>Log out</button>
+        </div>
       </div>
+
+      {showSettings && (
+        <div className="airp-settings-overlay" onClick={() => setShowSettings(false)}>
+          <div className="airp-settings-card" onClick={e => e.stopPropagation()}>
+            <div className="airp-settings-header">
+              <h3>Account Settings</h3>
+              <button className="airp-settings-close" onClick={() => setShowSettings(false)}>✕</button>
+            </div>
+            <div className="airp-settings-body">
+              <div className="airp-settings-field">
+                <label>Username</label>
+                <p>{username}</p>
+              </div>
+              <div className="airp-settings-field">
+                <label>Email</label>
+                <p>{email || 'Not set'}</p>
+              </div>
+              <div className="airp-settings-field">
+                <label>Password</label>
+                <p>{localStorage.getItem('airp_password') || '••••••••'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && <p className="airp-error">{error}</p>}
 

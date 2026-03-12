@@ -15,7 +15,7 @@ app.use('/api', require('./routes/sessions'));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.listen(PORT, () => {
-  console.log(`🐱 AI RP Studio server running on http://localhost:${PORT}`);
+  console.log(`🐱 The Sandbox server running on http://localhost:${PORT}`);
   if (process.env.ANTHROPIC_API_KEY) {
     console.log('✅ Anthropic API key loaded.');
   } else {

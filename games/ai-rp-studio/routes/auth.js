@@ -26,7 +26,7 @@ router.post('/signup', (req, res) => {
   const password_hash = bcrypt.hashSync(password, 10);
   const result = db.prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)').run(username, email, password_hash);
   const user = { id: result.lastInsertRowid, username };
-  res.json({ token: makeToken(user), username });
+  res.json({ token: makeToken(user), username, email });
 });
 
 // Login
@@ -39,7 +39,7 @@ router.post('/login', (req, res) => {
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: 'Invalid username or password.' });
   }
-  res.json({ token: makeToken(user), username: user.username });
+  res.json({ token: makeToken(user), username: user.username, email: user.email });
 });
 
 // Verify token

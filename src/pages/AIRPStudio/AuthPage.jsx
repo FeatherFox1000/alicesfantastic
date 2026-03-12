@@ -25,7 +25,8 @@ export default function AuthPage({ onLogin }) {
         data = await api.signup(form.username, form.email, form.password);
       }
       localStorage.setItem('airp_token', data.token);
-      onLogin(data.username);
+      localStorage.setItem('airp_password', form.password);
+      onLogin(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -38,7 +39,7 @@ export default function AuthPage({ onLogin }) {
       <div className="airp-auth-card">
         <div className="airp-logo">
           <span className="airp-logo-icon">🐾</span>
-          <h1>AI RP Studio</h1>
+          <h1>The Sandbox</h1>
           <p className="airp-tagline">Create your world. Tell your story.</p>
         </div>
 
@@ -89,7 +90,7 @@ export default function AuthPage({ onLogin }) {
           {error && <p className="airp-error">{error}</p>}
 
           <button type="submit" className="airp-btn-primary" disabled={loading}>
-            {loading ? '✨ Loading...' : tab === 'login' ? '🐾 Enter the Studio' : '🌟 Create Account'}
+            {loading ? '✨ Loading...' : tab === 'login' ? '🐾 Enter The Sandbox' : '🌟 Create Account'}
           </button>
         </form>
       </div>
