@@ -163,6 +163,23 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
   // Build message history — cap at last 20 messages for speed
   const allMessages = db.prepare('SELECT role, content FROM messages WHERE session_id = ? ORDER BY created_at ASC').all(req.params.id);
   const history = allMessages.slice(-20);
+
+  // Fix consecutive same-role messages (can happen if AI failed on a previous try)
+  // Merge consecutive user messages and ensure alternating roles
+  const cleanHistory = [];
+  for (const msg of history) {
+    if (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === msg.role) {
+      // Merge with previous message of same role
+      cleanHistory[cleanHistory.length - 1].content += '\n' + msg.content;
+    } else {
+      cleanHistory.push({ role: msg.role, content: msg.content });
+    }
+  }
+  // Ensure first message is from user
+  if (cleanHistory.length > 0 && cleanHistory[0].role !== 'user') {
+    cleanHistory.shift();
+  }
+
   const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(session.char_id);
 
   try {
@@ -170,7 +187,7 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 400,
       system: buildSystemPrompt(character, style),
-      messages: history.map(m => ({ role: m.role, content: m.content }))
+      messages: cleanHistory
     });
 
     const rawContent = response.content[0].text;
@@ -211,7 +228,7 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
 
     res.json({ role: 'assistant', content: aiContent, newMemories: savedMemories });
   } catch (err) {
-    console.error('Claude API error:', err.message);
+    console.error('Claude API error:', err.message, err.status, JSON.stringify(err.error || {}));
     res.status(500).json({ error: 'Failed to get AI response. Please try again.' });
   }
 });

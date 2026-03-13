@@ -65,11 +65,13 @@ db.exec(`
   );
 `);
 
-// Add player_age column if it doesn't exist yet (for existing databases)
-try {
-  db.exec(`ALTER TABLE characters ADD COLUMN player_age TEXT DEFAULT ''`);
-} catch (e) {
-  // Column already exists — that's fine
+// Migrations for existing databases — safely add columns that may not exist yet
+const migrations = [
+  `ALTER TABLE characters ADD COLUMN player_age TEXT DEFAULT ''`,
+  `ALTER TABLE memories ADD COLUMN category TEXT NOT NULL DEFAULT 'story'`,
+];
+for (const sql of migrations) {
+  try { db.exec(sql); } catch (e) { /* column already exists */ }
 }
 
 module.exports = db;
