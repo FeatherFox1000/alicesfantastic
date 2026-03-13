@@ -65,4 +65,11 @@ db.exec(`
   );
 `);
 
+// Add player_age column if it doesn't exist yet (for existing databases)
+try {
+  db.exec(`ALTER TABLE characters ADD COLUMN player_age TEXT DEFAULT ''`);
+} catch (e) {
+  // Column already exists — that's fine
+}
+
 module.exports = db;

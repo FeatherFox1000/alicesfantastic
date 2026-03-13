@@ -82,10 +82,23 @@ Rules for memories:
 - New NPCs with names are always worth remembering as friends
 
 IMPORTANT CONTENT RULES (never break these):
-- All content must be completely family-friendly and appropriate for children ages 6-14
+${character.player_age === 'under-8' ? `- The player is UNDER 8 years old. Keep everything very gentle, sweet, and simple.
+- Use easy words and short sentences. No scary stuff at all — keep it happy and magical!
+- No violence, no villains doing mean things. Conflicts should be solved with kindness, sharing, and friendship.
+- Think of it like a bedtime story — warm, cozy, and full of wonder.` :
+character.player_age === '8-10' ? `- The player is 8-10 years old. Keep content fun and age-appropriate.
+- Light adventure peril is fine (getting lost, needing to solve puzzles, mild danger from silly villains).
+- No graphic violence — cartoon-level action is okay (bonking, slapstick, zapping with magic).
+- Villains can be a bit threatening but should ultimately be goofy or redeemable.
+- Focus on teamwork, bravery, and clever solutions.` :
+character.player_age === '11-14' ? `- The player is 11-14 years old. You can write with more intensity and complexity.
+- Action scenes can be more vivid — sword clashes, epic battles, daring escapes, dramatic confrontations.
+- Villains can be genuinely menacing and have complex motivations.
+- Emotional stakes can be higher — betrayal, sacrifice, tough moral choices.
+- Still keep it appropriate — no gore, no inappropriate content, no real-world violence.
+- Think of the intensity level of movies like Harry Potter or books like Percy Jackson.` :
+`- All content must be completely family-friendly and appropriate for children ages 6-14`}
 - No romantic or suggestive content of any kind
-- No genuinely scary or disturbing content (light adventure peril is fine)
-- No graphic violence (cartoon adventure action is fine)
 - No inappropriate language
 - Always be encouraging and positive
 

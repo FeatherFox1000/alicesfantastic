@@ -21,6 +21,7 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
     character_description: character?.character_description || '',
     appearance: character?.appearance || '',
     personality: character?.personality || '',
+    player_age: character?.player_age || '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -111,6 +112,29 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
                 maxLength={1000}
               />
             </label>
+          </div>
+
+          <div className="airp-form-section">
+            <h3>🎂 Your Age</h3>
+            <p className="airp-age-hint">This helps the AI tell stories that are just right for you!</p>
+            <div className="airp-age-picker">
+              {[
+                { value: 'under-8', emoji: '🧸', label: 'Under 8', desc: 'Gentle & sweet' },
+                { value: '8-10', emoji: '⚡', label: '8–10', desc: 'Fun & adventurous' },
+                { value: '11-14', emoji: '⚔️', label: '11–14', desc: 'Epic & exciting' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`airp-age-option${form.player_age === opt.value ? ' active' : ''}`}
+                  onClick={() => set('player_age', opt.value)}
+                >
+                  <span className="airp-age-emoji">{opt.emoji}</span>
+                  <span className="airp-age-label">{opt.label}</span>
+                  <span className="airp-age-desc">{opt.desc}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="airp-form-section">
