@@ -2,6 +2,28 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from './api';
 import './AIRPStudio.css';
 
+const STORY_STYLES = [
+  { key: 'standard', icon: '⚖️', label: 'Standard', desc: 'Default balanced mode — a little bit of everything' },
+  { key: 'saga', icon: '📜', label: 'Saga', desc: 'Long-form storytelling with rich world-building and detail' },
+  { key: 'epic', icon: '⚔️', label: 'Epic', desc: 'Dramatic action, big battles, and heroic moments' },
+  { key: 'tale', icon: '📖', label: 'Tale', desc: 'Longer, detailed responses with deep descriptions' },
+  { key: 'cozy', icon: '🌸', label: 'Cozy', desc: 'Warm, gentle, and peaceful adventures' },
+  { key: 'silly', icon: '🤪', label: 'Silly', desc: 'Goofy humor, funny surprises, and wild chaos' },
+  { key: 'mysterious', icon: '🔮', label: 'Mysterious', desc: 'Dark secrets, puzzles, and suspenseful twists' },
+  { key: 'poetic', icon: '✨', label: 'Poetic', desc: 'Beautiful, lyrical descriptions and dreamy vibes' },
+  { key: 'quick', icon: '⚡', label: 'Quick', desc: 'Short, snappy responses — fast-paced action' },
+  { key: 'dramatic', icon: '🎭', label: 'Dramatic', desc: 'Big emotions, plot twists, and intense character moments' },
+  { key: 'spooky', icon: '👻', label: 'Spooky', desc: 'Creepy vibes, haunted places, and eerie encounters' },
+  { key: 'romance', icon: '💕', label: 'Friendship', desc: 'Focus on bonds, loyalty, and heartfelt connections' },
+];
+
+const MEMORY_CATEGORIES = [
+  { key: 'character', icon: '🐱', label: 'Character', placeholder: 'e.g. "Has fire powers" or "Is shy around strangers"' },
+  { key: 'story', icon: '📖', label: 'Story', placeholder: 'e.g. "Defeated the shadow wolf in the cave"' },
+  { key: 'friends', icon: '👥', label: 'Friends', placeholder: 'e.g. "Luna is a friendly healer NPC"' },
+  { key: 'items', icon: '🎒', label: 'Items', placeholder: 'e.g. "Owns a magic crystal sword"' },
+];
+
 function getStarterPrompts(character) {
   const name = character.name;
   const world = (character.world_name || '').toLowerCase();
@@ -10,7 +32,6 @@ function getStarterPrompts(character) {
 
   const prompts = [];
 
-  // First prompt: always explore the world
   if (all.includes('dragon') || all.includes('wings of fire'))
     prompts.push(`I spread my wings and fly over the land to see what's below`);
   else if (all.includes('ocean') || all.includes('sea') || all.includes('underwater') || all.includes('mermaid'))
@@ -32,7 +53,6 @@ function getStarterPrompts(character) {
   else
     prompts.push(`I look around and explore the area`);
 
-  // Second prompt: meet someone
   if (all.includes('dragon') || all.includes('wings of fire'))
     prompts.push(`I look for other dragons to talk to`);
   else if (all.includes('cat') || all.includes('warrior') || all.includes('clan'))
@@ -42,7 +62,6 @@ function getStarterPrompts(character) {
   else
     prompts.push(`I look for someone friendly to talk to`);
 
-  // Third prompt: find adventure
   if (all.includes('magic') || all.includes('wizard') || all.includes('witch') || all.includes('spell'))
     prompts.push(`I try to practice my magic and see what I can do`);
   else if (all.includes('warrior') || all.includes('fight') || all.includes('battle') || all.includes('sword'))
@@ -52,7 +71,6 @@ function getStarterPrompts(character) {
   else
     prompts.push(`I go looking for an adventure or quest`);
 
-  // Fourth prompt: character-specific action
   if (all.includes('fly') || all.includes('wing'))
     prompts.push(`I take off and fly as fast as I can to see where I end up`);
   else if (all.includes('power') || all.includes('ability') || all.includes('magic'))
@@ -82,11 +100,23 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
   const [showSnapshots, setShowSnapshots] = useState(false);
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
+  const [memories, setMemories] = useState([]);
+  const [showMemoryBook, setShowMemoryBook] = useState(false);
+  const [memoryTab, setMemoryTab] = useState('character');
+  const [newMemory, setNewMemory] = useState('');
+  const [addingMemory, setAddingMemory] = useState(false);
+  const [memoryToast, setMemoryToast] = useState(null);
+  const [showInspiration, setShowInspiration] = useState(false);
+  const [inspirations, setInspirations] = useState([]);
+  const [loadingInspo, setLoadingInspo] = useState(false);
+  const [storyStyle, setStoryStyle] = useState('standard');
+  const [showStylePicker, setShowStylePicker] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     loadSessions();
     api.getSnapshots(character.id).then(setSnapshots).catch(() => {});
+    api.getMemories(character.id).then(setMemories).catch(() => {});
   }, [character.id]);
 
   useEffect(() => {
@@ -156,8 +186,17 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
     setError('');
 
     try {
-      const aiMsg = await api.sendMessage(currentSession.id, content);
+      const aiMsg = await api.sendMessage(currentSession.id, content, storyStyle);
       setMessages(m => [...m, { ...aiMsg, created_at: new Date().toISOString() }]);
+      // Handle auto-extracted memories
+      if (aiMsg.newMemories && aiMsg.newMemories.length > 0) {
+        setMemories(m => [...aiMsg.newMemories, ...m]);
+        setMemoryToast(aiMsg.newMemories.length === 1
+          ? `🧠 New memory: ${aiMsg.newMemories[0].content}`
+          : `🧠 ${aiMsg.newMemories.length} new memories saved!`
+        );
+        setTimeout(() => setMemoryToast(null), 4000);
+      }
     } catch (err) {
       setError(err.message);
       setMessages(m => m.filter(msg => msg !== userMsg));
@@ -186,6 +225,51 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
     }
   }
 
+  async function handleAddMemory(e) {
+    e.preventDefault();
+    const content = newMemory.trim();
+    if (!content) return;
+    setAddingMemory(true);
+    try {
+      const memory = await api.addMemory(character.id, content, memoryTab);
+      setMemories(m => [memory, ...m]);
+      setNewMemory('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAddingMemory(false);
+    }
+  }
+
+  async function handleDeleteMemory(memoryId) {
+    try {
+      await api.deleteMemory(character.id, memoryId);
+      setMemories(m => m.filter(mem => mem.id !== memoryId));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function getInspiration() {
+    if (!activeSession || loadingInspo) return;
+    setLoadingInspo(true);
+    setShowInspiration(true);
+    setShowStylePicker(false);
+    try {
+      const ideas = await api.getInspirations(activeSession.id);
+      setInspirations(ideas);
+    } catch (err) {
+      setInspirations(['I look around for something interesting', 'I talk to someone nearby', 'I try something bold and unexpected', 'I search for a hidden secret']);
+    } finally {
+      setLoadingInspo(false);
+    }
+  }
+
+  function pickInspiration(text) {
+    setInput(text);
+    setShowInspiration(false);
+  }
+
   async function deleteSession(sessionId, e) {
     e.stopPropagation();
     if (!confirm('Delete this adventure?')) return;
@@ -199,6 +283,14 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  const currentCat = MEMORY_CATEGORIES.find(c => c.key === memoryTab);
+  const filteredMemories = memories.filter(m => (m.category || 'story') === memoryTab);
+  const memoryCounts = {};
+  for (const m of memories) {
+    const cat = m.category || 'story';
+    memoryCounts[cat] = (memoryCounts[cat] || 0) + 1;
   }
 
   return (
@@ -268,6 +360,15 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
           )}
         </div>
 
+        <div className="airp-sidebar-section">
+          <button
+            className="airp-sidebar-toggle"
+            onClick={() => setShowMemoryBook(true)}
+          >
+            🧠 Memory Book ({memories.length})
+          </button>
+        </div>
+
         {snapshots.length > 0 && (
           <div className="airp-sidebar-section">
             <button
@@ -288,6 +389,89 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
           </div>
         )}
       </div>
+
+      {/* Memory Book Panel — PolyBuzz style */}
+      {showMemoryBook && (
+        <div className="airp-membook-overlay" onClick={() => setShowMemoryBook(false)}>
+          <div className="airp-membook" onClick={e => e.stopPropagation()}>
+            <div className="airp-membook-header">
+              <h3>🧠 Permanent Memory</h3>
+              <button className="airp-settings-close" onClick={() => setShowMemoryBook(false)}>✕</button>
+            </div>
+
+            <div className="airp-membook-topbar">
+              <div className="airp-membook-stat">
+                <span className="airp-membook-stat-icon">📅</span>
+                <span>Our Memories: <strong>{memories.length}</strong> total</span>
+              </div>
+              <div className="airp-membook-stat airp-membook-stat-pinned">
+                <span className="airp-membook-stat-icon">📌</span>
+                <span><strong>Pinned</strong></span>
+                <span className="airp-membook-stat-count">{memories.length}</span>
+              </div>
+            </div>
+
+            <div className="airp-membook-body">
+              <div className="airp-membook-left">
+                {MEMORY_CATEGORIES.map(cat => (
+                  <button
+                    key={cat.key}
+                    className={`airp-membook-tab ${memoryTab === cat.key ? 'active' : ''}`}
+                    onClick={() => setMemoryTab(cat.key)}
+                  >
+                    {memoryTab === cat.key && <span className="airp-membook-tab-arrow">▶</span>}
+                    <span className="airp-membook-tab-label">{cat.label}</span>
+                    <span className="airp-membook-tab-count">{memoryCounts[cat.key] || 0}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="airp-membook-right">
+                <div className="airp-membook-right-header">
+                  <span className="airp-membook-right-title">{currentCat?.icon} {currentCat?.label}</span>
+                </div>
+
+                <div className="airp-membook-fields">
+                  {filteredMemories.length === 0 && (
+                    <div className="airp-membook-empty">
+                      <p>No {currentCat?.label.toLowerCase()} memories yet</p>
+                      <p className="airp-membook-empty-hint">The AI will add memories as you play, or add your own below!</p>
+                    </div>
+                  )}
+                  {filteredMemories.map(m => (
+                    <div key={m.id} className="airp-membook-field">
+                      <span className="airp-membook-field-dot">✦</span>
+                      <span className="airp-membook-field-text">{m.content}</span>
+                      <button className="airp-membook-field-delete" onClick={() => handleDeleteMemory(m.id)} title="Remove">✕</button>
+                    </div>
+                  ))}
+                </div>
+
+                <form className="airp-membook-form" onSubmit={handleAddMemory}>
+                  <input
+                    className="airp-membook-input"
+                    type="text"
+                    value={newMemory}
+                    onChange={e => setNewMemory(e.target.value)}
+                    placeholder={currentCat?.placeholder || 'Add a memory...'}
+                    disabled={addingMemory}
+                  />
+                  <button type="submit" className="airp-membook-add" disabled={addingMemory || !newMemory.trim()}>
+                    {addingMemory ? '...' : '+ Add'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Memory toast */}
+      {memoryToast && (
+        <div className="airp-memory-toast" onClick={() => { setMemoryToast(null); setShowMemoryBook(true); }}>
+          {memoryToast}
+        </div>
+      )}
 
       {/* Chat Area */}
       <div className="airp-chat-main">
@@ -358,20 +542,82 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
           <div ref={messagesEndRef} />
         </div>
 
-        <form className="airp-chat-input-form" onSubmit={sendMessage}>
-          <input
-            className="airp-chat-input"
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={`What does ${character.name} do next?`}
-            disabled={sending}
-            autoFocus
-          />
-          <button type="submit" className="airp-send-btn" disabled={sending || !input.trim()}>
-            {sending ? '✨' : '➤'}
-          </button>
-        </form>
+        <div className="airp-input-area">
+          {showStylePicker && (
+            <div className="airp-style-popup">
+              <div className="airp-style-header">
+                <span>🎭 Story Style</span>
+                <button className="airp-inspo-close" onClick={() => setShowStylePicker(false)}>✕</button>
+              </div>
+              <div className="airp-style-list">
+                {STORY_STYLES.map(style => (
+                  <button
+                    key={style.key}
+                    className={`airp-style-option ${storyStyle === style.key ? 'active' : ''}`}
+                    onClick={() => { setStoryStyle(style.key); setShowStylePicker(false); }}
+                  >
+                    <span className="airp-style-icon">{style.icon}</span>
+                    <div className="airp-style-info">
+                      <span className="airp-style-label">{style.label}</span>
+                      <span className="airp-style-desc">{style.desc}</span>
+                    </div>
+                    {storyStyle === style.key && <span className="airp-style-check">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {showInspiration && (
+            <div className="airp-inspo-popup">
+              <div className="airp-inspo-header">
+                <span>💡 Inspiration</span>
+                <button className="airp-inspo-close" onClick={() => setShowInspiration(false)}>✕</button>
+              </div>
+              {loadingInspo ? (
+                <div className="airp-inspo-loading">✨ Thinking of ideas...</div>
+              ) : (
+                <div className="airp-inspo-list">
+                  {inspirations.map((idea, i) => (
+                    <button key={i} className="airp-inspo-option" onClick={() => pickInspiration(idea)}>
+                      {idea}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <form className="airp-chat-input-form" onSubmit={sendMessage}>
+            <button
+              type="button"
+              className="airp-inspo-btn"
+              onClick={getInspiration}
+              disabled={sending || !activeSession}
+              title="Get inspiration"
+            >
+              💡
+            </button>
+            <button
+              type="button"
+              className="airp-style-btn"
+              onClick={() => { setShowStylePicker(!showStylePicker); setShowInspiration(false); }}
+              title="Change story style"
+            >
+              {STORY_STYLES.find(s => s.key === storyStyle)?.icon} {STORY_STYLES.find(s => s.key === storyStyle)?.label}
+            </button>
+            <input
+              className="airp-chat-input"
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder={`What does ${character.name} do next?`}
+              disabled={sending}
+              autoFocus
+            />
+            <button type="submit" className="airp-send-btn" disabled={sending || !input.trim()}>
+              {sending ? '✨' : '➤'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

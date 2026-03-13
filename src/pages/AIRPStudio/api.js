@@ -34,12 +34,16 @@ export const api = {
   updateCharacter: (id, data) => request('PUT', `/characters/${id}`, data),
   deleteCharacter: (id) => request('DELETE', `/characters/${id}`),
   getSnapshots: (id) => request('GET', `/characters/${id}/snapshots`),
+  getMemories: (id) => request('GET', `/characters/${id}/memories`),
+  addMemory: (id, content, category) => request('POST', `/characters/${id}/memories`, { content, category }),
+  deleteMemory: (id, memoryId) => request('DELETE', `/characters/${id}/memories/${memoryId}`),
 
   // Sessions
   getSessions: (characterId) => request('GET', `/characters/${characterId}/sessions`),
   createSession: (characterId, title) => request('POST', `/characters/${characterId}/sessions`, { title }),
   getSession: (id) => request('GET', `/sessions/${id}`),
-  sendMessage: (sessionId, content) => request('POST', `/sessions/${sessionId}/messages`, { content }),
+  sendMessage: (sessionId, content, style) => request('POST', `/sessions/${sessionId}/messages`, { content, style }),
+  getInspirations: (sessionId) => request('POST', `/sessions/${sessionId}/inspirations`),
   updateSession: (id, title) => request('PUT', `/sessions/${id}`, { title }),
   deleteSession: (id) => request('DELETE', `/sessions/${id}`),
 };
