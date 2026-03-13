@@ -14,6 +14,8 @@ function Header() {
           <Link to="/creator" className="nav-link">Creator</Link>
           <Link to="/ai-rp-studio" className="nav-link">The Sandbox</Link>
           <Link to="/space-pups" className="nav-link">Space Pups</Link>
+          <Link to="/penguin-runner" className="nav-link">Penguin Runner</Link>
+          <Link to="/jumping-penguin" className="nav-link">Jumping Penguin</Link>
           <Link to="/tomato-hunter" className="nav-link">Tomato Hunter</Link>
           <Link to="/podcasts" className="nav-link">Podcasts</Link>
           <ThemeToggle />

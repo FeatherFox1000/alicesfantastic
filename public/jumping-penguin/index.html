@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jumping Penguin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; background: #87CEEB; overflow: hidden; }
+    canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const GW = 160, GH = 213;
+
+canvas.width = GW;
+canvas.height = GH;
+
+ctx.imageSmoothingEnabled = false;
+
+// Game state
+let gameState = 'menu'; // menu, playing, gameover
+let score = 0;
+let bestScore = parseInt(localStorage.getItem('jumpingPenguinBest') || '0');
+let frameCount = 0;
+
+// Penguin
+const penguin = {
+  x: 40,
+  y: GH / 2,
+  vy: 0,
+  gravity: 0.28,
+  jumpForce: -3.2,
+  rotation: 0,
+};
+
+// Pipes
+let pipes = [];
+const pipeWidth = 20;
+const pipeGap = 50;
+const pipeSpeed = 1;
+let pipeTimer = 0;
+const pipeInterval = 90;
+
+// Snowflakes (background decoration)
+let snowflakes = [];
+for (let i = 0; i < 20; i++) {
+  snowflakes.push({
+    x: Math.random() * GW,
+    y: Math.random() * GH,
+    r: Math.random() * 1.5 + 0.5,
+    speed: Math.random() * 0.5 + 0.2,
+    drift: Math.random() * 0.2 - 0.1,
+  });
+}
+
+// Ground
+const groundY = GH - 20;
+
+function resetGame() {
+  penguin.y = GH / 2;
+  penguin.vy = 0;
+  penguin.rotation = 0;
+  pipes = [];
+  pipeTimer = 0;
+  score = 0;
+  frameCount = 0;
+}
+
+function jump() {
+  if (gameState === 'menu') {
+    gameState = 'playing';
+    resetGame();
+    penguin.vy = penguin.jumpForce;
+  } else if (gameState === 'playing') {
+    penguin.vy = penguin.jumpForce;
+  } else if (gameState === 'gameover') {
+    if (frameCount > 30) {
+      gameState = 'menu';
+    }
+  }
+}
+
+// Input
+canvas.addEventListener('click', jump);
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    jump();
+  }
+});
+
+function spawnPipe() {
+  const minTop = 25;
+  const maxTop = groundY - pipeGap - 25;
+  const topHeight = Math.random() * (maxTop - minTop) + minTop;
+  pipes.push({
+    x: GW,
+    topHeight: topHeight,
+    scored: false,
+  });
+}
+
+// Pixel-art penguin using rectangles
+function drawPenguin() {
+  ctx.save();
+  const px = Math.round(penguin.x);
+  const py = Math.round(penguin.y);
+
+  // Body (dark)
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(px - 5, py - 7, 10, 14);
+  ctx.fillRect(px - 6, py - 5, 12, 10);
+
+  // Belly (white)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(px - 3, py - 4, 7, 9);
+
+  // Eye (white)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(px + 1, py - 6, 4, 4);
+
+  // Eye (pupil)
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(px + 3, py - 5, 2, 2);
+
+  // Beak
+  ctx.fillStyle = '#FF8C00';
+  ctx.fillRect(px + 5, py - 4, 3, 2);
+
+  // Wing
+  ctx.fillStyle = '#16213e';
+  const wingOff = Math.sin(frameCount * 0.3) > 0 ? 0 : 1;
+  ctx.fillRect(px - 7, py - 2 + wingOff, 3, 6);
+
+  // Feet
+  ctx.fillStyle = '#FF8C00';
+  ctx.fillRect(px - 3, py + 7, 3, 1);
+  ctx.fillRect(px + 1, py + 7, 3, 1);
+
+  ctx.restore();
+}
+
+function drawPipe(pipe) {
+  const px = Math.round(pipe.x);
+
+  // Top pipe
+  ctx.fillStyle = '#2d8a4e';
+  ctx.fillRect(px, 0, pipeWidth, pipe.topHeight);
+  // Top pipe highlight
+  ctx.fillStyle = '#4ade80';
+  ctx.fillRect(px + 2, 0, 3, pipe.topHeight);
+  // Top pipe cap
+  ctx.fillStyle = '#22763f';
+  ctx.fillRect(px - 2, pipe.topHeight - 8, pipeWidth + 4, 8);
+  ctx.fillStyle = '#1a5c30';
+  ctx.fillRect(px - 2, pipe.topHeight - 8, pipeWidth + 4, 1);
+  ctx.fillRect(px - 2, pipe.topHeight - 1, pipeWidth + 4, 1);
+
+  // Bottom pipe
+  const bottomY = pipe.topHeight + pipeGap;
+  ctx.fillStyle = '#2d8a4e';
+  ctx.fillRect(px, bottomY, pipeWidth, GH - bottomY);
+  // Bottom pipe highlight
+  ctx.fillStyle = '#4ade80';
+  ctx.fillRect(px + 2, bottomY, 3, GH - bottomY);
+  // Bottom pipe cap
+  ctx.fillStyle = '#22763f';
+  ctx.fillRect(px - 2, bottomY, pipeWidth + 4, 8);
+  ctx.fillStyle = '#1a5c30';
+  ctx.fillRect(px - 2, bottomY, pipeWidth + 4, 1);
+  ctx.fillRect(px - 2, bottomY + 7, pipeWidth + 4, 1);
+}
+
+function drawGround() {
+  // Snow ground
+  ctx.fillStyle = '#e8e8e8';
+  ctx.fillRect(0, groundY, GW, GH - groundY);
+
+  // Snow top edge (pixel bumps)
+  ctx.fillStyle = '#ffffff';
+  for (let x = 0; x < GW; x += 6) {
+    ctx.fillRect(x, groundY - 2, 4, 2);
+    ctx.fillRect(x + 2, groundY - 3, 2, 1);
+  }
+
+  // Ground line
+  ctx.fillStyle = '#d0d0d0';
+  ctx.fillRect(0, groundY + 5, GW, 1);
+}
+
+function drawSnowflakes() {
+  ctx.fillStyle = '#ffffff';
+  for (const s of snowflakes) {
+    ctx.fillRect(Math.round(s.x), Math.round(s.y), Math.ceil(s.r), Math.ceil(s.r));
+  }
+}
+
+function updateSnowflakes() {
+  for (const s of snowflakes) {
+    s.y += s.speed;
+    s.x += s.drift;
+    if (s.y > GH) {
+      s.y = -2;
+      s.x = Math.random() * GW;
+    }
+    if (s.x < 0) s.x = GW;
+    if (s.x > GW) s.x = 0;
+  }
+}
+
+function drawSky() {
+  // Simple banded sky for pixel look
+  ctx.fillStyle = '#4a90d9';
+  ctx.fillRect(0, 0, GW, GH * 0.3);
+  ctx.fillStyle = '#6aaee0';
+  ctx.fillRect(0, GH * 0.3, GW, GH * 0.3);
+  ctx.fillStyle = '#87CEEB';
+  ctx.fillRect(0, GH * 0.6, GW, GH * 0.4);
+
+  // Pixel clouds
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  const cloudOffset = -(frameCount * 0.1) % (GW + 80);
+  drawCloud(cloudOffset + 30, 20);
+  drawCloud(cloudOffset + 110, 12);
+  drawCloud(cloudOffset + 180, 30);
+}
+
+function drawCloud(x, y) {
+  const cx = Math.round(x);
+  ctx.fillRect(cx, y, 12, 4);
+  ctx.fillRect(cx + 2, y - 2, 8, 2);
+  ctx.fillRect(cx + 4, y - 4, 4, 2);
+  ctx.fillRect(cx - 2, y + 2, 6, 2);
+  ctx.fillRect(cx + 8, y + 2, 6, 2);
+}
+
+function drawScore() {
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 16px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(score, GW / 2, 16);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(GW / 2 - 8, 18, 16, 1);
+}
+
+function drawMenu() {
+  // Title
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 12px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('JUMPING', GW / 2, GH / 2 - 40);
+  ctx.fillText('PENGUIN', GW / 2, GH / 2 - 26);
+
+  // Draw a bigger penguin on menu
+  ctx.save();
+  const cx = GW / 2, cy = GH / 2 + 5;
+
+  // Body
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(cx - 8, cy - 11, 16, 22);
+  ctx.fillRect(cx - 10, cy - 8, 20, 16);
+
+  // Belly
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(cx - 5, cy - 6, 11, 14);
+
+  // Eye
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(cx + 2, cy - 10, 6, 6);
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(cx + 5, cy - 8, 3, 3);
+
+  // Beak
+  ctx.fillStyle = '#FF8C00';
+  ctx.fillRect(cx + 8, cy - 6, 4, 3);
+
+  // Wing
+  ctx.fillStyle = '#16213e';
+  const wingOff = Math.sin(frameCount * 0.15) > 0 ? 0 : 2;
+  ctx.fillRect(cx - 12, cy - 3 + wingOff, 4, 10);
+
+  // Feet
+  ctx.fillStyle = '#FF8C00';
+  ctx.fillRect(cx - 5, cy + 11, 4, 2);
+  ctx.fillRect(cx + 2, cy + 11, 4, 2);
+
+  ctx.restore();
+
+  // Instructions
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = '7px monospace';
+  const bounce = Math.sin(frameCount * 0.08) > 0.5 ? -1 : 0;
+  ctx.fillText('TAP OR SPACE', GW / 2, GH / 2 + 34 + bounce);
+  ctx.fillText('TO START!', GW / 2, GH / 2 + 44 + bounce);
+
+  if (bestScore > 0) {
+    ctx.font = '6px monospace';
+    ctx.fillStyle = '#555';
+    ctx.fillText('BEST: ' + bestScore, GW / 2, GH / 2 + 56);
+  }
+}
+
+function drawGameOver() {
+  // Dim overlay
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.fillRect(0, 0, GW, GH);
+
+  // Game over box
+  ctx.fillStyle = '#ffffff';
+  const boxW = 100, boxH = 70;
+  const boxX = (GW - boxW) / 2, boxY = (GH - boxH) / 2;
+  ctx.fillRect(boxX, boxY, boxW, boxH);
+
+  // Box border
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(boxX, boxY, boxW, 2);
+  ctx.fillRect(boxX, boxY + boxH - 2, boxW, 2);
+  ctx.fillRect(boxX, boxY, 2, boxH);
+  ctx.fillRect(boxX + boxW - 2, boxY, 2, boxH);
+
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('GAME OVER', GW / 2, boxY + 16);
+
+  ctx.font = '8px monospace';
+  ctx.fillStyle = '#555';
+  ctx.fillText('SCORE: ' + score, GW / 2, boxY + 32);
+  ctx.fillText('BEST: ' + bestScore, GW / 2, boxY + 44);
+
+  ctx.font = '7px monospace';
+  ctx.fillStyle = '#4a90d9';
+  const bounce = Math.sin(frameCount * 0.08) > 0.5 ? -1 : 0;
+  ctx.fillText('TAP TO RETRY', GW / 2, boxY + 60 + bounce);
+}
+
+function checkCollision() {
+  // Ground / ceiling
+  if (penguin.y + 7 > groundY || penguin.y - 7 < 0) return true;
+
+  // Pipes
+  for (const pipe of pipes) {
+    const penguinLeft = penguin.x - 5;
+    const penguinRight = penguin.x + 5;
+    const penguinTop = penguin.y - 6;
+    const penguinBottom = penguin.y + 6;
+
+    if (penguinRight > pipe.x && penguinLeft < pipe.x + pipeWidth) {
+      if (penguinTop < pipe.topHeight || penguinBottom > pipe.topHeight + pipeGap) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function update() {
+  frameCount++;
+
+  if (gameState === 'playing') {
+    // Penguin physics
+    penguin.vy += penguin.gravity;
+    penguin.y += penguin.vy;
+
+    // Pipes
+    pipeTimer++;
+    if (pipeTimer >= pipeInterval) {
+      spawnPipe();
+      pipeTimer = 0;
+    }
+
+    for (let i = pipes.length - 1; i >= 0; i--) {
+      pipes[i].x -= pipeSpeed;
+
+      // Score
+      if (!pipes[i].scored && pipes[i].x + pipeWidth < penguin.x) {
+        pipes[i].scored = true;
+        score++;
+      }
+
+      // Remove off-screen pipes
+      if (pipes[i].x + pipeWidth < -10) {
+        pipes.splice(i, 1);
+      }
+    }
+
+    // Collision
+    if (checkCollision()) {
+      gameState = 'gameover';
+      frameCount = 0;
+      if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem('jumpingPenguinBest', bestScore.toString());
+      }
+    }
+  }
+
+  updateSnowflakes();
+}
+
+function draw() {
+  ctx.imageSmoothingEnabled = false;
+  drawSky();
+  drawSnowflakes();
+
+  if (gameState === 'playing' || gameState === 'gameover') {
+    for (const pipe of pipes) drawPipe(pipe);
+    drawGround();
+    drawPenguin();
+    drawScore();
+  } else {
+    drawGround();
+  }
+
+  if (gameState === 'menu') drawMenu();
+  if (gameState === 'gameover') drawGameOver();
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>

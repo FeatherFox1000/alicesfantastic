@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penguin Runner</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+    }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <script>
+    const canvas = document.getElementById('game');
+    const displayCtx = canvas.getContext('2d');
+
+    // Pixel art: render at low res, scale up
+    const BASE_WIDTH = 200;
+    const BASE_HEIGHT = 75;
+    const PIXEL_SCALE = 4; // each game pixel = 4x4 screen pixels
+
+    // Offscreen canvas for low-res rendering
+    const offscreen = document.createElement('canvas');
+    offscreen.width = BASE_WIDTH;
+    offscreen.height = BASE_HEIGHT;
+    const ctx = offscreen.getContext('2d');
+
+    let scale = 1;
+
+    function resize() {
+      const maxW = window.innerWidth;
+      const maxH = window.innerHeight;
+      scale = Math.min(maxW / (BASE_WIDTH * PIXEL_SCALE), maxH / (BASE_HEIGHT * PIXEL_SCALE));
+      canvas.width = BASE_WIDTH * PIXEL_SCALE * scale;
+      canvas.height = BASE_HEIGHT * PIXEL_SCALE * scale;
+      displayCtx.imageSmoothingEnabled = false;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Colors
+    const SKY_TOP = '#87CEEB';
+    const SKY_BOTTOM = '#E0F0FF';
+    const GROUND_COLOR = '#E8E8E8';
+    const GROUND_LINE = '#C0C0C0';
+    const ICE_COLOR = '#B0D4F1';
+    const ICE_HIGHLIGHT = '#D6EAFF';
+    const ICE_SHADOW = '#7FAED4';
+
+    // Game state
+    let gameState = 'waiting'; // waiting, playing, dead
+    let score = 0;
+    let highScore = parseInt(localStorage.getItem('penguinRunnerHigh') || '0');
+    let gameSpeed = 5;
+    let frameCount = 0;
+
+    // Ground
+    const GROUND_Y = 55;
+
+    // Penguin
+    const penguin = {
+      x: 15,
+      y: GROUND_Y,
+      width: 9,
+      height: 12,
+      velocityY: 0,
+      jumping: false,
+      ducking: false,
+      walkFrame: 0,
+      walkTimer: 0
+    };
+
+    const GRAVITY = 0.25;
+    const JUMP_FORCE = -4;
+    const DUCK_HEIGHT = 7;
+    const NORMAL_HEIGHT = 12;
+
+    // Obstacles
+    let obstacles = [];
+    let obstacleTimer = 0;
+    const MIN_OBSTACLE_GAP = 60;
+
+    // Snowflakes (decoration)
+    let snowflakes = [];
+    for (let i = 0; i < 15; i++) {
+      snowflakes.push({
+        x: Math.random() * BASE_WIDTH,
+        y: Math.random() * GROUND_Y,
+        size: 1,
+        speed: Math.random() * 0.2 + 0.1
+      });
+    }
+
+    // Clouds
+    let clouds = [];
+    for (let i = 0; i < 3; i++) {
+      clouds.push({
+        x: Math.random() * BASE_WIDTH,
+        y: 5 + Math.random() * 15,
+        width: 15 + Math.random() * 10,
+        speed: 0.1 + Math.random() * 0.1
+      });
+    }
+
+    // Mountains (background)
+    const mountains = [];
+    for (let i = 0; i < 6; i++) {
+      mountains.push({
+        x: i * 40,
+        height: 10 + Math.random() * 15,
+        width: 30 + Math.random() * 20
+      });
+    }
+    let mountainOffset = 0;
+
+    // Input
+    let jumpPressed = false;
+    let duckPressed = false;
+
+    function handleKeyDown(e) {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        jumpPressed = true;
+        if (gameState === 'waiting') startGame();
+        else if (gameState === 'dead') restartGame();
+      }
+      if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        duckPressed = true;
+      }
+    }
+
+    function handleKeyUp(e) {
+      if (e.code === 'Space' || e.code === 'ArrowUp') jumpPressed = false;
+      if (e.code === 'ArrowDown') duckPressed = false;
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+
+    // Touch support
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touchY = e.touches[0].clientY / (scale * PIXEL_SCALE);
+      if (touchY > BASE_HEIGHT * 0.6) {
+        duckPressed = true;
+      } else {
+        jumpPressed = true;
+      }
+      if (gameState === 'waiting') startGame();
+      else if (gameState === 'dead') restartGame();
+    });
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      jumpPressed = false;
+      duckPressed = false;
+    });
+
+    // Mouse click support
+    canvas.addEventListener('mousedown', (e) => {
+      if (gameState === 'waiting') startGame();
+      else if (gameState === 'dead') restartGame();
+      else jumpPressed = true;
+    });
+    canvas.addEventListener('mouseup', () => { jumpPressed = false; });
+
+    function startGame() {
+      gameState = 'playing';
+      score = 0;
+      gameSpeed = 5;
+      obstacles = [];
+      obstacleTimer = 0;
+    }
+
+    function restartGame() {
+      penguin.y = GROUND_Y;
+      penguin.velocityY = 0;
+      penguin.jumping = false;
+      penguin.ducking = false;
+      startGame();
+    }
+
+    function spawnObstacle() {
+      const type = Math.random();
+      if (type < 0.4) {
+        // Small ice block
+        obstacles.push({
+          x: BASE_WIDTH + 5,
+          y: GROUND_Y,
+          width: 5,
+          height: 8,
+          type: 'ice_small'
+        });
+      } else if (type < 0.7) {
+        // Tall ice block
+        obstacles.push({
+          x: BASE_WIDTH + 5,
+          y: GROUND_Y - 3,
+          width: 5,
+          height: 14,
+          type: 'ice_tall'
+        });
+      } else if (type < 0.85) {
+        // Double ice blocks
+        obstacles.push({
+          x: BASE_WIDTH + 5,
+          y: GROUND_Y,
+          width: 10,
+          height: 8,
+          type: 'ice_double'
+        });
+      } else {
+        // Flying snowball - duck to avoid!
+        obstacles.push({
+          x: BASE_WIDTH + 5,
+          y: GROUND_Y - 7,
+          width: 5,
+          height: 5,
+          type: 'snowball'
+        });
+      }
+    }
+
+    // Drawing functions
+    function drawSky() {
+      const gradient = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      gradient.addColorStop(0, SKY_TOP);
+      gradient.addColorStop(1, SKY_BOTTOM);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, BASE_WIDTH, GROUND_Y);
+    }
+
+    function drawMountains() {
+      ctx.fillStyle = '#D0E0F0';
+      for (const m of mountains) {
+        const mx = ((m.x - mountainOffset * 0.3) % (BASE_WIDTH + 200)) - 100;
+        ctx.beginPath();
+        ctx.moveTo(mx - m.width / 2, GROUND_Y);
+        ctx.lineTo(mx, GROUND_Y - m.height);
+        ctx.lineTo(mx + m.width / 2, GROUND_Y);
+        ctx.closePath();
+        ctx.fill();
+        // Snow cap
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.moveTo(mx - m.width * 0.15, GROUND_Y - m.height + m.height * 0.25);
+        ctx.lineTo(mx, GROUND_Y - m.height);
+        ctx.lineTo(mx + m.width * 0.15, GROUND_Y - m.height + m.height * 0.25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#D0E0F0';
+      }
+    }
+
+    function drawClouds() {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      for (const c of clouds) {
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, c.width / 2, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(c.x - c.width * 0.25, c.y + 5, c.width * 0.3, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(c.x + c.width * 0.2, c.y + 3, c.width * 0.25, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawGround() {
+      ctx.fillStyle = GROUND_COLOR;
+      ctx.fillRect(0, GROUND_Y + penguin.height, BASE_WIDTH, BASE_HEIGHT - GROUND_Y);
+      ctx.strokeStyle = GROUND_LINE;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, GROUND_Y + penguin.height);
+      ctx.lineTo(BASE_WIDTH, GROUND_Y + penguin.height);
+      ctx.stroke();
+      // Ground texture dots
+      ctx.fillStyle = '#D0D0D0';
+      for (let i = 0; i < 30; i++) {
+        const dotX = ((i * 28 + frameCount * gameSpeed * 0.5) % (BASE_WIDTH + 10)) - 5;
+        ctx.fillRect(dotX, GROUND_Y + penguin.height + 5 + (i % 3) * 8, 2, 1);
+      }
+    }
+
+    function drawSnowflakes() {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      for (const s of snowflakes) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawPenguin() {
+      const px = penguin.x;
+      const py = penguin.y;
+      const h = penguin.ducking ? DUCK_HEIGHT : NORMAL_HEIGHT;
+      const bottomY = py + NORMAL_HEIGHT;
+
+      if (penguin.ducking) {
+        // Ducking penguin - wider and shorter
+        // Body (oval, horizontal)
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath();
+        ctx.ellipse(px + 15, bottomY - 12, 18, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White belly
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.ellipse(px + 17, bottomY - 10, 10, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath();
+        ctx.arc(px + 28, bottomY - 16, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(px + 31, bottomY - 18, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(px + 32, bottomY - 18, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Beak
+        ctx.fillStyle = '#FF8C00';
+        ctx.beginPath();
+        ctx.moveTo(px + 35, bottomY - 16);
+        ctx.lineTo(px + 40, bottomY - 14);
+        ctx.lineTo(px + 35, bottomY - 13);
+        ctx.closePath();
+        ctx.fill();
+
+        // Feet
+        ctx.fillStyle = '#FF8C00';
+        ctx.fillRect(px + 5, bottomY - 2, 8, 3);
+        ctx.fillRect(px + 18, bottomY - 2, 8, 3);
+      } else {
+        // Standing penguin
+        // Body
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath();
+        ctx.ellipse(px + 15, bottomY - 18, 14, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White belly
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.ellipse(px + 16, bottomY - 15, 8, 13, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath();
+        ctx.arc(px + 15, bottomY - 34, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(px + 19, bottomY - 36, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(px + 20, bottomY - 36, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Beak
+        ctx.fillStyle = '#FF8C00';
+        ctx.beginPath();
+        ctx.moveTo(px + 24, bottomY - 33);
+        ctx.lineTo(px + 32, bottomY - 31);
+        ctx.lineTo(px + 24, bottomY - 29);
+        ctx.closePath();
+        ctx.fill();
+
+        // Wings (flap when jumping)
+        ctx.fillStyle = '#2a2a4e';
+        if (penguin.jumping) {
+          // Wings up
+          ctx.beginPath();
+          ctx.moveTo(px + 2, bottomY - 22);
+          ctx.lineTo(px - 6, bottomY - 32);
+          ctx.lineTo(px + 4, bottomY - 16);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(px + 28, bottomY - 22);
+          ctx.lineTo(px + 36, bottomY - 32);
+          ctx.lineTo(px + 26, bottomY - 16);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          // Wings down, animated walk
+          const wingBob = Math.sin(penguin.walkFrame * 0.3) * 3;
+          ctx.beginPath();
+          ctx.moveTo(px + 2, bottomY - 22);
+          ctx.lineTo(px - 4, bottomY - 10 + wingBob);
+          ctx.lineTo(px + 5, bottomY - 14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(px + 28, bottomY - 22);
+          ctx.lineTo(px + 34, bottomY - 10 - wingBob);
+          ctx.lineTo(px + 25, bottomY - 14);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Feet with walk animation
+        ctx.fillStyle = '#FF8C00';
+        if (gameState === 'playing' && !penguin.jumping) {
+          const footOffset = Math.sin(penguin.walkFrame * 0.3) * 3;
+          ctx.fillRect(px + 6 + footOffset, bottomY - 2, 8, 3);
+          ctx.fillRect(px + 18 - footOffset, bottomY - 2, 8, 3);
+        } else {
+          ctx.fillRect(px + 6, bottomY - 2, 8, 3);
+          ctx.fillRect(px + 18, bottomY - 2, 8, 3);
+        }
+      }
+    }
+
+    function drawObstacle(obs) {
+      const bottomY = obs.y + (obs.type === 'ice_tall' ? 50 : (obs.type === 'snowball' ? 20 : 30));
+
+      if (obs.type === 'snowball') {
+        // Flying snowball
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(obs.x + 10, obs.y + 10, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#E0E8F0';
+        ctx.beginPath();
+        ctx.arc(obs.x + 8, obs.y + 8, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Motion lines
+        ctx.strokeStyle = 'rgba(200, 220, 240, 0.5)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(obs.x + 22 + i * 5, obs.y + 6 + i * 5);
+          ctx.lineTo(obs.x + 28 + i * 5, obs.y + 6 + i * 5);
+          ctx.stroke();
+        }
+      } else {
+        // Ice blocks
+        const w = obs.width;
+        const h = obs.height;
+        const bx = obs.x;
+        const by = bottomY - h;
+
+        // Main ice block
+        ctx.fillStyle = ICE_COLOR;
+        ctx.fillRect(bx, by, w, h);
+
+        // Highlight
+        ctx.fillStyle = ICE_HIGHLIGHT;
+        ctx.fillRect(bx + 2, by + 2, w * 0.3, h - 4);
+
+        // Shadow edge
+        ctx.fillStyle = ICE_SHADOW;
+        ctx.fillRect(bx + w - 3, by + 2, 3, h - 4);
+        ctx.fillRect(bx + 2, by + h - 3, w - 4, 3);
+
+        // Crack details
+        ctx.strokeStyle = 'rgba(100, 160, 200, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(bx + w * 0.5, by + 3);
+        ctx.lineTo(bx + w * 0.4, by + h * 0.4);
+        ctx.lineTo(bx + w * 0.6, by + h * 0.7);
+        ctx.stroke();
+
+        if (obs.type === 'ice_double') {
+          // Second block on top
+          ctx.fillStyle = ICE_COLOR;
+          ctx.fillRect(bx + 5, by - 15, w - 15, 15);
+          ctx.fillStyle = ICE_HIGHLIGHT;
+          ctx.fillRect(bx + 7, by - 13, (w - 15) * 0.3, 11);
+        }
+      }
+    }
+
+    function drawScore() {
+      ctx.fillStyle = '#555';
+      ctx.font = 'bold 16px Courier New';
+      ctx.textAlign = 'right';
+      const scoreText = String(Math.floor(score)).padStart(5, '0');
+      ctx.fillText(scoreText, BASE_WIDTH - 20, 30);
+      if (highScore > 0) {
+        ctx.fillStyle = '#999';
+        ctx.font = '12px Courier New';
+        ctx.fillText('HI ' + String(highScore).padStart(5, '0'), BASE_WIDTH - 20, 48);
+      }
+    }
+
+    function drawStartScreen() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+      ctx.fillStyle = '#1a1a2e';
+      ctx.font = 'bold 32px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('PENGUIN RUNNER', BASE_WIDTH / 2, 100);
+
+      ctx.fillStyle = '#555';
+      ctx.font = '16px Courier New';
+      ctx.fillText('Press SPACE or tap to start', BASE_WIDTH / 2, 140);
+
+      ctx.font = '12px Courier New';
+      ctx.fillStyle = '#777';
+      ctx.fillText('SPACE / UP = Jump    DOWN = Duck', BASE_WIDTH / 2, 170);
+      ctx.fillText('Tap top half = Jump    Tap bottom = Duck', BASE_WIDTH / 2, 190);
+    }
+
+    function drawGameOver() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+      ctx.fillStyle = '#1a1a2e';
+      ctx.font = 'bold 28px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', BASE_WIDTH / 2, 100);
+
+      ctx.fillStyle = '#555';
+      ctx.font = '18px Courier New';
+      ctx.fillText('Score: ' + Math.floor(score), BASE_WIDTH / 2, 135);
+
+      if (Math.floor(score) >= highScore && score > 0) {
+        ctx.fillStyle = '#FF8C00';
+        ctx.font = 'bold 14px Courier New';
+        ctx.fillText('NEW HIGH SCORE!', BASE_WIDTH / 2, 160);
+      }
+
+      ctx.fillStyle = '#777';
+      ctx.font = '14px Courier New';
+      ctx.fillText('Press SPACE or tap to play again', BASE_WIDTH / 2, 185);
+    }
+
+    function checkCollision(obs) {
+      const pH = penguin.ducking ? DUCK_HEIGHT : NORMAL_HEIGHT;
+      const pBottom = penguin.y + NORMAL_HEIGHT;
+      const pTop = pBottom - pH;
+      const pLeft = penguin.x + 5;
+      const pRight = penguin.x + penguin.width - 5;
+
+      let oLeft, oRight, oTop, oBottom;
+
+      if (obs.type === 'snowball') {
+        oLeft = obs.x + 3;
+        oRight = obs.x + obs.width - 3;
+        oTop = obs.y + 3;
+        oBottom = obs.y + obs.height - 3;
+      } else {
+        const h = obs.height + (obs.type === 'ice_double' ? 15 : 0);
+        oBottom = obs.y + (obs.type === 'ice_tall' ? 50 : 30);
+        oTop = oBottom - h;
+        oLeft = obs.x + 2;
+        oRight = obs.x + obs.width - 2;
+      }
+
+      return pRight > oLeft && pLeft < oRight && pBottom > oTop && pTop < oBottom;
+    }
+
+    // Main game loop
+    function update() {
+      frameCount++;
+
+      if (gameState === 'playing') {
+        // Score
+        score += gameSpeed * 0.02;
+
+        // Gradually increase speed
+        if (frameCount % 300 === 0) {
+          gameSpeed += 0.3;
+        }
+
+        // Penguin physics
+        if (jumpPressed && !penguin.jumping) {
+          penguin.velocityY = JUMP_FORCE;
+          penguin.jumping = true;
+        }
+
+        penguin.ducking = duckPressed && !penguin.jumping;
+        penguin.height = penguin.ducking ? DUCK_HEIGHT : NORMAL_HEIGHT;
+
+        penguin.velocityY += GRAVITY;
+        penguin.y += penguin.velocityY;
+
+        if (penguin.y >= GROUND_Y) {
+          penguin.y = GROUND_Y;
+          penguin.velocityY = 0;
+          penguin.jumping = false;
+        }
+
+        // Walk animation
+        if (!penguin.jumping) {
+          penguin.walkTimer++;
+          if (penguin.walkTimer >= 3) {
+            penguin.walkFrame++;
+            penguin.walkTimer = 0;
+          }
+        }
+
+        // Spawn obstacles
+        obstacleTimer++;
+        const minGap = Math.max(MIN_OBSTACLE_GAP, 100 - gameSpeed * 3);
+        if (obstacleTimer > minGap + Math.random() * 40) {
+          spawnObstacle();
+          obstacleTimer = 0;
+        }
+
+        // Update obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          obstacles[i].x -= gameSpeed;
+          if (obstacles[i].x < -50) {
+            obstacles.splice(i, 1);
+            continue;
+          }
+          if (checkCollision(obstacles[i])) {
+            gameState = 'dead';
+            if (Math.floor(score) > highScore) {
+              highScore = Math.floor(score);
+              localStorage.setItem('penguinRunnerHigh', String(highScore));
+            }
+          }
+        }
+
+        // Update mountain offset
+        mountainOffset += gameSpeed;
+      }
+
+      // Update snowflakes (always animate)
+      for (const s of snowflakes) {
+        s.y += s.speed;
+        s.x -= (gameState === 'playing' ? gameSpeed * 0.2 : 0.3);
+        if (s.y > GROUND_Y) { s.y = -5; s.x = Math.random() * BASE_WIDTH; }
+        if (s.x < -5) s.x = BASE_WIDTH + 5;
+      }
+
+      // Update clouds
+      for (const c of clouds) {
+        c.x -= (gameState === 'playing' ? gameSpeed * 0.15 + c.speed : c.speed);
+        if (c.x < -c.width) c.x = BASE_WIDTH + c.width;
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+      drawSky();
+      drawMountains();
+      drawClouds();
+      drawSnowflakes();
+      drawGround();
+
+      // Draw obstacles
+      for (const obs of obstacles) {
+        drawObstacle(obs);
+      }
+
+      drawPenguin();
+      drawScore();
+
+      if (gameState === 'waiting') drawStartScreen();
+      if (gameState === 'dead') drawGameOver();
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>

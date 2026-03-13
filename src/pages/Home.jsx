@@ -112,6 +112,32 @@ function Home() {
             </div>
           </Link>
 
+          <Link to="/penguin-runner" className="game-card">
+            <div className="game-image-wrapper" style={{background: 'linear-gradient(135deg, #1a5276, #87CEEB)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px'}}>
+              <span style={{fontSize: '4rem'}}>🐧</span>
+            </div>
+            <div className="game-content">
+              <h3>Penguin Runner</h3>
+              <p className="game-date">March 2026</p>
+              <p className="game-description">
+                An endless runner like the Chrome dino game — but with a penguin! Jump over ice blocks and duck under snowballs. How far can you go?
+              </p>
+            </div>
+          </Link>
+
+          <Link to="/jumping-penguin" className="game-card">
+            <div className="game-image-wrapper" style={{background: 'linear-gradient(135deg, #4a90d9, #87CEEB)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px'}}>
+              <span style={{fontSize: '4rem'}}>🐧</span>
+            </div>
+            <div className="game-content">
+              <h3>Jumping Penguin</h3>
+              <p className="game-date">March 2026</p>
+              <p className="game-description">
+                Help a little penguin fly through icy pipes! Tap to jump and see how high you can score in this Flappy Bird-style game.
+              </p>
+            </div>
+          </Link>
+
           <Link to="/tomato-hunter" className="game-card">
             <div className="game-image-wrapper">
               <img src="/images/tomato-hunter.png" alt="Tomato Hunter" className="game-image" />

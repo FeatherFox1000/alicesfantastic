@@ -9,6 +9,8 @@ import TomatoHunter from './pages/TomatoHunter';
 import SpacePups from './pages/SpacePups';
 import Podcasts from './pages/Podcasts';
 import AIRPStudio from './pages/AIRPStudio';
+import JumpingPenguin from './pages/JumpingPenguin';
+import PenguinRunner from './pages/PenguinRunner';
 import { pageview } from './utils/analytics';
 import './App.css';
 
@@ -32,6 +34,8 @@ function AppContent() {
           <Route path="/tomato-hunter" element={<TomatoHunter />} />
           <Route path="/podcasts" element={<Podcasts />} />
           <Route path="/ai-rp-studio" element={<AIRPStudio />} />
+          <Route path="/jumping-penguin" element={<JumpingPenguin />} />
+          <Route path="/penguin-runner" element={<PenguinRunner />} />
         </Routes>
       </main>
       <Footer />

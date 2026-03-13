@@ -1,0 +1,70 @@
+.penguin-runner {
+  min-height: 100vh;
+}
+
+.penguin-hero {
+  background: linear-gradient(135deg, #e0f0ff 0%, #b0d4f1 100%);
+}
+
+[data-theme="dark"] .penguin-hero {
+  background: var(--color-light-section-bg);
+}
+
+.penguin-hero h1 {
+  color: #1a5276;
+}
+
+[data-theme="dark"] .penguin-hero h1 {
+  color: #87CEEB;
+}
+
+.penguin-runner .info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.penguin-runner .info-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
+}
+
+[data-theme="dark"] .penguin-runner .info-card {
+  background: var(--color-card-bg);
+}
+
+.penguin-runner .info-card:hover {
+  transform: translateY(-4px);
+}
+
+.penguin-runner .info-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.penguin-runner .info-card h3 {
+  color: #1a5276;
+  font-size: 1.2rem;
+  margin: 0 0 0.5rem;
+}
+
+[data-theme="dark"] .penguin-runner .info-card h3 {
+  color: #87CEEB;
+}
+
+.penguin-runner .info-card p {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+[data-theme="dark"] .penguin-runner .info-card p {
+  color: var(--color-text-light);
+}
