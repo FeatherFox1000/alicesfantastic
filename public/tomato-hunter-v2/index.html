@@ -121,27 +121,27 @@ const LEVELS = [
     platforms: [
       { x:0,   y:440, w:220, h:40 },   // left ground
       { x:634, y:440, w:220, h:40 },   // right ground
-      // Left tower — top (x=25, w=175) ends at 200 = bridge start
-      { x:30,  y:368, w:180, h:18 },
-      { x:15,  y:290, w:185, h:18 },
-      { x:30,  y:210, w:170, h:18 },
-      { x:25,  y:135, w:175, h:18 },
-      // Bridge — x=200 matches left tower top end; x+w=654 = right tower top start
-      { x:200, y:135, w:454, h:18 },
-      // Right tower — top starts at 654 = bridge end
-      { x:654, y:135, w:175, h:18 },
-      { x:654, y:210, w:170, h:18 },
-      { x:654, y:290, w:185, h:18 },
-      { x:634, y:368, w:180, h:18 },
+      // Left tower — gap on left side so player can jump up along the wall
+      { x:120, y:368, w:140, h:18 },
+      { x:45,  y:290, w:185, h:18 },
+      { x:90,  y:210, w:140, h:18 },
+      { x:50,  y:135, w:180, h:18 },
+      // Bridge connects the two towers
+      { x:230, y:135, w:394, h:18 },
+      // Right tower — mirrored layout (gap on right side)
+      { x:624, y:135, w:180, h:18 },
+      { x:624, y:210, w:140, h:18 },
+      { x:624, y:290, w:185, h:18 },
+      { x:594, y:368, w:140, h:18 },
     ],
     // Moving platform oscillates horizontally in the mid-gap,
     // giving players an alternative route or bonus collectible platform.
     dynPlats: [
-      { ox:337, oy:285, w:130, h:16, ax:100, ay:0, freq:0.018, phase:0 },
+      { ox:337, oy:285, w:150, h:16, ax:80, ay:0, freq:0.012, phase:0 },
     ],
     enemies: [
-      { x:50,  y:290-EH, left:15,  right:170, speed:0.7, dir: 1 },
-      { x:720, y:290-EH, left:664, right:820, speed:0.7, dir:-1 },
+      { x:70,  y:290-EH, left:45,  right:206, speed:0.45, dir: 1 },
+      { x:700, y:290-EH, left:624, right:785, speed:0.45, dir:-1 },
     ],
     spikes: [],
     tomatoes: [
@@ -593,7 +593,11 @@ function loop() {
 
   if (state==='title') {
     drawTitle();
-    if (consumeKey()) { levelIdx=0; totalTomatoes=0; initLevel(0); state='playing'; }
+    if (consumeKey()) {
+      const startLvl = Number(new URLSearchParams(location.search).get('level')) || 1;
+      levelIdx = Math.max(0, Math.min(LEVELS.length-1, startLvl-1));
+      totalTomatoes=0; initLevel(levelIdx); state='playing';
+    }
     return;
   }
   if (state==='gameComplete') {
