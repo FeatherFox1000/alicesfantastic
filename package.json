@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:website\" \"npm run dev:unicorns-unite\" \"npm run dev:creator\" \"npm run dev:space-pups\" \"npm run dev:ai-rp-studio\" --names \"website,unicorns,creator,space-pups,ai-rp\" --prefix-colors \"cyan,magenta,yellow,blue,green\"",
+    "dev": "concurrently \"npm run dev:website\" \"npm run dev:visitor-tracker\" \"npm run dev:unicorns-unite\" \"npm run dev:creator\" \"npm run dev:space-pups\" \"npm run dev:ai-rp-studio\" --names \"website,auth,unicorns,creator,space-pups,ai-rp\" --prefix-colors \"cyan,red,magenta,yellow,blue,green\"",
     "dev:website": "vite",
+    "dev:visitor-tracker": "node server/visitor-tracker.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -17,8 +18,11 @@
     "dev:ai-rp-studio": "cd games/ai-rp-studio && npm run dev"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.6.2",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.4"

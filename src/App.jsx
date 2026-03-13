@@ -1,5 +1,6 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -11,17 +12,31 @@ import Podcasts from './pages/Podcasts';
 import AIRPStudio from './pages/AIRPStudio';
 import JumpingPenguin from './pages/JumpingPenguin';
 import PenguinRunner from './pages/PenguinRunner';
+import LoginPage from './pages/LoginPage';
 import { pageview } from './utils/analytics';
 import './App.css';
 
 function AppContent() {
   const location = useLocation();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Track page view on route change
     pageview(location.pathname + location.search);
   }, [location]);
 
+  if (loading) return null;
+
+  // Not logged in — show login page only
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  // Logged in — show the full site
   return (
     <div className="app">
       <Header />
@@ -36,6 +51,7 @@ function AppContent() {
           <Route path="/ai-rp-studio" element={<AIRPStudio />} />
           <Route path="/jumping-penguin" element={<JumpingPenguin />} />
           <Route path="/penguin-runner" element={<PenguinRunner />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Footer />
@@ -46,7 +62,9 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </Router>
   );
 }

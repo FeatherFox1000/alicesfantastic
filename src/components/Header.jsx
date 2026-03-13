@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
 import './Header.css';
 
 function Header() {
+  const { user, logout } = useAuth();
+
   return (
     <header className="header">
       <div className="header-content">
@@ -19,6 +22,12 @@ function Header() {
           <Link to="/tomato-hunter" className="nav-link">Tomato Hunter</Link>
           <Link to="/podcasts" className="nav-link">Podcasts</Link>
           <ThemeToggle />
+          {user && (
+            <div className="user-info">
+              <span className="user-name">Hi, {user.username}!</span>
+              <button className="logout-btn" onClick={logout}>Log Out</button>
+            </div>
+          )}
         </nav>
       </div>
     </header>

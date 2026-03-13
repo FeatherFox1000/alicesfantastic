@@ -3,6 +3,7 @@ import cors from 'cors';
 import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import authRouter from './auth-routes.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -13,6 +14,9 @@ const VISITORS_FILE = join(__dirname, 'visitors.json');
 // Enable CORS for local development
 app.use(cors());
 app.use(express.json());
+
+// Auth routes
+app.use('/api/auth', authRouter);
 
 // Initialize visitors file if it doesn't exist
 async function initVisitorsFile() {
