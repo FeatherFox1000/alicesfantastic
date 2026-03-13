@@ -121,7 +121,7 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
               {[
                 { value: 'under-8', emoji: '🧸', label: 'Under 8', desc: 'Gentle & sweet' },
                 { value: '8-10', emoji: '⚡', label: '8–10', desc: 'Fun & adventurous' },
-                { value: '11-14', emoji: '⚔️', label: '11–14', desc: 'Epic & exciting' },
+                { value: '11-14', emoji: '⚔️', label: '11+', desc: 'Epic & exciting' },
               ].map(opt => (
                 <button
                   key={opt.value}
