@@ -37,6 +37,16 @@ export default function AIRPStudio() {
     setPage(selectedCharacter ? 'chat' : 'dashboard');
   }
 
+  if (!user) {
+    return (
+      <div className="ai-rp-studio" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+        <h1>The Sandbox</h1>
+        <p>You need to log in to use The Sandbox.</p>
+        <a href="/login" style={{ color: '#7b14c9', fontWeight: 'bold', fontSize: '1.2rem' }}>Log In</a>
+      </div>
+    );
+  }
+
   if (page === 'chat' && selectedCharacter) {
     return (
       <ChatPage

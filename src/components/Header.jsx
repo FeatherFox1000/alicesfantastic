@@ -47,6 +47,11 @@ function Header() {
               <button className="logout-btn" onClick={logout} title="Log Out">👋</button>
             </div>
           )}
+          {!user && (
+            <div className="user-info">
+              <Link to="/login" className="nav-link login-link">🔑 {!collapsed && 'Log In'}</Link>
+            </div>
+          )}
         </div>
       </aside>
     </>

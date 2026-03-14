@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
-const { JWT_SECRET } = require('./auth');
+const { verifyToken } = require('./auth');
 
 const router = express.Router();
 
@@ -9,7 +9,7 @@ function auth(req, res, next) {
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Not authenticated.' });
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = verifyToken(token);
     next();
   } catch {
     res.status(401).json({ error: 'Invalid token.' });
