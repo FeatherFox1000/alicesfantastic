@@ -1,0 +1,69 @@
+.present-maker {
+  min-height: 100vh;
+}
+
+.present-maker .game-wrapper {
+  position: relative;
+  background: #fce4ec;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  margin-bottom: 2rem;
+}
+
+.present-maker .game-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.present-maker .page-hero h1 {
+  font-size: 2rem;
+  color: #ad1457;
+  margin: 0;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .present-maker .page-hero {
+  background: var(--color-light-section-bg) !important;
+}
+
+[data-theme="dark"] .present-maker .page-hero h1 {
+  color: #e91e63;
+}
+
+.present-maker .game-section-title {
+  color: #ad1457;
+}
+
+[data-theme="dark"] .present-maker .game-section-title {
+  color: #e91e63;
+}
+
+.present-maker .game-instructions strong {
+  color: #ad1457;
+}
+
+[data-theme="dark"] .present-maker .game-instructions strong {
+  color: #e91e63;
+}
+
+.present-maker .game-instructions li::before {
+  color: #ad1457;
+}
+
+[data-theme="dark"] .present-maker .game-instructions li::before {
+  color: #e91e63;
+}
+
+.present-maker .open-fullscreen-btn {
+  background: linear-gradient(135deg, #ad1457 0%, #e91e63 100%);
+  box-shadow: 0 4px 15px rgba(173, 20, 87, 0.3);
+  max-width: 560px;
+  margin: 0 auto 0.8rem;
+}
+
+.present-maker .open-fullscreen-btn:hover {
+  box-shadow: 0 6px 20px rgba(173, 20, 87, 0.45);
+}
