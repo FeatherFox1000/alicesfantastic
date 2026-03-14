@@ -4,7 +4,7 @@ const AuthContext = createContext(null);
 
 const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:3001/api/auth'
-  : '/api/auth';
+  : 'https://ai-rp-studio.fly.dev/api/site-auth';
 
 async function request(method, path, body) {
   const opts = {

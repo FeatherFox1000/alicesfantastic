@@ -9,6 +9,7 @@ app.use(cors({ origin: true }));
 app.use(express.json());
 
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/site-auth', require('./routes/site-auth'));
 app.use('/api/characters', require('./routes/characters'));
 app.use('/api', require('./routes/sessions'));
 
