@@ -36,6 +36,20 @@ try { db.exec(`ALTER TABLE users ADD COLUMN parent_email TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN parent_consent INTEGER DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN consent_token TEXT`); } catch (e) {}
 
+// Leaderboard scores table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS scores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    game TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, game),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+
 function makeToken(user) {
   return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 }
@@ -149,6 +163,29 @@ router.delete('/account', (req, res) => {
   if (!user) return res.status(401).json({ error: 'Not authenticated.' });
   db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
   res.json({ message: 'Your account and all data have been deleted.' });
+});
+
+// --- Leaderboard ---
+const VALID_GAMES = ['jumping-penguin', 'penguin-runner', 'tomato-hunter-v2'];
+
+router.post('/scores', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const { game, score } = req.body;
+  if (!VALID_GAMES.includes(game)) return res.status(400).json({ error: 'Invalid game.' });
+  if (!Number.isInteger(score) || score < 0) return res.status(400).json({ error: 'Invalid score.' });
+  db.prepare(
+    `INSERT INTO scores (user_id, username, game, score) VALUES (?, ?, ?, ?)
+     ON CONFLICT(user_id, game) DO UPDATE SET score = excluded.score, created_at = excluded.created_at
+     WHERE excluded.score > scores.score`
+  ).run(user.id, user.username, game, score);
+  res.json({ message: 'Score saved!' });
+});
+
+router.get('/scores/:game', (req, res) => {
+  if (!VALID_GAMES.includes(req.params.game)) return res.status(400).json({ error: 'Invalid game.' });
+  const scores = db.prepare('SELECT username, score, created_at FROM scores WHERE game = ? ORDER BY score DESC LIMIT 20').all(req.params.game);
+  res.json(scores);
 });
 
 module.exports = router;

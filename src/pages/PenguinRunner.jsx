@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
+import { useGameScore } from '../hooks/useGameScore';
+import Leaderboard from '../components/Leaderboard';
 import './PenguinRunner.css';
 
 function PenguinRunner() {
   const gameRef = useRef(null);
+  useGameScore('penguin-runner');
 
   useEffect(() => {
     const wrapper = gameRef.current;
@@ -52,6 +55,8 @@ function PenguinRunner() {
               ⛶
             </button>
           </div>
+
+          <Leaderboard game="penguin-runner" title="Top Penguin Runners" />
 
           <div className="game-instructions">
             <h3>How to Play</h3>

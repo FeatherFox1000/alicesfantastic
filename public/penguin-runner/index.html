@@ -643,6 +643,7 @@
               highScore = Math.floor(score);
               localStorage.setItem('penguinRunnerHigh', String(highScore));
             }
+            window.parent.postMessage({ type: 'gameScore', game: 'penguin-runner', score: Math.floor(score) }, '*');
           }
         }
 

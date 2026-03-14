@@ -623,7 +623,7 @@ function loop() {
     }
     drawLevelComplete();
     if (transitionReady && consumeKey()) {
-      if (levelIdx>=LEVELS.length-1) state='gameComplete';
+      if (levelIdx>=LEVELS.length-1) { state='gameComplete'; window.parent.postMessage({ type: 'gameScore', game: 'tomato-hunter-v2', score: totalTomatoes }, '*'); }
       else { levelIdx++; initLevel(levelIdx); state='playing'; }
     }
   }

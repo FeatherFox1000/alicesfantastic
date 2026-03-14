@@ -1,6 +1,9 @@
+import { useGameScore } from '../hooks/useGameScore';
+import Leaderboard from '../components/Leaderboard';
 import './TomatoHunter.css';
 
 function TomatoHunter() {
+  useGameScore('tomato-hunter-v2');
 
   return (
     <div className="page tomato-hunter">
@@ -22,15 +25,27 @@ function TomatoHunter() {
           <a href="/tomato-hunter-game/index.html" target="_blank" rel="noopener noreferrer" className="open-fullscreen-btn">
             🍅 Tomato Hunter Unleashed
           </a>
-          <a href="/tomato-hunter-v2/index.html" target="_blank" rel="noopener noreferrer" className="open-fullscreen-btn">
-            🍅 Tomato Hunter +
-          </a>
+        </section>
+
+        <section className="game-container">
+          <h2 className="game-section-title">🍅 Tomato Hunter +</h2>
+          <p className="game-section-desc">The new version with 5 levels — collect all 46 tomatoes!</p>
+          <div className="game-wrapper" style={{aspectRatio: '854 / 480', maxWidth: '854px', margin: '0 auto'}}>
+            <iframe
+              src="/tomato-hunter-v2/index.html"
+              title="Tomato Hunter +"
+              className="game-iframe"
+              allow="autoplay"
+            />
+          </div>
+          <Leaderboard game="tomato-hunter-v2" title="Top Tomato Hunters" />
           <div className="game-instructions">
             <h3>How to Play</h3>
             <ul>
               <li><strong>Arrow Keys:</strong> Move your character around</li>
-              <li><strong>Mouse:</strong> Click to interact and hunt tomatoes</li>
-              <li><strong>Objective:</strong> Hunt all the tomatoes in the level!</li>
+              <li><strong>Space:</strong> Jump</li>
+              <li><strong>Objective:</strong> Collect all the tomatoes across 5 levels!</li>
+              <li><strong>Watch out:</strong> Avoid spikes and enemies — they'll send you back to the start of the level!</li>
             </ul>
           </div>
         </section>

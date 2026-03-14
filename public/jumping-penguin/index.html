@@ -398,6 +398,7 @@ function update() {
         bestScore = score;
         localStorage.setItem('jumpingPenguinBest', bestScore.toString());
       }
+      window.parent.postMessage({ type: 'gameScore', game: 'jumping-penguin', score: score }, '*');
     }
   }
 

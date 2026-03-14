@@ -1,6 +1,10 @@
+import { useGameScore } from '../hooks/useGameScore';
+import Leaderboard from '../components/Leaderboard';
 import './JumpingPenguin.css';
 
 function JumpingPenguin() {
+  useGameScore('jumping-penguin');
+
   return (
     <div className="page jumping-penguin">
       <div className="page-hero" style={{background: 'linear-gradient(135deg, #d4eaf7 0%, #b8e4f0 100%)'}}>
@@ -28,6 +32,7 @@ function JumpingPenguin() {
           <a href="/jumping-penguin/index.html" target="_blank" rel="noopener noreferrer" className="open-fullscreen-btn">
             Open Fullscreen
           </a>
+          <Leaderboard game="jumping-penguin" title="Top Penguin Jumpers" />
           <div className="game-instructions">
             <h3>How to Play</h3>
             <ul>

@@ -156,4 +156,29 @@ router.post('/admin/unban/:username', adminOnly, (req, res) => {
   res.json({ message: `${req.params.username} has been unbanned.` });
 });
 
+// --- Leaderboard ---
+const VALID_GAMES = ['jumping-penguin', 'penguin-runner', 'tomato-hunter-v2'];
+
+// Submit a score (authenticated)
+router.post('/scores', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const { game, score } = req.body;
+  if (!VALID_GAMES.includes(game)) return res.status(400).json({ error: 'Invalid game.' });
+  if (!Number.isInteger(score) || score < 0) return res.status(400).json({ error: 'Invalid score.' });
+  db.prepare(
+    `INSERT INTO scores (user_id, username, game, score) VALUES (?, ?, ?, ?)
+     ON CONFLICT(user_id, game) DO UPDATE SET score = excluded.score, created_at = excluded.created_at
+     WHERE excluded.score > scores.score`
+  ).run(user.id, user.username, game, score);
+  res.json({ message: 'Score saved!' });
+});
+
+// Get top 20 scores for a game (public)
+router.get('/scores/:game', (req, res) => {
+  if (!VALID_GAMES.includes(req.params.game)) return res.status(400).json({ error: 'Invalid game.' });
+  const scores = db.prepare('SELECT username, score, created_at FROM scores WHERE game = ? ORDER BY score DESC LIMIT 20').all(req.params.game);
+  res.json(scores);
+});
+
 export default router;

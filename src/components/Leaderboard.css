@@ -1,0 +1,83 @@
+.leaderboard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-top: 2rem;
+  max-width: 500px;
+}
+
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.leaderboard-header h3 {
+  margin: 0;
+  color: #7b14c9;
+  font-size: 1.3rem;
+}
+
+.leaderboard-refresh {
+  background: none;
+  border: 2px solid #7b14c9;
+  color: #7b14c9;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.leaderboard-refresh:hover {
+  background: #7b14c9;
+  color: white;
+}
+
+.leaderboard-loading,
+.leaderboard-empty {
+  color: #888;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid #f0e6ff;
+  color: #555;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.leaderboard-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #f3f3f3;
+}
+
+.leaderboard-rank {
+  width: 40px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.leaderboard-score {
+  font-weight: 700;
+  color: #7b14c9;
+}
+
+.leaderboard-you {
+  background: #f5f0ff;
+}
+
+.leaderboard-you td {
+  font-weight: 700;
+}
