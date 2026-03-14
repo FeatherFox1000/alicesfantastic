@@ -5,6 +5,23 @@ function SpacePups() {
   const iframeRef = useRef(null);
   const wrapperRef = useRef(null);
   const [isHovering, setIsHovering] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      wrapperRef.current.requestFullscreen().then(() => setIsFullscreen(true));
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false));
+    }
+  }
+
+  useEffect(() => {
+    function onFsChange() {
+      setIsFullscreen(!!document.fullscreenElement);
+    }
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
 
   useEffect(() => {
     // Add/remove class to body to prevent scrolling when hovering over game
@@ -69,7 +86,11 @@ function SpacePups() {
               title="Space Pups Game"
               className="game-iframe"
               style={{width: '100%', height: '100%', border: 'none'}}
+              allowFullScreen
             />
+            <button className="fullscreen-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+              {isFullscreen ? '✕' : '⛶'}
+            </button>
           </div>
           <div className="game-instructions">
             <h3>How to Play</h3>

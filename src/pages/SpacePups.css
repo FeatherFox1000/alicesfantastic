@@ -47,6 +47,36 @@
   overflow: hidden;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   margin-bottom: 2rem;
+  position: relative;
+}
+
+.game-wrapper:fullscreen {
+  border-radius: 0;
+}
+
+.fullscreen-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  font-size: 1.3rem;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  opacity: 0.7;
+}
+
+.fullscreen-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  opacity: 1;
 }
 
 .game-iframe {
