@@ -57,6 +57,64 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => keys.delete(e.code));
 function consumeKey() { if (anyKeyPressed) { anyKeyPressed = false; return true; } return false; }
 
+// ── TOUCH CONTROLS ───────────────────────────────────
+const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const touchKeys = new Set(); // virtual keys held by touch
+
+function updateKeysFromTouch() {
+  // Sync touch virtual keys into the keys set
+  for (const k of ['ArrowLeft', 'ArrowRight', 'Space']) {
+    if (touchKeys.has(k)) keys.add(k);
+    else keys.delete(k);
+  }
+}
+
+// Touch button zones (calculated in draw, used in touch handlers)
+const touchBtns = { left: null, right: null, jump: null };
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  anyKeyPressed = true;
+  for (const touch of e.changedTouches) {
+    const rect = canvas.getBoundingClientRect();
+    const tx = (touch.clientX - rect.left) / rect.width * GW;
+    const ty = (touch.clientY - rect.top) / rect.height * GH;
+    if (touchBtns.left && tx < GW * 0.35 && ty > GH * 0.5) touchKeys.add('ArrowLeft');
+    if (touchBtns.right && tx > GW * 0.15 && tx < GW * 0.5 && ty > GH * 0.5) touchKeys.add('ArrowRight');
+    if (tx > GW * 0.6 && ty > GH * 0.5) touchKeys.add('Space');
+  }
+  updateKeysFromTouch();
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  touchKeys.clear();
+  for (const touch of e.touches) {
+    const rect = canvas.getBoundingClientRect();
+    const tx = (touch.clientX - rect.left) / rect.width * GW;
+    const ty = (touch.clientY - rect.top) / rect.height * GH;
+    if (tx < GW * 0.35 && ty > GH * 0.5) touchKeys.add('ArrowLeft');
+    if (tx > GW * 0.15 && tx < GW * 0.5 && ty > GH * 0.5) touchKeys.add('ArrowRight');
+    if (tx > GW * 0.6 && ty > GH * 0.5) touchKeys.add('Space');
+  }
+  updateKeysFromTouch();
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  touchKeys.clear();
+  // Rebuild from remaining touches
+  for (const touch of e.touches) {
+    const rect = canvas.getBoundingClientRect();
+    const tx = (touch.clientX - rect.left) / rect.width * GW;
+    const ty = (touch.clientY - rect.top) / rect.height * GH;
+    if (tx < GW * 0.35 && ty > GH * 0.5) touchKeys.add('ArrowLeft');
+    if (tx > GW * 0.15 && tx < GW * 0.5 && ty > GH * 0.5) touchKeys.add('ArrowRight');
+    if (tx > GW * 0.6 && ty > GH * 0.5) touchKeys.add('Space');
+  }
+  updateKeysFromTouch();
+}, { passive: false });
+
 // ── LEVEL DATA ────────────────────────────────────────
 // Platform y = top surface. Tomato.y = platform.y - 24.
 // Enemy: { left, right, speed } — y auto-calculated as platform.y - EH.
@@ -494,6 +552,35 @@ function drawHUD() {
     ctx.fillStyle=`rgba(220,0,0,${(deathFlash/30)*0.55})`; ctx.fillRect(0,0,GW,GH);
     ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.font='bold 28px Arial';
     ctx.fillText('ouch! try again!', GW/2, GH/2);
+  }
+
+  // Touch controls overlay
+  if (isMobile) {
+    ctx.globalAlpha = 0.35;
+    const btnH = 80, btnY = GH - btnH - 10, btnR = 14;
+    // Left button
+    ctx.fillStyle = touchKeys.has('ArrowLeft') ? '#a78bfa' : '#555';
+    ctx.beginPath(); ctx.roundRect(10, btnY, 100, btnH, btnR); ctx.fill();
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 32px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('\u25C0', 60, btnY + 50);
+    // Right button
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = touchKeys.has('ArrowRight') ? '#a78bfa' : '#555';
+    ctx.beginPath(); ctx.roundRect(120, btnY, 100, btnH, btnR); ctx.fill();
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = '#fff'; ctx.fillText('\u25B6', 170, btnY + 50);
+    // Jump button
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = touchKeys.has('Space') ? '#a78bfa' : '#555';
+    ctx.beginPath(); ctx.roundRect(GW - 130, btnY, 120, btnH, btnR); ctx.fill();
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = '#fff'; ctx.fillText('JUMP', GW - 70, btnY + 50);
+    ctx.globalAlpha = 1.0;
+    // Store button positions for touch hit detection
+    touchBtns.left = { x: 10, y: btnY, w: 100, h: btnH };
+    touchBtns.right = { x: 120, y: btnY, w: 100, h: btnH };
+    touchBtns.jump = { x: GW - 130, y: btnY, w: 120, h: btnH };
   }
 }
 
