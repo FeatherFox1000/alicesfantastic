@@ -165,6 +165,23 @@ router.delete('/account', (req, res) => {
   res.json({ message: 'Your account and all data have been deleted.' });
 });
 
+// Approve a child account (admin)
+// Uses inline admin check since adminOnly middleware isn't defined in this file
+router.post('/admin/approve/:username', (req, res) => {
+  const auth = req.headers.authorization;
+  if (!auth) return res.status(401).json({ error: 'No token.' });
+  try {
+    const payload = jwt.verify(auth.replace('Bearer ', ''), JWT_SECRET);
+    const admin = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(payload.id);
+    if (!admin || !admin.is_admin) return res.status(403).json({ error: 'Not authorized.' });
+  } catch {
+    return res.status(401).json({ error: 'Invalid token.' });
+  }
+  const result = db.prepare('UPDATE users SET parent_consent = 1 WHERE username = ?').run(req.params.username);
+  if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
+  res.json({ message: `${req.params.username} has been approved.` });
+});
+
 // --- Leaderboard ---
 const VALID_GAMES = ['jumping-penguin', 'penguin-runner', 'tomato-hunter-v2'];
 

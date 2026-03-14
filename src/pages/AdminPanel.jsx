@@ -34,6 +34,11 @@ export default function AdminPanel() {
     await adminRequest('POST', `/admin/${action}/${username}`);
   }
 
+  async function approveAccount(username) {
+    setUsers(prev => prev.map(u => u.username === username ? { ...u, parent_consent: 1 } : u));
+    await adminRequest('POST', `/admin/approve/${username}`);
+  }
+
   if (!user?.is_admin) {
     return (
       <div className="admin-panel">
@@ -68,16 +73,27 @@ export default function AdminPanel() {
                   <td className="username-cell">
                     {u.username}
                     {u.is_admin ? <span className="admin-badge">Admin</span> : null}
+                    {u.is_child ? <span className="child-badge">Child</span> : null}
                   </td>
                   <td>{u.email}</td>
                   <td>{new Date(u.created_at + 'Z').toLocaleDateString()}</td>
                   <td>
                     {u.is_banned
                       ? <span className="status-banned">Banned</span>
-                      : <span className="status-active">Active</span>
+                      : u.is_child && !u.parent_consent
+                        ? <span className="status-pending">Pending Approval</span>
+                        : <span className="status-active">Active</span>
                     }
                   </td>
-                  <td>
+                  <td className="action-cell">
+                    {u.is_child && !u.parent_consent && (
+                      <button
+                        className="approve-btn"
+                        onClick={() => approveAccount(u.username)}
+                      >
+                        Approve
+                      </button>
+                    )}
                     {u.username !== user.username && (
                       <button
                         className={u.is_banned ? 'unban-btn' : 'ban-btn'}

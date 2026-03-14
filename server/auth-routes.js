@@ -156,6 +156,13 @@ router.post('/admin/unban/:username', adminOnly, (req, res) => {
   res.json({ message: `${req.params.username} has been unbanned.` });
 });
 
+// Approve a child account (admin)
+router.post('/admin/approve/:username', adminOnly, (req, res) => {
+  const result = db.prepare('UPDATE users SET parent_consent = 1 WHERE username = ?').run(req.params.username);
+  if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
+  res.json({ message: `${req.params.username} has been approved.` });
+});
+
 // --- Leaderboard ---
 const VALID_GAMES = ['jumping-penguin', 'penguin-runner', 'tomato-hunter-v2'];
 

@@ -697,6 +697,10 @@
 
       if (gameState === 'waiting') drawStartScreen();
       if (gameState === 'dead') drawGameOver();
+
+      // Copy offscreen canvas to visible canvas
+      displayCtx.clearRect(0, 0, canvas.width, canvas.height);
+      displayCtx.drawImage(offscreen, 0, 0, canvas.width, canvas.height);
     }
 
     function gameLoop() {
