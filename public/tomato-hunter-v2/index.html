@@ -13,6 +13,18 @@
 <body>
 <canvas id="game"></canvas>
 <script>
+function submitScore(game, score) {
+  window.parent.postMessage({ type: 'gameScore', game, score }, '*');
+  const token = localStorage.getItem('site_token');
+  if (!token) return;
+  const api = window.location.hostname === 'localhost'
+    ? 'http://localhost:3001/api/auth' : 'https://ai-rp-studio.fly.dev/api/site-auth';
+  fetch(api + '/scores', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ game, score }),
+  }).catch(() => {});
+}
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const GW = 854, GH = 480;
@@ -710,7 +722,7 @@ function loop() {
     }
     drawLevelComplete();
     if (transitionReady && consumeKey()) {
-      if (levelIdx>=LEVELS.length-1) { state='gameComplete'; window.parent.postMessage({ type: 'gameScore', game: 'tomato-hunter-v2', score: totalTomatoes }, '*'); }
+      if (levelIdx>=LEVELS.length-1) { state='gameComplete'; submitScore('tomato-hunter-v2', totalTomatoes); }
       else { levelIdx++; initLevel(levelIdx); state='playing'; }
     }
   }

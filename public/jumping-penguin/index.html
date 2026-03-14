@@ -13,6 +13,18 @@
 <body>
 <canvas id="game"></canvas>
 <script>
+function submitScore(game, score) {
+  window.parent.postMessage({ type: 'gameScore', game, score }, '*');
+  const token = localStorage.getItem('site_token');
+  if (!token) return;
+  const api = window.location.hostname === 'localhost'
+    ? 'http://localhost:3001/api/auth' : 'https://ai-rp-studio.fly.dev/api/site-auth';
+  fetch(api + '/scores', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ game, score }),
+  }).catch(() => {});
+}
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const GW = 160, GH = 213;
@@ -398,7 +410,7 @@ function update() {
         bestScore = score;
         localStorage.setItem('jumpingPenguinBest', bestScore.toString());
       }
-      window.parent.postMessage({ type: 'gameScore', game: 'jumping-penguin', score: score }, '*');
+      submitScore('jumping-penguin', score);
     }
   }
 
