@@ -1,0 +1,87 @@
+.consent-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7b14c9 0%, #9d4edd 50%, #c77dff 100%);
+  padding: 2rem;
+}
+
+.consent-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 550px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.consent-logo {
+  display: block;
+  margin: 0 auto 1rem;
+  height: 70px;
+}
+
+.consent-card h1 {
+  text-align: center;
+  color: #7b14c9;
+  margin-bottom: 1rem;
+}
+
+.consent-card h3 {
+  color: #333;
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.consent-card p {
+  color: #555;
+  line-height: 1.6;
+}
+
+.consent-card ul {
+  color: #555;
+  padding-left: 1.5rem;
+  line-height: 1.8;
+}
+
+.consent-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.consent-approve {
+  padding: 0.8rem;
+  background: linear-gradient(135deg, #38a169, #48bb78);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.consent-deny {
+  padding: 0.8rem;
+  background: white;
+  color: #e53e3e;
+  border: 2px solid #e53e3e;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.consent-success {
+  color: #38a169 !important;
+  font-weight: 600;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.consent-error {
+  color: #e53e3e !important;
+  text-align: center;
+}

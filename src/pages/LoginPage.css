@@ -116,6 +116,104 @@
   cursor: not-allowed;
 }
 
+.age-gate {
+  text-align: center;
+}
+
+.age-gate-label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.age-gate-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.age-btn {
+  flex: 1;
+  padding: 0.8rem;
+  background: white;
+  border: 2px solid #7b14c9;
+  border-radius: 8px;
+  color: #7b14c9;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.age-btn:hover {
+  background: #7b14c9;
+  color: white;
+}
+
+.field-hint {
+  font-size: 0.78rem;
+  color: #888;
+  font-weight: 400;
+}
+
+.privacy-notice {
+  font-size: 0.8rem;
+  color: #666;
+  text-align: center;
+  margin: 0;
+}
+
+.privacy-notice a {
+  color: #7b14c9;
+  text-decoration: underline;
+}
+
+.age-reset {
+  background: none;
+  border: none;
+  color: #7b14c9;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-align: center;
+}
+
+.consent-pending {
+  text-align: center;
+}
+
+.consent-pending h2 {
+  color: #7b14c9;
+  margin-bottom: 0.75rem;
+}
+
+.consent-pending p {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0.5rem 0;
+}
+
+.consent-link-box {
+  background: #f5f0ff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 1rem 0;
+  word-break: break-all;
+}
+
+.consent-link-box code {
+  font-size: 0.8rem;
+  color: #7b14c9;
+}
+
+.consent-note {
+  font-style: italic;
+  color: #888 !important;
+  font-size: 0.85rem !important;
+}
+
 @media (max-width: 480px) {
   .login-card {
     padding: 1.5rem;

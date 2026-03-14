@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
@@ -21,33 +22,91 @@ db.exec(`
     password_hash TEXT NOT NULL,
     is_banned INTEGER DEFAULT 0,
     is_admin INTEGER DEFAULT 0,
+    is_child INTEGER DEFAULT 0,
+    parent_email TEXT,
+    parent_consent INTEGER DEFAULT 0,
+    consent_token TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
 `);
 try { db.exec(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN is_child INTEGER DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN parent_email TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN parent_consent INTEGER DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN consent_token TEXT`); } catch (e) {}
 
 function makeToken(user) {
   return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 }
 
-// Signup
+function getUser(req) {
+  const auth = req.headers.authorization;
+  if (!auth) return null;
+  try {
+    const payload = jwt.verify(auth.replace('Bearer ', ''), JWT_SECRET);
+    return db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id);
+  } catch {
+    return null;
+  }
+}
+
+// Signup — COPPA compliant
 router.post('/signup', (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, is_child, parent_email } = req.body;
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Username, email, and password are required.' });
   }
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters.' });
   }
+  if (is_child && !parent_email) {
+    return res.status(400).json({ error: 'A parent or guardian email is required for users under 13.' });
+  }
   const existing = db.prepare('SELECT id FROM users WHERE username = ? OR email = ?').get(username, email);
   if (existing) {
     return res.status(409).json({ error: 'Username or email already taken.' });
   }
   const password_hash = bcrypt.hashSync(password, 10);
-  const result = db.prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)').run(username, email, password_hash);
+  const consent_token = is_child ? crypto.randomBytes(32).toString('hex') : null;
+  const result = db.prepare(
+    'INSERT INTO users (username, email, password_hash, is_child, parent_email, parent_consent, consent_token) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(username, email, password_hash, is_child ? 1 : 0, parent_email || null, is_child ? 0 : 1, consent_token);
   const user = { id: result.lastInsertRowid, username };
+
+  if (is_child) {
+    return res.json({
+      pending_consent: true,
+      message: 'Account created! A parent or guardian needs to approve this account.',
+      consent_token,
+      username
+    });
+  }
+
   res.json({ token: makeToken(user), username, email });
+});
+
+// Parental consent verification
+router.get('/consent/:token', (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE consent_token = ?').get(req.params.token);
+  if (!user) return res.status(404).json({ error: 'Invalid or expired consent link.' });
+  if (user.parent_consent) return res.json({ message: 'This account has already been approved.', username: user.username });
+  res.json({ username: user.username, parent_email: user.parent_email, pending: true });
+});
+
+router.post('/consent/:token', (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE consent_token = ?').get(req.params.token);
+  if (!user) return res.status(404).json({ error: 'Invalid or expired consent link.' });
+  db.prepare('UPDATE users SET parent_consent = 1 WHERE id = ?').run(user.id);
+  res.json({ message: `Account "${user.username}" has been approved!`, username: user.username });
+});
+
+// Parental consent denial — deletes the child's account
+router.post('/consent/:token/deny', (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE consent_token = ?').get(req.params.token);
+  if (!user) return res.status(404).json({ error: 'Invalid or expired consent link.' });
+  db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+  res.json({ message: 'Account has been removed.' });
 });
 
 // Login
@@ -63,6 +122,9 @@ router.post('/login', (req, res) => {
   if (user.is_banned) {
     return res.status(403).json({ error: 'Your account has been banned.' });
   }
+  if (user.is_child && !user.parent_consent) {
+    return res.status(403).json({ error: 'This account is waiting for parent/guardian approval. Please ask your parent to approve your account.' });
+  }
   res.json({ token: makeToken(user), username: user.username, email: user.email, is_admin: user.is_admin });
 });
 
@@ -72,13 +134,21 @@ router.get('/me', (req, res) => {
   if (!auth) return res.status(401).json({ error: 'No token.' });
   try {
     const payload = jwt.verify(auth.replace('Bearer ', ''), JWT_SECRET);
-    const user = db.prepare('SELECT id, username, email, is_banned, is_admin, created_at FROM users WHERE id = ?').get(payload.id);
+    const user = db.prepare('SELECT id, username, email, is_banned, is_admin, is_child, created_at FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'User not found.' });
     if (user.is_banned) return res.status(403).json({ error: 'Your account has been banned.' });
     res.json(user);
   } catch {
     res.status(401).json({ error: 'Invalid token.' });
   }
+});
+
+// Delete account
+router.delete('/account', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+  res.json({ message: 'Your account and all data have been deleted.' });
 });
 
 module.exports = router;

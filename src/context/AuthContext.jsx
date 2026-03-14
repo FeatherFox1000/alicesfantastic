@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-const API_BASE = window.location.hostname === 'localhost'
+export const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:3001/api/auth'
   : 'https://ai-rp-studio.fly.dev/api/site-auth';
 
@@ -48,11 +48,20 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  async function signup(username, email, password) {
-    const data = await request('POST', '/signup', { username, email, password });
+  async function signup(username, email, password, is_child, parent_email) {
+    const data = await request('POST', '/signup', { username, email, password, is_child, parent_email });
+    if (data.pending_consent) {
+      return data;
+    }
     localStorage.setItem('site_token', data.token);
     setUser({ username: data.username, email: data.email, is_admin: data.is_admin });
     return data;
+  }
+
+  async function deleteAccount() {
+    await request('DELETE', '/account');
+    localStorage.removeItem('site_token');
+    setUser(null);
   }
 
   function logout() {
@@ -61,7 +70,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

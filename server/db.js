@@ -24,5 +24,9 @@ db.exec(`
 // Migrations for existing databases
 try { db.exec(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`); } catch (e) { /* already exists */ }
 try { db.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`); } catch (e) { /* already exists */ }
+try { db.exec(`ALTER TABLE users ADD COLUMN is_child INTEGER DEFAULT 0`); } catch (e) { /* already exists */ }
+try { db.exec(`ALTER TABLE users ADD COLUMN parent_email TEXT`); } catch (e) { /* already exists */ }
+try { db.exec(`ALTER TABLE users ADD COLUMN parent_consent INTEGER DEFAULT 0`); } catch (e) { /* already exists */ }
+try { db.exec(`ALTER TABLE users ADD COLUMN consent_token TEXT`); } catch (e) { /* already exists */ }
 
 export default db;

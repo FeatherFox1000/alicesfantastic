@@ -14,24 +14,23 @@ import JumpingPenguin from './pages/JumpingPenguin';
 import PenguinRunner from './pages/PenguinRunner';
 import LoginPage from './pages/LoginPage';
 import AdminPanel from './pages/AdminPanel';
-import { pageview } from './utils/analytics';
+import ParentalConsent from './pages/ParentalConsent';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import './App.css';
 
 function AppContent() {
   const location = useLocation();
   const { user, loading } = useAuth();
 
-  useEffect(() => {
-    pageview(location.pathname + location.search);
-  }, [location]);
-
   if (loading) return null;
 
-  // Not logged in — show login page only
+  // Not logged in — show login, consent, and privacy pages
   if (!user) {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/consent/:token" element={<ParentalConsent />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -53,6 +52,8 @@ function AppContent() {
           <Route path="/jumping-penguin" element={<JumpingPenguin />} />
           <Route path="/penguin-runner" element={<PenguinRunner />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/consent/:token" element={<ParentalConsent />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
