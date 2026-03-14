@@ -4,7 +4,7 @@ import './AdminPanel.css';
 
 const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:3001/api/auth'
-  : '/api/auth';
+  : 'https://ai-rp-studio.fly.dev/api/site-auth';
 
 function adminRequest(method, path) {
   const token = localStorage.getItem('site_token');
@@ -30,8 +30,8 @@ export default function AdminPanel() {
 
   async function toggleBan(username, isBanned) {
     const action = isBanned ? 'unban' : 'ban';
+    setUsers(prev => prev.map(u => u.username === username ? { ...u, is_banned: isBanned ? 0 : 1 } : u));
     await adminRequest('POST', `/admin/${action}/${username}`);
-    loadUsers();
   }
 
   if (!user?.is_admin) {
