@@ -105,6 +105,71 @@
   background: #2f855a;
 }
 
+.child-badge {
+  background: #ed8936;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.status-pending {
+  color: #ed8936;
+  font-weight: 600;
+}
+
+.approve-btn {
+  background: #3182ce;
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.approve-btn:hover {
+  background: #2b6cb0;
+}
+
+.action-cell {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.make-admin-btn {
+  background: #7b14c9;
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.make-admin-btn:hover {
+  background: #6310a3;
+}
+
+.remove-admin-btn {
+  background: #ed8936;
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.remove-admin-btn:hover {
+  background: #dd6b20;
+}
+
 .user-count {
   text-align: right;
   color: #888;

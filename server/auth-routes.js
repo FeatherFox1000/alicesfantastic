@@ -163,6 +163,33 @@ router.post('/admin/approve/:username', adminOnly, (req, res) => {
   res.json({ message: `${req.params.username} has been approved.` });
 });
 
+// Make someone admin (only warrior_cats can do this)
+function ownerOnly(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth) return res.status(401).json({ error: 'No token.' });
+  try {
+    const payload = jwt.verify(auth.replace('Bearer ', ''), JWT_SECRET);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(payload.id);
+    if (!user || user.username !== 'warrior_cats') return res.status(403).json({ error: 'Only the owner can do this.' });
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token.' });
+  }
+}
+
+router.post('/admin/make-admin/:username', ownerOnly, (req, res) => {
+  const result = db.prepare('UPDATE users SET is_admin = 1 WHERE username = ?').run(req.params.username);
+  if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
+  res.json({ message: `${req.params.username} is now an admin.` });
+});
+
+router.post('/admin/remove-admin/:username', ownerOnly, (req, res) => {
+  if (req.params.username === 'warrior_cats') return res.status(400).json({ error: 'Cannot remove owner admin.' });
+  const result = db.prepare('UPDATE users SET is_admin = 0 WHERE username = ?').run(req.params.username);
+  if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
+  res.json({ message: `${req.params.username} is no longer an admin.` });
+});
+
 // --- Leaderboard ---
 const VALID_GAMES = ['jumping-penguin', 'penguin-runner', 'tomato-hunter-v2'];
 

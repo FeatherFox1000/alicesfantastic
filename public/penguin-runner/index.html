@@ -40,9 +40,9 @@
     const displayCtx = canvas.getContext('2d');
 
     // Pixel art: render at low res, scale up
-    const BASE_WIDTH = 200;
-    const BASE_HEIGHT = 75;
-    const PIXEL_SCALE = 4; // each game pixel = 4x4 screen pixels
+    const BASE_WIDTH = 600;
+    const BASE_HEIGHT = 200;
+    const PIXEL_SCALE = 1;
 
     // Offscreen canvas for low-res rendering
     const offscreen = document.createElement('canvas');
@@ -76,11 +76,11 @@
     let gameState = 'waiting'; // waiting, playing, dead
     let score = 0;
     let highScore = parseInt(localStorage.getItem('penguinRunnerHigh') || '0');
-    let gameSpeed = 5;
+    let gameSpeed = 8;
     let frameCount = 0;
 
     // Ground
-    const GROUND_Y = 55;
+    const GROUND_Y = 150;
 
     // Penguin
     const penguin = {
@@ -95,8 +95,8 @@
       walkTimer: 0
     };
 
-    const GRAVITY = 0.25;
-    const JUMP_FORCE = -4;
+    const GRAVITY = 0.3;
+    const JUMP_FORCE = -6;
     const DUCK_HEIGHT = 7;
     const NORMAL_HEIGHT = 12;
 
@@ -107,33 +107,33 @@
 
     // Snowflakes (decoration)
     let snowflakes = [];
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 25; i++) {
       snowflakes.push({
         x: Math.random() * BASE_WIDTH,
         y: Math.random() * GROUND_Y,
-        size: 1,
-        speed: Math.random() * 0.2 + 0.1
+        size: 2,
+        speed: Math.random() * 0.4 + 0.2
       });
     }
 
     // Clouds
     let clouds = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       clouds.push({
         x: Math.random() * BASE_WIDTH,
-        y: 5 + Math.random() * 15,
-        width: 15 + Math.random() * 10,
-        speed: 0.1 + Math.random() * 0.1
+        y: 10 + Math.random() * 40,
+        width: 40 + Math.random() * 30,
+        speed: 0.15 + Math.random() * 0.15
       });
     }
 
     // Mountains (background)
     const mountains = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       mountains.push({
-        x: i * 40,
-        height: 10 + Math.random() * 15,
-        width: 30 + Math.random() * 20
+        x: i * 100,
+        height: 30 + Math.random() * 40,
+        width: 80 + Math.random() * 60
       });
     }
     let mountainOffset = 0;
@@ -192,7 +192,7 @@
     function startGame() {
       gameState = 'playing';
       score = 0;
-      gameSpeed = 5;
+      gameSpeed = 8;
       obstacles = [];
       obstacleTimer = 0;
     }
@@ -207,41 +207,32 @@
 
     function spawnObstacle() {
       const type = Math.random();
-      if (type < 0.4) {
+      if (type < 0.45) {
         // Small ice block
         obstacles.push({
           x: BASE_WIDTH + 5,
           y: GROUND_Y,
-          width: 5,
-          height: 8,
+          width: 15,
+          height: 20,
           type: 'ice_small'
         });
-      } else if (type < 0.7) {
+      } else if (type < 0.75) {
         // Tall ice block
         obstacles.push({
           x: BASE_WIDTH + 5,
-          y: GROUND_Y - 3,
-          width: 5,
-          height: 14,
+          y: GROUND_Y - 8,
+          width: 15,
+          height: 35,
           type: 'ice_tall'
         });
-      } else if (type < 0.85) {
+      } else {
         // Double ice blocks
         obstacles.push({
           x: BASE_WIDTH + 5,
           y: GROUND_Y,
-          width: 10,
-          height: 8,
+          width: 25,
+          height: 20,
           type: 'ice_double'
-        });
-      } else {
-        // Flying snowball - duck to avoid!
-        obstacles.push({
-          x: BASE_WIDTH + 5,
-          y: GROUND_Y - 7,
-          width: 5,
-          height: 5,
-          type: 'snowball'
         });
       }
     }
@@ -453,25 +444,39 @@
     }
 
     function drawObstacle(obs) {
-      const bottomY = obs.y + (obs.type === 'ice_tall' ? 50 : (obs.type === 'snowball' ? 20 : 30));
+      const bottomY = GROUND_Y + NORMAL_HEIGHT;
 
       if (obs.type === 'snowball') {
         // Flying snowball
+        const r = obs.width / 2;
+        // Dark outline for visibility
+        ctx.strokeStyle = '#7FAED4';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(obs.x + r, obs.y + r, r, 0, Math.PI * 2);
+        ctx.stroke();
+        // White fill
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
-        ctx.arc(obs.x + 10, obs.y + 10, 10, 0, Math.PI * 2);
+        ctx.arc(obs.x + r, obs.y + r, r, 0, Math.PI * 2);
         ctx.fill();
+        // Shading
+        ctx.fillStyle = '#C8DCF0';
+        ctx.beginPath();
+        ctx.arc(obs.x + r * 1.2, obs.y + r * 1.2, r * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Highlight
         ctx.fillStyle = '#E0E8F0';
         ctx.beginPath();
-        ctx.arc(obs.x + 8, obs.y + 8, 4, 0, Math.PI * 2);
+        ctx.arc(obs.x + r * 0.7, obs.y + r * 0.7, r * 0.3, 0, Math.PI * 2);
         ctx.fill();
         // Motion lines
-        ctx.strokeStyle = 'rgba(200, 220, 240, 0.5)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#7FAED4';
+        ctx.lineWidth = 2;
         for (let i = 0; i < 3; i++) {
           ctx.beginPath();
-          ctx.moveTo(obs.x + 22 + i * 5, obs.y + 6 + i * 5);
-          ctx.lineTo(obs.x + 28 + i * 5, obs.y + 6 + i * 5);
+          ctx.moveTo(obs.x + obs.width + 2 + i * 6, obs.y + 3 + i * 5);
+          ctx.lineTo(obs.x + obs.width + 8 + i * 6, obs.y + 3 + i * 5);
           ctx.stroke();
         }
       } else {
@@ -506,9 +511,9 @@
         if (obs.type === 'ice_double') {
           // Second block on top
           ctx.fillStyle = ICE_COLOR;
-          ctx.fillRect(bx + 5, by - 15, w - 15, 15);
+          ctx.fillRect(bx + 5, by - 18, w - 10, 18);
           ctx.fillStyle = ICE_HIGHLIGHT;
-          ctx.fillRect(bx + 7, by - 13, (w - 15) * 0.3, 11);
+          ctx.fillRect(bx + 7, by - 16, (w - 10) * 0.3, 14);
         }
       }
     }
@@ -518,11 +523,11 @@
       ctx.font = 'bold 16px Courier New';
       ctx.textAlign = 'right';
       const scoreText = String(Math.floor(score)).padStart(5, '0');
-      ctx.fillText(scoreText, BASE_WIDTH - 20, 30);
+      ctx.fillText(scoreText, BASE_WIDTH - 15, 25);
       if (highScore > 0) {
         ctx.fillStyle = '#999';
         ctx.font = '12px Courier New';
-        ctx.fillText('HI ' + String(highScore).padStart(5, '0'), BASE_WIDTH - 20, 48);
+        ctx.fillText('HI ' + String(highScore).padStart(5, '0'), BASE_WIDTH - 15, 42);
       }
     }
 
@@ -531,18 +536,18 @@
       ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
       ctx.fillStyle = '#1a1a2e';
-      ctx.font = 'bold 32px Courier New';
+      ctx.font = 'bold 28px Courier New';
       ctx.textAlign = 'center';
-      ctx.fillText('PENGUIN RUNNER', BASE_WIDTH / 2, 100);
+      ctx.fillText('PENGUIN RUNNER', BASE_WIDTH / 2, 70);
 
       ctx.fillStyle = '#555';
-      ctx.font = '16px Courier New';
-      ctx.fillText('Press SPACE or tap to start', BASE_WIDTH / 2, 140);
+      ctx.font = '14px Courier New';
+      ctx.fillText('Press SPACE or tap to start', BASE_WIDTH / 2, 100);
 
-      ctx.font = '12px Courier New';
+      ctx.font = '11px Courier New';
       ctx.fillStyle = '#777';
-      ctx.fillText('SPACE / UP = Jump    DOWN = Duck', BASE_WIDTH / 2, 170);
-      ctx.fillText('Tap top half = Jump    Tap bottom = Duck', BASE_WIDTH / 2, 190);
+      ctx.fillText('SPACE / UP = Jump    DOWN = Duck', BASE_WIDTH / 2, 125);
+      ctx.fillText('Tap top half = Jump    Tap bottom = Duck', BASE_WIDTH / 2, 145);
     }
 
     function drawGameOver() {
@@ -550,42 +555,44 @@
       ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
       ctx.fillStyle = '#1a1a2e';
-      ctx.font = 'bold 28px Courier New';
+      ctx.font = 'bold 24px Courier New';
       ctx.textAlign = 'center';
-      ctx.fillText('GAME OVER', BASE_WIDTH / 2, 100);
+      ctx.fillText('GAME OVER', BASE_WIDTH / 2, 70);
 
       ctx.fillStyle = '#555';
-      ctx.font = '18px Courier New';
-      ctx.fillText('Score: ' + Math.floor(score), BASE_WIDTH / 2, 135);
+      ctx.font = '16px Courier New';
+      ctx.fillText('Score: ' + Math.floor(score), BASE_WIDTH / 2, 100);
 
       if (Math.floor(score) >= highScore && score > 0) {
         ctx.fillStyle = '#FF8C00';
         ctx.font = 'bold 14px Courier New';
-        ctx.fillText('NEW HIGH SCORE!', BASE_WIDTH / 2, 160);
+        ctx.fillText('NEW HIGH SCORE!', BASE_WIDTH / 2, 125);
       }
 
       ctx.fillStyle = '#777';
-      ctx.font = '14px Courier New';
-      ctx.fillText('Press SPACE or tap to play again', BASE_WIDTH / 2, 185);
+      ctx.font = '12px Courier New';
+      ctx.fillText('Press SPACE or tap to play again', BASE_WIDTH / 2, 150);
     }
 
     function checkCollision(obs) {
       const pH = penguin.ducking ? DUCK_HEIGHT : NORMAL_HEIGHT;
       const pBottom = penguin.y + NORMAL_HEIGHT;
       const pTop = pBottom - pH;
-      const pLeft = penguin.x + 5;
-      const pRight = penguin.x + penguin.width - 5;
+      // Penguin visual body is roughly 30px wide centered around px+15
+      const pLeft = penguin.x + 4;
+      const pRight = penguin.x + 26;
 
       let oLeft, oRight, oTop, oBottom;
 
       if (obs.type === 'snowball') {
-        oLeft = obs.x + 3;
-        oRight = obs.x + obs.width - 3;
-        oTop = obs.y + 3;
-        oBottom = obs.y + obs.height - 3;
+        oLeft = obs.x + 2;
+        oRight = obs.x + obs.width - 2;
+        oTop = obs.y + 2;
+        oBottom = obs.y + obs.height - 2;
       } else {
-        const h = obs.height + (obs.type === 'ice_double' ? 15 : 0);
-        oBottom = obs.y + (obs.type === 'ice_tall' ? 50 : 30);
+        const bottomY = GROUND_Y + NORMAL_HEIGHT;
+        const h = obs.height + (obs.type === 'ice_double' ? 18 : 0);
+        oBottom = bottomY;
         oTop = oBottom - h;
         oLeft = obs.x + 2;
         oRight = obs.x + obs.width - 2;

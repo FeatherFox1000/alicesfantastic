@@ -16,13 +16,19 @@ function adminRequest(method, path) {
 
 export default function AdminPanel() {
   const { user } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState(() => {
+    const cached = sessionStorage.getItem('admin_users');
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [loading, setLoading] = useState(!sessionStorage.getItem('admin_users'));
 
   async function loadUsers() {
-    setLoading(true);
+    if (!users.length) setLoading(true);
     const data = await adminRequest('GET', '/admin/users');
-    if (Array.isArray(data)) setUsers(data);
+    if (Array.isArray(data)) {
+      setUsers(data);
+      sessionStorage.setItem('admin_users', JSON.stringify(data));
+    }
     setLoading(false);
   }
 
@@ -37,6 +43,12 @@ export default function AdminPanel() {
   async function approveAccount(username) {
     setUsers(prev => prev.map(u => u.username === username ? { ...u, parent_consent: 1 } : u));
     await adminRequest('POST', `/admin/approve/${username}`);
+  }
+
+  async function toggleAdmin(username, isAdmin) {
+    const action = isAdmin ? 'remove-admin' : 'make-admin';
+    setUsers(prev => prev.map(u => u.username === username ? { ...u, is_admin: isAdmin ? 0 : 1 } : u));
+    await adminRequest('POST', `/admin/${action}/${username}`);
   }
 
   if (!user?.is_admin) {
@@ -100,6 +112,14 @@ export default function AdminPanel() {
                         onClick={() => toggleBan(u.username, u.is_banned)}
                       >
                         {u.is_banned ? 'Unban' : 'Ban'}
+                      </button>
+                    )}
+                    {user.username === 'warrior_cats' && u.username !== 'warrior_cats' && (
+                      <button
+                        className={u.is_admin ? 'remove-admin-btn' : 'make-admin-btn'}
+                        onClick={() => toggleAdmin(u.username, u.is_admin)}
+                      >
+                        {u.is_admin ? 'Remove Admin' : 'Make Admin'}
                       </button>
                     )}
                   </td>
