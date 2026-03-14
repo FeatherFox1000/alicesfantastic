@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from './api';
 import './AIRPStudio.css';
 
-export default function Dashboard({ username, email, onSelectCharacter, onCreateCharacter, onEditCharacter, onLogout }) {
+export default function Dashboard({ username, email, onSelectCharacter, onCreateCharacter, onEditCharacter }) {
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,7 +41,6 @@ export default function Dashboard({ username, email, onSelectCharacter, onCreate
           <button className="airp-btn-icon" onClick={() => setShowSettings(true)} title="Account settings">
             ⚙️
           </button>
-          <button className="airp-btn-ghost" onClick={onLogout}>Log out</button>
         </div>
       </div>
 

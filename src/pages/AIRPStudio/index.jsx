@@ -1,38 +1,15 @@
-import { useState, useEffect } from 'react';
-import { api } from './api';
-import AuthPage from './AuthPage';
+import { useState } from 'react';
 import Dashboard from './Dashboard';
 import CreateCharacter from './CreateCharacter';
 import ChatPage from './ChatPage';
+import { useAuth } from '../../context/AuthContext';
 import './AIRPStudio.css';
 
 export default function AIRPStudio() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   const [page, setPage] = useState('dashboard'); // dashboard | create | edit | chat
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [editingCharacter, setEditingCharacter] = useState(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem('site_token');
-    if (!token) { setLoading(false); return; }
-    api.me()
-      .then(u => setUser(u))
-      .catch(() => localStorage.removeItem('site_token'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  function handleLogin(data) {
-    setUser({ username: data.username || data, email: data.email });
-    setPage('dashboard');
-  }
-
-  function handleLogout() {
-    localStorage.removeItem('site_token');
-    setUser(null);
-    setPage('dashboard');
-    setSelectedCharacter(null);
-  }
 
   function handleSelectCharacter(character) {
     setSelectedCharacter(character);
@@ -57,21 +34,7 @@ export default function AIRPStudio() {
   function handleEditSaved(character) {
     setSelectedCharacter(character);
     setEditingCharacter(null);
-    // Return to wherever they came from
     setPage(selectedCharacter ? 'chat' : 'dashboard');
-  }
-
-  if (loading) {
-    return (
-      <div className="airp-loading-screen">
-        <div className="airp-loading-icon">🐾</div>
-        <p>Loading The Sandbox...</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthPage onLogin={handleLogin} />;
   }
 
   if (page === 'chat' && selectedCharacter) {
@@ -110,7 +73,6 @@ export default function AIRPStudio() {
       onSelectCharacter={handleSelectCharacter}
       onCreateCharacter={handleCreateCharacter}
       onEditCharacter={handleEditCharacter}
-      onLogout={handleLogout}
     />
   );
 }
