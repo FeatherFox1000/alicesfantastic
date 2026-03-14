@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingConsent, setPendingConsent] = useState(null);
+  const [waitingApproval, setWaitingApproval] = useState(false);
 
   function set(field, value) {
     setForm(f => ({ ...f, [field]: value }));
@@ -23,7 +24,16 @@ export default function LoginPage() {
     setError('');
     try {
       if (tab === 'login') {
-        await login(form.username, form.password);
+        try {
+          await login(form.username, form.password);
+        } catch (err) {
+          if (err.message.includes('waiting for parent') || err.message.includes('guardian approval')) {
+            setWaitingApproval(true);
+            setLoading(false);
+            return;
+          }
+          throw err;
+        }
       } else {
         if (!ageGroup) {
           setError('Please select your age group first.');
@@ -70,6 +80,18 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      {waitingApproval && (
+        <div className="popup-overlay" onClick={() => setWaitingApproval(false)}>
+          <div className="popup-card" onClick={e => e.stopPropagation()}>
+            <h2>Waiting for Approval</h2>
+            <p>Your account is waiting to be approved by a parent/guardian.</p>
+            <p>Please ask your parent or guardian to check the consent link that was shared when you signed up.</p>
+            <p className="popup-hint">Once they approve, you'll be able to log in!</p>
+            <button className="login-btn" onClick={() => setWaitingApproval(false)}>OK</button>
+          </div>
+        </div>
+      )}
+
       <div className="login-card">
         <div className="login-logo">
           <img src="/images/logo.png" alt="Alice's Fantastic" className="login-logo-img" />
