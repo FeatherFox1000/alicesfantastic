@@ -3,7 +3,7 @@ const BASE = window.location.hostname === 'localhost'
   : 'https://ai-rp-studio.fly.dev/api';
 
 function headers() {
-  const token = localStorage.getItem('airp_token');
+  const token = localStorage.getItem('site_token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

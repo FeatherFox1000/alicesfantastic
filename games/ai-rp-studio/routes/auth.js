@@ -5,9 +5,32 @@ const db = require('../db');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'ai-rp-studio-secret-change-in-prod';
+const SITE_JWT_SECRET = process.env.SITE_JWT_SECRET || 'alicesfantastic-secret-change-in-prod';
 
 function makeToken(user) {
   return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+}
+
+// Try to verify a token with the sandbox secret first, then the site secret.
+// If it's a site token, auto-create a sandbox user for that username.
+function verifyToken(token) {
+  // Try sandbox secret first
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    return payload;
+  } catch {}
+  // Try site-wide secret
+  const payload = jwt.verify(token, SITE_JWT_SECRET);
+  // Auto-create sandbox user if they don't have one yet
+  let user = db.prepare('SELECT id, username FROM users WHERE username = ?').get(payload.username);
+  if (!user) {
+    const result = db.prepare(
+      'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)'
+    ).run(payload.username, payload.username + '@site', 'site-auth-user');
+    user = { id: result.lastInsertRowid, username: payload.username };
+  }
+  // Return payload with the sandbox user id
+  return { id: user.id, username: user.username };
 }
 
 // Signup
@@ -42,12 +65,12 @@ router.post('/login', (req, res) => {
   res.json({ token: makeToken(user), username: user.username, email: user.email });
 });
 
-// Verify token
+// Verify token — accepts both sandbox and site-wide tokens
 router.get('/me', (req, res) => {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'No token.' });
   try {
-    const payload = jwt.verify(auth.replace('Bearer ', ''), JWT_SECRET);
+    const payload = verifyToken(auth.replace('Bearer ', ''));
     const user = db.prepare('SELECT id, username, email, created_at FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'User not found.' });
     res.json(user);

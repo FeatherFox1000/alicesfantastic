@@ -24,8 +24,7 @@ export default function AuthPage({ onLogin }) {
       } else {
         data = await api.signup(form.username, form.email, form.password);
       }
-      localStorage.setItem('airp_token', data.token);
-      localStorage.setItem('airp_password', form.password);
+      localStorage.setItem('site_token', data.token);
       onLogin(data);
     } catch (err) {
       setError(err.message);

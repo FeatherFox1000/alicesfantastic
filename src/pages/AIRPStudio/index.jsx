@@ -14,11 +14,11 @@ export default function AIRPStudio() {
   const [editingCharacter, setEditingCharacter] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('airp_token');
+    const token = localStorage.getItem('site_token');
     if (!token) { setLoading(false); return; }
     api.me()
       .then(u => setUser(u))
-      .catch(() => localStorage.removeItem('airp_token'))
+      .catch(() => localStorage.removeItem('site_token'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -28,8 +28,7 @@ export default function AIRPStudio() {
   }
 
   function handleLogout() {
-    localStorage.removeItem('airp_token');
-    localStorage.removeItem('airp_password');
+    localStorage.removeItem('site_token');
     setUser(null);
     setPage('dashboard');
     setSelectedCharacter(null);
