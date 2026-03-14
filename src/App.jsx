@@ -24,19 +24,6 @@ function AppContent() {
 
   if (loading) return null;
 
-  // Not logged in — show login, consent, and privacy pages
-  if (!user) {
-    return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/consent/:token" element={<ParentalConsent />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    );
-  }
-
-  // Logged in — show the full site
   return (
     <div className="app">
       <Header />
@@ -54,7 +41,8 @@ function AppContent() {
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/consent/:token" element={<ParentalConsent />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Footer />
