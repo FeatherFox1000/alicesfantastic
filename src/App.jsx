@@ -13,6 +13,7 @@ import AIRPStudio from './pages/AIRPStudio';
 import JumpingPenguin from './pages/JumpingPenguin';
 import PenguinRunner from './pages/PenguinRunner';
 import LoginPage from './pages/LoginPage';
+import AdminPanel from './pages/AdminPanel';
 import { pageview } from './utils/analytics';
 import './App.css';
 
@@ -51,6 +52,7 @@ function AppContent() {
           <Route path="/ai-rp-studio" element={<AIRPStudio />} />
           <Route path="/jumping-penguin" element={<JumpingPenguin />} />
           <Route path="/penguin-runner" element={<PenguinRunner />} />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

@@ -16,8 +16,13 @@ db.exec(`
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    is_banned INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
   );
 `);
+
+// Migrations for existing databases
+try { db.exec(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`); } catch (e) { /* already exists */ }
+try { db.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`); } catch (e) { /* already exists */ }
 
 export default db;

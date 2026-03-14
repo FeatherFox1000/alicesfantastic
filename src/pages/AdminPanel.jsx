@@ -1,0 +1,99 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import './AdminPanel.css';
+
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001/api/auth'
+  : '/api/auth';
+
+function adminRequest(method, path) {
+  const token = localStorage.getItem('site_token');
+  return fetch(API_BASE + path, {
+    method,
+    headers: { 'Authorization': `Bearer ${token}` },
+  }).then(r => r.json());
+}
+
+export default function AdminPanel() {
+  const { user } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  async function loadUsers() {
+    setLoading(true);
+    const data = await adminRequest('GET', '/admin/users');
+    if (Array.isArray(data)) setUsers(data);
+    setLoading(false);
+  }
+
+  useEffect(() => { loadUsers(); }, []);
+
+  async function toggleBan(username, isBanned) {
+    const action = isBanned ? 'unban' : 'ban';
+    await adminRequest('POST', `/admin/${action}/${username}`);
+    loadUsers();
+  }
+
+  if (!user?.is_admin) {
+    return (
+      <div className="admin-panel">
+        <h1>Not Authorized</h1>
+        <p>You don't have permission to view this page.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-panel">
+      <h1>Admin Panel</h1>
+      <p className="admin-subtitle">Manage users on Alice's Fantastic</p>
+
+      {loading ? (
+        <p>Loading users...</p>
+      ) : (
+        <div className="admin-table-wrapper">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Joined</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u.id} className={u.is_banned ? 'banned-row' : ''}>
+                  <td className="username-cell">
+                    {u.username}
+                    {u.is_admin ? <span className="admin-badge">Admin</span> : null}
+                  </td>
+                  <td>{u.email}</td>
+                  <td>{new Date(u.created_at + 'Z').toLocaleDateString()}</td>
+                  <td>
+                    {u.is_banned
+                      ? <span className="status-banned">Banned</span>
+                      : <span className="status-active">Active</span>
+                    }
+                  </td>
+                  <td>
+                    {u.username !== user.username && (
+                      <button
+                        className={u.is_banned ? 'unban-btn' : 'ban-btn'}
+                        onClick={() => toggleBan(u.username, u.is_banned)}
+                      >
+                        {u.is_banned ? 'Unban' : 'Ban'}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="user-count">{users.length} total user{users.length !== 1 ? 's' : ''}</p>
+        </div>
+      )}
+    </div>
+  );
+}

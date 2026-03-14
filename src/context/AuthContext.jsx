@@ -44,14 +44,14 @@ export function AuthProvider({ children }) {
   async function login(username, password) {
     const data = await request('POST', '/login', { username, password });
     localStorage.setItem('site_token', data.token);
-    setUser({ username: data.username, email: data.email });
+    setUser({ username: data.username, email: data.email, is_admin: data.is_admin });
     return data;
   }
 
   async function signup(username, email, password) {
     const data = await request('POST', '/signup', { username, email, password });
     localStorage.setItem('site_token', data.token);
-    setUser({ username: data.username, email: data.email });
+    setUser({ username: data.username, email: data.email, is_admin: data.is_admin });
     return data;
   }
 

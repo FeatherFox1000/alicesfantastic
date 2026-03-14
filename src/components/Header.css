@@ -84,6 +84,21 @@
   font-size: 0.95rem;
 }
 
+.admin-link {
+  color: #ffd700;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid #ffd700;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.admin-link:hover {
+  background: rgba(255, 215, 0, 0.2);
+}
+
 .logout-btn {
   background: rgba(255, 255, 255, 0.2);
   color: white;

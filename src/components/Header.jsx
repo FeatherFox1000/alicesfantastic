@@ -24,6 +24,7 @@ function Header() {
           <ThemeToggle />
           {user && (
             <div className="user-info">
+              {user.is_admin ? <Link to="/admin" className="admin-link">Admin</Link> : null}
               <span className="user-name">Hi, {user.username}!</span>
               <button className="logout-btn" onClick={logout}>Log Out</button>
             </div>
