@@ -17,7 +17,14 @@ async function request(method, path, body) {
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+  if (!res.ok) {
+    if (res.status === 401 && data.error === 'Invalid token.') {
+      localStorage.removeItem('site_token');
+      window.location.reload();
+      return;
+    }
+    throw new Error(data.error || 'Something went wrong.');
+  }
   return data;
 }
 
