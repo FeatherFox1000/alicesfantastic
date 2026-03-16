@@ -429,3 +429,44 @@
 .chat-send-btn:hover {
   background: #6310a3;
 }
+
+/* Notify form in user modal */
+.notify-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.notify-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e0d4f5;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.notify-input:focus {
+  border-color: #7b14c9;
+}
+
+.notify-btn {
+  background: #7b14c9;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.notify-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notify-sent {
+  color: #38a169;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  font-weight: 600;
+}

@@ -27,12 +27,23 @@ const GAME_NAMES = {
 
 function UserDetail({ username, basicInfo, onClose }) {
   const [extra, setExtra] = useState(null);
+  const [notifyMsg, setNotifyMsg] = useState('');
+  const [notifySent, setNotifySent] = useState(false);
 
   useEffect(() => {
     adminRequest('GET', `/admin/user/${username}`).then(data => {
       if (!data.error) setExtra(data);
     });
   }, [username]);
+
+  async function sendNotification(e) {
+    e.preventDefault();
+    if (!notifyMsg.trim()) return;
+    await adminRequest('POST', `/admin/notify/${username}`, { message: notifyMsg.trim() });
+    setNotifyMsg('');
+    setNotifySent(true);
+    setTimeout(() => setNotifySent(false), 3000);
+  }
 
   // Show basic info instantly from the users list, fill in extra when it loads
   const info = extra || basicInfo;
@@ -94,6 +105,20 @@ function UserDetail({ username, basicInfo, onClose }) {
         ) : (
           <p className="no-scores">No scores yet</p>
         )}
+
+        <h3 className="scores-title">Send Notification</h3>
+        <form className="notify-form" onSubmit={sendNotification}>
+          <input
+            type="text"
+            value={notifyMsg}
+            onChange={e => setNotifyMsg(e.target.value)}
+            placeholder={`Message for ${username}...`}
+            className="notify-input"
+            maxLength={300}
+          />
+          <button type="submit" className="notify-btn" disabled={!notifyMsg.trim()}>Send</button>
+        </form>
+        {notifySent && <p className="notify-sent">Notification sent!</p>}
       </div>
     </div>
   );

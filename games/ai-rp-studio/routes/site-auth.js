@@ -156,7 +156,8 @@ router.get('/me', (req, res) => {
     const user = db.prepare('SELECT id, username, email, is_banned, is_admin, is_child, created_at FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'User not found.' });
     if (user.is_banned) return res.status(403).json({ error: 'Your account has been banned.' });
-    res.json(user);
+    const unread = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0').get(user.id);
+    res.json({ ...user, unread_notifications: unread.count });
   } catch {
     res.status(401).json({ error: 'Invalid token.' });
   }
@@ -267,6 +268,44 @@ router.post('/admin/remove-admin/:username', ownerOnly, (req, res) => {
   const result = db.prepare('UPDATE users SET is_admin = 0 WHERE username = ?').run(req.params.username);
   if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
   res.json({ message: `${req.params.username} is no longer an admin.` });
+});
+
+// --- Notifications ---
+db.exec(`
+  CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    message TEXT NOT NULL,
+    read INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+
+// Get my notifications
+router.get('/notifications', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const notifs = db.prepare('SELECT id, message, read, created_at FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 20').all(user.id);
+  res.json(notifs);
+});
+
+// Mark notification as read
+router.post('/notifications/:id/read', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  db.prepare('UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?').run(req.params.id, user.id);
+  res.json({ ok: true });
+});
+
+// Send notification to a user (admin only)
+router.post('/admin/notify/:username', adminOnly, (req, res) => {
+  const target = db.prepare('SELECT id FROM users WHERE username = ?').get(req.params.username);
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  const { message } = req.body;
+  if (!message || !message.trim()) return res.status(400).json({ error: 'Message is required.' });
+  db.prepare('INSERT INTO notifications (user_id, message) VALUES (?, ?)').run(target.id, message.trim());
+  res.json({ message: `Notification sent to ${req.params.username}.` });
 });
 
 // --- Admin Chat ---
