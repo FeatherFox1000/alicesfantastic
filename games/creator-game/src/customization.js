@@ -139,8 +139,8 @@ export class CharacterCustomizer {
         this.game = game;
         this.canvas = document.getElementById('character-builder-canvas');
         this.ctx = this.canvas.getContext('2d');
-        this.gridSize = 10;
-        this.cellSize = 35;
+        this.gridSize = 16;
+        this.cellSize = 25;
 
         // Set canvas size explicitly
         this.canvas.width = this.gridSize * this.cellSize;
@@ -169,8 +169,32 @@ export class CharacterCustomizer {
                 document.querySelectorAll('.builder-color-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedColor = btn.dataset.color;
+                // Turn off eraser
+                this.eraserMode = false;
+                const eraserBtn = document.getElementById('eraser-btn');
+                if (eraserBtn) eraserBtn.classList.remove('active');
+                // Sync the color picker
+                const picker = document.getElementById('builder-color-picker');
+                const preview = document.getElementById('builder-color-preview');
+                if (picker) picker.value = btn.dataset.color;
+                if (preview) preview.style.background = btn.dataset.color;
             });
         });
+
+        // Custom color picker
+        const colorPicker = document.getElementById('builder-color-picker');
+        const colorPreview = document.getElementById('builder-color-preview');
+        if (colorPicker) {
+            colorPicker.addEventListener('input', (e) => {
+                this.selectedColor = e.target.value;
+                if (colorPreview) colorPreview.style.background = e.target.value;
+                // Deselect preset buttons and turn off eraser
+                document.querySelectorAll('.builder-color-btn').forEach(b => b.classList.remove('active'));
+                this.eraserMode = false;
+                const eraserBtn = document.getElementById('eraser-btn');
+                if (eraserBtn) eraserBtn.classList.remove('active');
+            });
+        }
 
         // Canvas drawing
         this.canvas.addEventListener('mousedown', (e) => {
@@ -209,6 +233,16 @@ export class CharacterCustomizer {
         // Clear button
         document.getElementById('clear-character-builder').addEventListener('click', () => {
             this.clear();
+        });
+
+        // Eraser toggle
+        this.eraserMode = false;
+        document.getElementById('eraser-btn').addEventListener('click', () => {
+            this.eraserMode = !this.eraserMode;
+            document.getElementById('eraser-btn').classList.toggle('active', this.eraserMode);
+            if (this.eraserMode) {
+                document.querySelectorAll('.builder-color-btn').forEach(b => b.classList.remove('active'));
+            }
         });
 
         // Use default button
@@ -268,7 +302,7 @@ export class CharacterCustomizer {
         const y = Math.floor((e.clientY - rect.top) / this.cellSize);
 
         if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
-            this.grid[y][x] = this.selectedColor;
+            this.grid[y][x] = this.eraserMode ? null : this.selectedColor;
             this.frames[this.currentFrameIndex] = this.grid;
             this.render();
         }

@@ -585,6 +585,35 @@ header h1 {
     transform: scale(1.1);
 }
 
+.builder-color-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.builder-color-picker-row label {
+    font-size: 0.85rem;
+    color: #555;
+    white-space: nowrap;
+}
+
+.builder-color-picker-row input[type="color"] {
+    width: 40px;
+    height: 32px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 2px;
+}
+
+.builder-color-preview {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #667eea;
+    border-radius: 6px;
+}
+
 .builder-controls button {
     background: var(--button-bg);
     border: 2px solid var(--border-color);
@@ -609,6 +638,21 @@ header h1 {
 
 #clear-character-builder:hover {
     background: #ee5a52;
+}
+
+.eraser-btn {
+    background: #95a5a6;
+    color: white;
+    border-color: #95a5a6;
+}
+
+.eraser-btn:hover {
+    background: #7f8c8d;
+}
+
+.eraser-btn.active {
+    background: #e74c3c;
+    border-color: #e74c3c;
 }
 
 .builder-canvas-container {

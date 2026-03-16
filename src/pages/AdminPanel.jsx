@@ -20,19 +20,17 @@ const GAME_NAMES = {
   'tomato-hunter-v2': 'Tomato Hunter',
 };
 
-function UserDetail({ username, onClose }) {
-  const [info, setInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
+function UserDetail({ username, basicInfo, onClose }) {
+  const [extra, setExtra] = useState(null);
 
   useEffect(() => {
     adminRequest('GET', `/admin/user/${username}`).then(data => {
-      setInfo(data);
-      setLoading(false);
+      if (!data.error) setExtra(data);
     });
   }, [username]);
 
-  if (loading) return <div className="user-modal-overlay" onClick={onClose}><div className="user-modal" onClick={e => e.stopPropagation()}><p>Loading...</p></div></div>;
-  if (info?.error) return <div className="user-modal-overlay" onClick={onClose}><div className="user-modal" onClick={e => e.stopPropagation()}><p>{info.error}</p></div></div>;
+  // Show basic info instantly from the users list, fill in extra when it loads
+  const info = extra || basicInfo;
 
   return (
     <div className="user-modal-overlay" onClick={onClose}>
@@ -52,7 +50,7 @@ function UserDetail({ username, onClose }) {
           </div>
           <div className="detail-item">
             <span className="detail-label">Password Hash</span>
-            <span className="detail-value detail-hash">{info.password_hash}</span>
+            <span className="detail-value detail-hash">{extra ? extra.password_hash : 'Loading...'}</span>
           </div>
           <div className="detail-item">
             <span className="detail-label">Joined</span>
@@ -66,7 +64,7 @@ function UserDetail({ username, onClose }) {
             <>
               <div className="detail-item">
                 <span className="detail-label">Parent Email</span>
-                <span className="detail-value">{info.parent_email || 'None'}</span>
+                <span className="detail-value">{extra ? (extra.parent_email || 'None') : 'Loading...'}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Parent Consent</span>
@@ -77,9 +75,11 @@ function UserDetail({ username, onClose }) {
         </div>
 
         <h3 className="scores-title">High Scores</h3>
-        {info.scores && info.scores.length > 0 ? (
+        {!extra ? (
+          <p className="no-scores">Loading scores...</p>
+        ) : extra.scores && extra.scores.length > 0 ? (
           <div className="scores-list">
-            {info.scores.map(s => (
+            {extra.scores.map(s => (
               <div key={s.game} className="score-item">
                 <span className="score-game">{GAME_NAMES[s.game] || s.game}</span>
                 <span className="score-value">{s.score.toLocaleString()}</span>
@@ -167,7 +167,7 @@ export default function AdminPanel() {
       <h1>Admin Panel</h1>
       <p className="admin-subtitle">Manage users on Alice's Fantastic — click a username to see details</p>
 
-      {selectedUser && <UserDetail username={selectedUser} onClose={() => setSelectedUser(null)} />}
+      {selectedUser && <UserDetail username={selectedUser} basicInfo={users.find(u => u.username === selectedUser)} onClose={() => setSelectedUser(null)} />}
 
       {loading ? (
         <p>Loading users...</p>

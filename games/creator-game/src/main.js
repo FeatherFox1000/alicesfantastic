@@ -142,10 +142,14 @@ class CreatorGame {
                     this.dragOffsetY = worldY - clickedObject.y;
                     this.saveToHistory();
                 } else if (!clickedObject) {
-                    // Place new object if not clicking on existing one
+                    // Place new object and start drag-to-place
+                    this.isPlacing = true;
+                    this.saveToHistory();
                     this.placeObject(e);
+                    this.lastPlacedGrid = this.getGridPos(e);
                 }
             } else if (this.mode === 'delete') {
+                this.isDeleting = true;
                 this.deleteObjectAtMouse(e);
             }
         });
@@ -160,14 +164,34 @@ class CreatorGame {
                 this.draggedObject.y = Math.floor((worldY - this.dragOffsetY) / this.gridSize) * this.gridSize;
 
                 this.render();
+            } else if (this.isPlacing && this.mode === 'build') {
+                // Drag to place blocks continuously
+                const gridPos = this.getGridPos(e);
+                if (!this.lastPlacedGrid || gridPos.gx !== this.lastPlacedGrid.gx || gridPos.gy !== this.lastPlacedGrid.gy) {
+                    const worldX = e.clientX - this.canvas.getBoundingClientRect().left + this.cameraX;
+                    const worldY = e.clientY - this.canvas.getBoundingClientRect().top + this.cameraY;
+                    if (!this.getObjectAt(worldX, worldY)) {
+                        this.placeObject(e);
+                    }
+                    this.lastPlacedGrid = gridPos;
+                }
+            } else if (this.isDeleting && this.mode === 'delete') {
+                this.deleteObjectAtMouse(e);
             }
         });
 
         this.canvas.addEventListener('mouseup', (e) => {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.draggedObject = null;
-            }
+            this.isDragging = false;
+            this.draggedObject = null;
+            this.isPlacing = false;
+            this.isDeleting = false;
+            this.lastPlacedGrid = null;
+        });
+
+        this.canvas.addEventListener('mouseleave', () => {
+            this.isPlacing = false;
+            this.isDeleting = false;
+            this.lastPlacedGrid = null;
         });
 
         // Keyboard controls
@@ -319,13 +343,18 @@ class CreatorGame {
         }
     }
 
+    getGridPos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return {
+            gx: Math.floor((e.clientX - rect.left + this.cameraX) / this.gridSize),
+            gy: Math.floor((e.clientY - rect.top + this.cameraY) / this.gridSize)
+        };
+    }
+
     placeObject(e) {
         const rect = this.canvas.getBoundingClientRect();
         let x = Math.floor((e.clientX - rect.left + this.cameraX) / this.gridSize) * this.gridSize;
         let y = Math.floor((e.clientY - rect.top + this.cameraY) / this.gridSize) * this.gridSize;
-
-        // Save current state to history before making changes
-        this.saveToHistory();
 
         const obj = {
             shape: this.selectedShape,
