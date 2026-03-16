@@ -99,14 +99,20 @@ function UserDetail({ username, basicInfo, onClose }) {
   );
 }
 
-const ADMIN_COLORS = [
-  '#7b14c9', '#e53e3e', '#3182ce', '#38a169', '#ed8936', '#d53f8c', '#2b6cb0', '#805ad5',
-];
+const ADMIN_COLOR_MAP = {
+  'LIESELTHEAWESOME': '#d53f8c',
+  'THE MAFIA PENGUIN': '#3182ce',
+  'DillonIsCool': '#e53e3e',
+  'warrior_cats': '#7b14c9',
+};
+
+const FALLBACK_COLORS = ['#38a169', '#ed8936', '#805ad5', '#2b6cb0', '#d69e2e', '#319795'];
 
 function getUserColor(name) {
+  if (ADMIN_COLOR_MAP[name]) return ADMIN_COLOR_MAP[name];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return ADMIN_COLORS[Math.abs(hash) % ADMIN_COLORS.length];
+  return FALLBACK_COLORS[Math.abs(hash) % FALLBACK_COLORS.length];
 }
 
 function AdminChat({ username }) {
