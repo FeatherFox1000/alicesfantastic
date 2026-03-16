@@ -14,6 +14,86 @@ function adminRequest(method, path) {
   }).then(r => r.json());
 }
 
+const GAME_NAMES = {
+  'jumping-penguin': 'Jumping Penguin',
+  'penguin-runner': 'Penguin Runner',
+  'tomato-hunter-v2': 'Tomato Hunter',
+};
+
+function UserDetail({ username, onClose }) {
+  const [info, setInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminRequest('GET', `/admin/user/${username}`).then(data => {
+      setInfo(data);
+      setLoading(false);
+    });
+  }, [username]);
+
+  if (loading) return <div className="user-modal-overlay" onClick={onClose}><div className="user-modal" onClick={e => e.stopPropagation()}><p>Loading...</p></div></div>;
+  if (info?.error) return <div className="user-modal-overlay" onClick={onClose}><div className="user-modal" onClick={e => e.stopPropagation()}><p>{info.error}</p></div></div>;
+
+  return (
+    <div className="user-modal-overlay" onClick={onClose}>
+      <div className="user-modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h2>{info.username}</h2>
+        <div className="user-detail-badges">
+          {info.is_admin ? <span className="admin-badge">Admin</span> : null}
+          {info.is_child ? <span className="child-badge">Child</span> : null}
+          {info.is_banned ? <span className="status-banned">Banned</span> : null}
+        </div>
+
+        <div className="user-detail-grid">
+          <div className="detail-item">
+            <span className="detail-label">Email</span>
+            <span className="detail-value">{info.email}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">Password Hash</span>
+            <span className="detail-value detail-hash">{info.password_hash}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">Joined</span>
+            <span className="detail-value">{info.created_at ? new Date(info.created_at + 'Z').toLocaleString() : 'Unknown'}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">Last Login</span>
+            <span className="detail-value">{info.last_login ? new Date(info.last_login + 'Z').toLocaleString() : 'Never'}</span>
+          </div>
+          {info.is_child ? (
+            <>
+              <div className="detail-item">
+                <span className="detail-label">Parent Email</span>
+                <span className="detail-value">{info.parent_email || 'None'}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Parent Consent</span>
+                <span className="detail-value">{info.parent_consent ? 'Approved' : 'Pending'}</span>
+              </div>
+            </>
+          ) : null}
+        </div>
+
+        <h3 className="scores-title">High Scores</h3>
+        {info.scores && info.scores.length > 0 ? (
+          <div className="scores-list">
+            {info.scores.map(s => (
+              <div key={s.game} className="score-item">
+                <span className="score-game">{GAME_NAMES[s.game] || s.game}</span>
+                <span className="score-value">{s.score.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="no-scores">No scores yet</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel() {
   const { user } = useAuth();
   const [users, setUsers] = useState(() => {
@@ -21,6 +101,7 @@ export default function AdminPanel() {
     return cached ? JSON.parse(cached) : [];
   });
   const [loading, setLoading] = useState(!sessionStorage.getItem('admin_users'));
+  const [selectedUser, setSelectedUser] = useState(null);
 
   async function loadUsers() {
     if (!users.length) setLoading(true);
@@ -34,10 +115,31 @@ export default function AdminPanel() {
 
   useEffect(() => { loadUsers(); }, []);
 
-  async function toggleBan(username, isBanned) {
-    const action = isBanned ? 'unban' : 'ban';
-    setUsers(prev => prev.map(u => u.username === username ? { ...u, is_banned: isBanned ? 0 : 1 } : u));
-    await adminRequest('POST', `/admin/${action}/${username}`);
+  const isOwner = user?.username === 'warrior_cats';
+
+  async function requestBan(username) {
+    if (isOwner) {
+      setUsers(prev => prev.map(u => u.username === username ? { ...u, is_banned: 1, ban_pending: 0 } : u));
+      await adminRequest('POST', `/admin/ban/${username}`);
+    } else {
+      setUsers(prev => prev.map(u => u.username === username ? { ...u, ban_pending: 1, ban_requested_by: user.username } : u));
+      await adminRequest('POST', `/admin/ban/${username}`);
+    }
+  }
+
+  async function confirmBan(username) {
+    setUsers(prev => prev.map(u => u.username === username ? { ...u, is_banned: 1, ban_pending: 0, ban_requested_by: null } : u));
+    await adminRequest('POST', `/admin/confirm-ban/${username}`);
+  }
+
+  async function denyBan(username) {
+    setUsers(prev => prev.map(u => u.username === username ? { ...u, ban_pending: 0, ban_requested_by: null } : u));
+    await adminRequest('POST', `/admin/deny-ban/${username}`);
+  }
+
+  async function unban(username) {
+    setUsers(prev => prev.map(u => u.username === username ? { ...u, is_banned: 0, ban_pending: 0, ban_requested_by: null } : u));
+    await adminRequest('POST', `/admin/unban/${username}`);
   }
 
   async function approveAccount(username) {
@@ -63,7 +165,9 @@ export default function AdminPanel() {
   return (
     <div className="admin-panel">
       <h1>Admin Panel</h1>
-      <p className="admin-subtitle">Manage users on Alice's Fantastic</p>
+      <p className="admin-subtitle">Manage users on Alice's Fantastic — click a username to see details</p>
+
+      {selectedUser && <UserDetail username={selectedUser} onClose={() => setSelectedUser(null)} />}
 
       {loading ? (
         <p>Loading users...</p>
@@ -75,6 +179,7 @@ export default function AdminPanel() {
                 <th>Username</th>
                 <th>Email</th>
                 <th>Joined</th>
+                <th>Last On</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
@@ -83,38 +188,44 @@ export default function AdminPanel() {
               {users.map(u => (
                 <tr key={u.id} className={u.is_banned ? 'banned-row' : ''}>
                   <td className="username-cell">
-                    {u.username}
+                    <span className="username-link" onClick={() => setSelectedUser(u.username)}>
+                      {u.username}
+                    </span>
                     {u.is_admin ? <span className="admin-badge">Admin</span> : null}
                     {u.is_child ? <span className="child-badge">Child</span> : null}
                   </td>
                   <td>{u.email}</td>
                   <td>{new Date(u.created_at + 'Z').toLocaleDateString()}</td>
+                  <td>{u.last_login ? new Date(u.last_login + 'Z').toLocaleDateString() : 'Never'}</td>
                   <td>
                     {u.is_banned
                       ? <span className="status-banned">Banned</span>
-                      : u.is_child && !u.parent_consent
-                        ? <span className="status-pending">Pending Approval</span>
-                        : <span className="status-active">Active</span>
+                      : u.ban_pending
+                        ? <span className="status-pending">Ban Pending (by {u.ban_requested_by})</span>
+                        : u.is_child && !u.parent_consent
+                          ? <span className="status-pending">Pending Approval</span>
+                          : <span className="status-active">Active</span>
                     }
                   </td>
                   <td className="action-cell">
                     {u.is_child && !u.parent_consent && (
-                      <button
-                        className="approve-btn"
-                        onClick={() => approveAccount(u.username)}
-                      >
-                        Approve
+                      <button className="approve-btn" onClick={() => approveAccount(u.username)}>Approve</button>
+                    )}
+                    {u.username !== user.username && !u.is_banned && !u.ban_pending && (
+                      <button className="ban-btn" onClick={() => requestBan(u.username)}>
+                        {isOwner ? 'Ban' : 'Request Ban'}
                       </button>
                     )}
-                    {u.username !== user.username && (
-                      <button
-                        className={u.is_banned ? 'unban-btn' : 'ban-btn'}
-                        onClick={() => toggleBan(u.username, u.is_banned)}
-                      >
-                        {u.is_banned ? 'Unban' : 'Ban'}
-                      </button>
+                    {u.ban_pending && isOwner && (
+                      <>
+                        <button className="ban-btn" onClick={() => confirmBan(u.username)}>Confirm Ban</button>
+                        <button className="unban-btn" onClick={() => denyBan(u.username)}>Deny</button>
+                      </>
                     )}
-                    {user.username === 'warrior_cats' && u.username !== 'warrior_cats' && (
+                    {u.is_banned && isOwner && (
+                      <button className="unban-btn" onClick={() => unban(u.username)}>Unban</button>
+                    )}
+                    {isOwner && u.username !== 'warrior_cats' && (
                       <button
                         className={u.is_admin ? 'remove-admin-btn' : 'make-admin-btn'}
                         onClick={() => toggleAdmin(u.username, u.is_admin)}

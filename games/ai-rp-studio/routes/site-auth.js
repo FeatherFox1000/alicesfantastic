@@ -30,6 +30,9 @@ db.exec(`
   );
 `);
 try { db.exec(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN last_login TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN ban_pending INTEGER DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN ban_requested_by TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN is_child INTEGER DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN parent_email TEXT`); } catch (e) {}
@@ -139,6 +142,7 @@ router.post('/login', (req, res) => {
   if (user.is_child && !user.parent_consent) {
     return res.status(403).json({ error: 'This account is waiting for parent/guardian approval. Please ask your parent to approve your account.' });
   }
+  db.prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?").run(user.id);
   res.json({ token: makeToken(user), username: user.username, email: user.email, is_admin: user.is_admin });
 });
 
@@ -181,20 +185,51 @@ function adminOnly(req, res, next) {
 
 // List all users (admin)
 router.get('/admin/users', adminOnly, (req, res) => {
-  const users = db.prepare('SELECT id, username, email, is_banned, is_admin, is_child, parent_consent, created_at FROM users ORDER BY created_at DESC').all();
+  const users = db.prepare('SELECT id, username, email, is_banned, is_admin, is_child, parent_consent, ban_pending, ban_requested_by, last_login, created_at FROM users ORDER BY created_at DESC').all();
   res.json(users);
 });
 
-// Ban a user (admin)
+// Get detailed info for a single user (admin)
+router.get('/admin/user/:username', adminOnly, (req, res) => {
+  const u = db.prepare('SELECT id, username, email, password_hash, is_banned, is_admin, is_child, parent_email, parent_consent, ban_pending, ban_requested_by, last_login, created_at FROM users WHERE username = ?').get(req.params.username);
+  if (!u) return res.status(404).json({ error: 'User not found.' });
+  const scores = db.prepare('SELECT game, score, created_at FROM scores WHERE user_id = ? ORDER BY game').all(u.id);
+  res.json({ ...u, scores });
+});
+
+// Ban a user — owner bans instantly, co-admins request a pending ban
 router.post('/admin/ban/:username', adminOnly, (req, res) => {
-  const result = db.prepare('UPDATE users SET is_banned = 1 WHERE username = ?').run(req.params.username);
+  const caller = getUser(req);
+  if (caller.username === 'warrior_cats') {
+    // Owner can instant-ban
+    const result = db.prepare('UPDATE users SET is_banned = 1, ban_pending = 0, ban_requested_by = NULL WHERE username = ?').run(req.params.username);
+    if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
+    res.json({ message: `${req.params.username} has been banned.` });
+  } else {
+    // Co-admin requests a pending ban
+    const result = db.prepare('UPDATE users SET ban_pending = 1, ban_requested_by = ? WHERE username = ?').run(caller.username, req.params.username);
+    if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
+    res.json({ message: `Ban request for ${req.params.username} sent to owner for approval.`, pending: true });
+  }
+});
+
+// Confirm a pending ban (owner only)
+router.post('/admin/confirm-ban/:username', ownerOnly, (req, res) => {
+  const result = db.prepare('UPDATE users SET is_banned = 1, ban_pending = 0, ban_requested_by = NULL WHERE username = ?').run(req.params.username);
   if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
   res.json({ message: `${req.params.username} has been banned.` });
 });
 
-// Unban a user (admin)
-router.post('/admin/unban/:username', adminOnly, (req, res) => {
-  const result = db.prepare('UPDATE users SET is_banned = 0 WHERE username = ?').run(req.params.username);
+// Deny a pending ban (owner only)
+router.post('/admin/deny-ban/:username', ownerOnly, (req, res) => {
+  const result = db.prepare('UPDATE users SET ban_pending = 0, ban_requested_by = NULL WHERE username = ?').run(req.params.username);
+  if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
+  res.json({ message: `Ban request for ${req.params.username} has been denied.` });
+});
+
+// Unban a user (owner only)
+router.post('/admin/unban/:username', ownerOnly, (req, res) => {
+  const result = db.prepare('UPDATE users SET is_banned = 0, ban_pending = 0, ban_requested_by = NULL WHERE username = ?').run(req.params.username);
   if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
   res.json({ message: `${req.params.username} has been unbanned.` });
 });
