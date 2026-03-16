@@ -147,6 +147,85 @@
       max-height: 100%;
     }
 
+    .logo-canvas-wrap {
+      position: relative;
+      background: white;
+      border-radius: 8px;
+      border: 2px solid #eee;
+      overflow: hidden;
+    }
+
+    #logoCanvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      cursor: crosshair;
+    }
+
+    .logo-tools {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .logo-tools button {
+      padding: 4px 8px;
+      border: 2px solid #eee;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 0.6rem;
+      color: #555;
+      transition: all 0.15s;
+    }
+
+    .logo-tools button:hover {
+      border-color: #f48fb1;
+      background: #fce4ec;
+    }
+
+    .logo-tools button.active {
+      border-color: #ad1457;
+      background: #fce4ec;
+      color: #ad1457;
+      font-weight: bold;
+    }
+
+    .brush-sizes {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+      align-items: center;
+    }
+
+    .brush-size-btn {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #eee;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .brush-size-btn:hover {
+      border-color: #f48fb1;
+    }
+
+    .brush-size-btn.active {
+      border-color: #ad1457;
+      background: #fce4ec;
+    }
+
+    .brush-dot {
+      border-radius: 50%;
+      background: #333;
+    }
+
     .save-btn {
       display: block;
       margin: 0 auto;
@@ -207,6 +286,27 @@
       </div>
 
       <div class="control-group">
+        <h3>Logo</h3>
+        <div class="color-row">
+          <label>Color</label>
+          <input type="color" id="drawColor" value="#ffffff">
+        </div>
+        <div class="logo-canvas-wrap">
+          <canvas id="logoCanvas" width="120" height="120"></canvas>
+        </div>
+        <div class="logo-tools">
+          <button class="logo-tool-btn active" data-tool="draw">Draw</button>
+          <button class="logo-tool-btn" data-tool="erase">Erase</button>
+          <button id="clearLogo">Clear</button>
+        </div>
+        <div class="brush-sizes">
+          <button class="brush-size-btn" data-size="2"><span class="brush-dot" style="width:4px;height:4px"></span></button>
+          <button class="brush-size-btn active" data-size="4"><span class="brush-dot" style="width:7px;height:7px"></span></button>
+          <button class="brush-size-btn" data-size="8"><span class="brush-dot" style="width:11px;height:11px"></span></button>
+        </div>
+      </div>
+
+      <div class="control-group">
         <h3>Bow</h3>
         <div class="color-row">
           <label>Color</label>
@@ -260,6 +360,71 @@ document.querySelectorAll('.bow-btn').forEach(btn => {
     draw();
   });
 });
+
+// Logo drawing canvas
+const logoCanvas = document.getElementById('logoCanvas');
+const logoCtx = logoCanvas.getContext('2d');
+let drawingColor = '#ffffff';
+let drawTool = 'draw';
+let brushSize = 4;
+let isDrawing = false;
+
+logoCtx.fillStyle = 'transparent';
+logoCtx.clearRect(0, 0, 120, 120);
+
+document.getElementById('drawColor').addEventListener('input', e => { drawingColor = e.target.value; });
+
+document.querySelectorAll('.logo-tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.logo-tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    drawTool = btn.dataset.tool;
+  });
+});
+
+document.querySelectorAll('.brush-size-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.brush-size-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    brushSize = parseInt(btn.dataset.size);
+  });
+});
+
+document.getElementById('clearLogo').addEventListener('click', () => {
+  logoCtx.clearRect(0, 0, 120, 120);
+  draw();
+});
+
+function getLogoPos(e) {
+  const rect = logoCanvas.getBoundingClientRect();
+  const scaleX = 120 / rect.width;
+  const scaleY = 120 / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+function logoDrawAt(pos) {
+  logoCtx.beginPath();
+  if (drawTool === 'erase') {
+    logoCtx.globalCompositeOperation = 'destination-out';
+    logoCtx.arc(pos.x, pos.y, brushSize + 2, 0, Math.PI * 2);
+    logoCtx.fill();
+    logoCtx.globalCompositeOperation = 'source-over';
+  } else {
+    logoCtx.fillStyle = drawingColor;
+    logoCtx.arc(pos.x, pos.y, brushSize, 0, Math.PI * 2);
+    logoCtx.fill();
+  }
+}
+
+logoCanvas.addEventListener('mousedown', e => { isDrawing = true; logoDrawAt(getLogoPos(e)); });
+logoCanvas.addEventListener('mousemove', e => { if (isDrawing) { logoDrawAt(getLogoPos(e)); draw(); } });
+logoCanvas.addEventListener('mouseup', () => { isDrawing = false; draw(); });
+logoCanvas.addEventListener('mouseleave', () => { isDrawing = false; });
+logoCanvas.addEventListener('touchstart', e => { e.preventDefault(); isDrawing = true; logoDrawAt(getLogoPos(e)); });
+logoCanvas.addEventListener('touchmove', e => { e.preventDefault(); if (isDrawing) { logoDrawAt(getLogoPos(e)); draw(); } });
+logoCanvas.addEventListener('touchend', () => { isDrawing = false; draw(); });
 
 document.getElementById('saveBtn').addEventListener('click', () => {
   const link = document.createElement('a');
@@ -595,6 +760,23 @@ function draw() {
   // Front face
   drawWrappingPaper(boxX, boxY, boxW, boxH);
 
+  // Draw logo on front face
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(boxX, boxY, boxW, boxH);
+  ctx.clip();
+  const logoSize = 50;
+  const logoSpacing = 70;
+  for (let row = 0; row < boxH / logoSpacing + 1; row++) {
+    for (let col = 0; col < boxW / logoSpacing + 1; col++) {
+      const offsetX = row % 2 === 0 ? 0 : logoSpacing / 2;
+      const lx = boxX + col * logoSpacing + offsetX + 10;
+      const ly = boxY + row * logoSpacing + 10;
+      ctx.drawImage(logoCanvas, lx, ly, logoSize, logoSize);
+    }
+  }
+  ctx.restore();
+
   // Darker right side (3D effect)
   ctx.save();
   ctx.beginPath();
@@ -629,6 +811,18 @@ function draw() {
 
   // Lid front face
   drawWrappingPaper(lidX, lidY, lidW, lidH);
+
+  // Draw logo on lid front
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(lidX, lidY, lidW, lidH);
+  ctx.clip();
+  for (let col = 0; col < lidW / logoSpacing + 1; col++) {
+    const lx = lidX + col * logoSpacing + 10;
+    const ly = lidY - 5;
+    ctx.drawImage(logoCanvas, lx, ly, logoSize * 0.5, logoSize * 0.5);
+  }
+  ctx.restore();
 
   // Lid right side
   ctx.save();
