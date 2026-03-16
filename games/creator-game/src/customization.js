@@ -1,3 +1,5 @@
+import { toast, confirmDialog, promptDialog } from './notify.js';
+
 // Custom Shape Editor
 export class ShapeEditor {
     constructor(game) {
@@ -432,13 +434,13 @@ export class CharacterCustomizer {
         this.render();
     }
 
-    deleteFrame() {
+    async deleteFrame() {
         if (this.frames.length <= 1) {
-            alert('You must have at least one frame!');
+            toast('You must have at least one frame!');
             return;
         }
 
-        if (confirm('Delete this frame?')) {
+        if (await confirmDialog('Delete this frame?')) {
             this.frames.splice(this.currentFrameIndex, 1);
             if (this.currentFrameIndex >= this.frames.length) {
                 this.currentFrameIndex = this.frames.length - 1;
@@ -490,7 +492,7 @@ export class CharacterCustomizer {
         nextBtn.disabled = this.currentFrameIndex === this.frames.length - 1;
     }
 
-    saveCharacter() {
+    async saveCharacter() {
         // Calculate bounding box from all frames
         let minX = this.gridSize, maxX = 0, minY = this.gridSize, maxY = 0;
         let hasBlocks = false;
@@ -510,15 +512,15 @@ export class CharacterCustomizer {
         }
 
         if (!hasBlocks) {
-            alert('Please draw your character first!');
+            toast('Please draw your character first!');
             return;
         }
 
         // Ask if user wants to save as template
-        const saveAsTemplate = confirm('Would you like to save this character as a template for future use?');
+        const saveAsTemplate = await confirmDialog('Save this character as a template for future use?');
 
         if (saveAsTemplate) {
-            const templateName = prompt('Enter a name for your character template:', 'My Character');
+            const templateName = await promptDialog('Enter a name for your character template:', 'My Character');
             if (templateName) {
                 const templateData = {
                     name: templateName,
@@ -556,10 +558,10 @@ export class CharacterCustomizer {
 
         this.closeCustomizer();
         const frameText = this.frames.length > 1 ? ` with ${this.frames.length} animation frames` : '';
-        alert(`Character saved successfully${frameText}!`);
+        toast(`Character saved${frameText}!`);
     }
 
-    saveTemplate() {
+    async saveTemplate() {
         let hasBlocks = false;
         for (const frame of this.frames) {
             for (let y = 0; y < this.gridSize; y++) {
@@ -575,11 +577,11 @@ export class CharacterCustomizer {
         }
 
         if (!hasBlocks) {
-            alert('Please draw your character first!');
+            toast('Please draw your character first!');
             return;
         }
 
-        const templateName = prompt('Enter a name for your character template:', 'My Character');
+        const templateName = await promptDialog('Enter a name for your character template:', 'My Character');
         if (!templateName) return;
 
         const templateData = {
@@ -605,7 +607,7 @@ export class CharacterCustomizer {
 
         URL.revokeObjectURL(url);
 
-        alert('Character template saved successfully!');
+        toast('Character template saved!');
     }
 
     getSavedTemplates() {
@@ -706,7 +708,7 @@ export class CharacterCustomizer {
         this.updateFrameIndicator();
         this.render();
         this.closeLoadTemplateModal();
-        alert(`Character template "${template.name}" loaded successfully!`);
+        toast(`Template "${template.name}" loaded!`);
     }
 
     downloadTemplate(template) {
@@ -722,8 +724,8 @@ export class CharacterCustomizer {
         URL.revokeObjectURL(url);
     }
 
-    deleteTemplate(templateId) {
-        if (!confirm('Are you sure you want to delete this character template?')) return;
+    async deleteTemplate(templateId) {
+        if (!await confirmDialog('Delete this character template?')) return;
 
         const savedTemplates = this.getSavedTemplates();
         const filtered = savedTemplates.filter(t => t.id !== templateId);
@@ -749,9 +751,9 @@ export class CharacterCustomizer {
                     this.updateFrameIndicator();
                     this.render();
                     this.closeLoadTemplateModal();
-                    alert('Character template loaded successfully!');
+                    toast('Character template loaded!');
                 } catch (error) {
-                    alert('Error loading character template file!');
+                    toast('Error loading template file!');
                 }
             };
 

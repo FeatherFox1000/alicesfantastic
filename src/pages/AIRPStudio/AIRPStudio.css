@@ -402,6 +402,30 @@
   padding: 1rem;
   overflow-y: auto;
   gap: 0.75rem;
+  transition: width 0.2s ease;
+}
+.airp-sidebar-collapsed {
+  width: 48px !important;
+  padding: 0.5rem;
+  align-items: center;
+}
+.airp-sidebar-collapse-btn {
+  background: rgba(90, 61, 138, 0.3);
+  border: 1px solid #5a3d8a;
+  color: #c9b3f5;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  align-self: flex-end;
+}
+.airp-sidebar-collapsed .airp-sidebar-collapse-btn {
+  align-self: center;
+}
+.airp-sidebar-collapse-btn:hover {
+  background: rgba(192, 132, 252, 0.3);
+  color: #ffd700;
 }
 .airp-sidebar-back { margin-bottom: 0; font-size: 0.9rem; }
 .airp-char-info { text-align: center; padding: 0.75rem; background: rgba(90, 61, 138, 0.2); border-radius: 0.75rem; }

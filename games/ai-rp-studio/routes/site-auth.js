@@ -268,6 +268,34 @@ router.post('/admin/remove-admin/:username', ownerOnly, (req, res) => {
   res.json({ message: `${req.params.username} is no longer an admin.` });
 });
 
+// --- Admin Chat ---
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admin_chat (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+`);
+
+// Get chat messages (admin only)
+router.get('/admin/chat', adminOnly, (req, res) => {
+  const messages = db.prepare('SELECT id, username, message, created_at FROM admin_chat ORDER BY id DESC LIMIT 100').all();
+  res.json(messages.reverse());
+});
+
+// Send a chat message (admin only)
+router.post('/admin/chat', adminOnly, (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const { message } = req.body;
+  if (!message || !message.trim()) return res.status(400).json({ error: 'Message is required.' });
+  const result = db.prepare('INSERT INTO admin_chat (user_id, username, message) VALUES (?, ?, ?)').run(user.id, user.username, message.trim());
+  res.json({ id: result.lastInsertRowid, username: user.username, message: message.trim(), created_at: new Date().toISOString() });
+});
+
 // --- Leaderboard ---
 const VALID_GAMES = ['jumping-penguin', 'penguin-runner', 'tomato-hunter-v2'];
 

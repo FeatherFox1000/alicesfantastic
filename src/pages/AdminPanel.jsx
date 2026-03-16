@@ -1,17 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './AdminPanel.css';
 
 const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:3001/api/auth'
+  ? 'http://localhost:3003/api/site-auth'
   : 'https://ai-rp-studio.fly.dev/api/site-auth';
 
-function adminRequest(method, path) {
+function adminRequest(method, path, body) {
   const token = localStorage.getItem('site_token');
-  return fetch(API_BASE + path, {
+  const opts = {
     method,
     headers: { 'Authorization': `Bearer ${token}` },
-  }).then(r => r.json());
+  };
+  if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  return fetch(API_BASE + path, opts).then(r => r.json());
 }
 
 const GAME_NAMES = {
@@ -90,6 +95,66 @@ function UserDetail({ username, basicInfo, onClose }) {
           <p className="no-scores">No scores yet</p>
         )}
       </div>
+    </div>
+  );
+}
+
+function AdminChat({ username }) {
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState('');
+  const chatEndRef = useRef(null);
+
+  async function loadMessages() {
+    const data = await adminRequest('GET', '/admin/chat');
+    if (Array.isArray(data)) setMessages(data);
+  }
+
+  useEffect(() => {
+    loadMessages();
+    const interval = setInterval(loadMessages, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  async function sendMessage(e) {
+    e.preventDefault();
+    if (!text.trim()) return;
+    const msg = text.trim();
+    setText('');
+    const result = await adminRequest('POST', '/admin/chat', { message: msg });
+    if (result.id) {
+      setMessages(prev => [...prev, result]);
+    }
+  }
+
+  return (
+    <div className="admin-chat">
+      <h2>Admin Chat</h2>
+      <div className="chat-messages">
+        {messages.length === 0 && <p className="chat-empty">No messages yet — say hi!</p>}
+        {messages.map(m => (
+          <div key={m.id} className={`chat-msg ${m.username === username ? 'chat-msg-mine' : ''}`}>
+            <span className="chat-author">{m.username}</span>
+            <span className="chat-text">{m.message}</span>
+            <span className="chat-time">{new Date(m.created_at + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        ))}
+        <div ref={chatEndRef} />
+      </div>
+      <form className="chat-input-row" onSubmit={sendMessage}>
+        <input
+          type="text"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="Type a message..."
+          className="chat-input"
+          maxLength={500}
+        />
+        <button type="submit" className="chat-send-btn">Send</button>
+      </form>
     </div>
   );
 }
@@ -241,6 +306,8 @@ export default function AdminPanel() {
           <p className="user-count">{users.length} total user{users.length !== 1 ? 's' : ''}</p>
         </div>
       )}
+
+      <AdminChat username={user.username} />
     </div>
   );
 }

@@ -111,6 +111,7 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
   const [loadingInspo, setLoadingInspo] = useState(false);
   const [storyStyle, setStoryStyle] = useState('standard');
   const [showStylePicker, setShowStylePicker] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -296,97 +297,104 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
   return (
     <div className="airp-chat-page">
       {/* Sidebar */}
-      <div className="airp-sidebar">
-        <button className="airp-back-btn airp-sidebar-back" onClick={onBack}>← Characters</button>
-
-        <div className="airp-char-info">
-          <div className="airp-char-avatar">🐾</div>
-          <h3>{character.name}</h3>
-          <p className="airp-world-name">🌍 {character.world_name}</p>
-          <button className="airp-edit-char-btn" onClick={() => onEditCharacter(character)}>
-            ✏️ Edit Character
-          </button>
-        </div>
-
-        <button className="airp-btn-primary airp-new-adventure-btn" onClick={newAdventure}>
-          ✨ New Adventure
+      <div className={`airp-sidebar ${sidebarOpen ? '' : 'airp-sidebar-collapsed'}`}>
+        <button className="airp-sidebar-collapse-btn" onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
+          {sidebarOpen ? '◀' : '▶'}
         </button>
+        {sidebarOpen && <button className="airp-back-btn airp-sidebar-back" onClick={onBack}>← Characters</button>}
 
-        <div className="airp-sidebar-section">
-          <button
-            className="airp-sidebar-toggle"
-            onClick={() => setShowHistory(!showHistory)}
-          >
-            📖 Adventures {showHistory ? '▲' : '▼'}
-          </button>
-          {showHistory && (
-            <div className="airp-session-list">
-              {loadingSessions && <p className="airp-loading-text">Loading...</p>}
-              {sessions.map(s => (
-                <div
-                  key={s.id}
-                  className={`airp-session-item ${activeSession?.id === s.id ? 'active' : ''}`}
-                  onClick={() => renamingId !== s.id && loadSession(s)}
-                >
-                  {renamingId === s.id ? (
-                    <input
-                      className="airp-rename-input"
-                      value={renameValue}
-                      onChange={e => setRenameValue(e.target.value)}
-                      onBlur={() => commitRename(s.id)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') commitRename(s.id);
-                        if (e.key === 'Escape') setRenamingId(null);
-                      }}
-                      onClick={e => e.stopPropagation()}
-                      autoFocus
-                    />
-                  ) : (
-                    <>
-                      <span className="airp-session-title" onDoubleClick={e => startRename(s, e)} title="Double-click to rename">{s.title}</span>
-                      <span className="airp-session-date">{new Date(s.updated_at).toLocaleDateString()}</span>
-                      <div className="airp-session-btns">
-                        <button className="airp-mini-btn" onClick={e => startRename(s, e)} title="Rename">✏️</button>
-                        <button className="airp-mini-btn" onClick={e => deleteSession(s.id, e)} title="Delete">🗑</button>
-                      </div>
-                    </>
+        {sidebarOpen && (
+          <>
+            <div className="airp-char-info">
+              <div className="airp-char-avatar">🐾</div>
+              <h3>{character.name}</h3>
+              <p className="airp-world-name">🌍 {character.world_name}</p>
+              <button className="airp-edit-char-btn" onClick={() => onEditCharacter(character)}>
+                ✏️ Edit Character
+              </button>
+            </div>
+
+            <button className="airp-btn-primary airp-new-adventure-btn" onClick={newAdventure}>
+              ✨ New Adventure
+            </button>
+
+            <div className="airp-sidebar-section">
+              <button
+                className="airp-sidebar-toggle"
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                📖 Adventures {showHistory ? '▲' : '▼'}
+              </button>
+              {showHistory && (
+                <div className="airp-session-list">
+                  {loadingSessions && <p className="airp-loading-text">Loading...</p>}
+                  {sessions.map(s => (
+                    <div
+                      key={s.id}
+                      className={`airp-session-item ${activeSession?.id === s.id ? 'active' : ''}`}
+                      onClick={() => renamingId !== s.id && loadSession(s)}
+                    >
+                      {renamingId === s.id ? (
+                        <input
+                          className="airp-rename-input"
+                          value={renameValue}
+                          onChange={e => setRenameValue(e.target.value)}
+                          onBlur={() => commitRename(s.id)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') commitRename(s.id);
+                            if (e.key === 'Escape') setRenamingId(null);
+                          }}
+                          onClick={e => e.stopPropagation()}
+                          autoFocus
+                        />
+                      ) : (
+                        <>
+                          <span className="airp-session-title" onDoubleClick={e => startRename(s, e)} title="Double-click to rename">{s.title}</span>
+                          <span className="airp-session-date">{new Date(s.updated_at).toLocaleDateString()}</span>
+                          <div className="airp-session-btns">
+                            <button className="airp-mini-btn" onClick={e => startRename(s, e)} title="Rename">✏️</button>
+                            <button className="airp-mini-btn" onClick={e => deleteSession(s.id, e)} title="Delete">🗑</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  {!loadingSessions && sessions.length === 0 && (
+                    <p className="airp-loading-text">No adventures yet!</p>
                   )}
                 </div>
-              ))}
-              {!loadingSessions && sessions.length === 0 && (
-                <p className="airp-loading-text">No adventures yet!</p>
               )}
             </div>
-          )}
-        </div>
 
-        <div className="airp-sidebar-section">
-          <button
-            className="airp-sidebar-toggle"
-            onClick={() => setShowMemoryBook(true)}
-          >
-            🧠 Memory Book ({memories.length})
-          </button>
-        </div>
+            <div className="airp-sidebar-section">
+              <button
+                className="airp-sidebar-toggle"
+                onClick={() => setShowMemoryBook(true)}
+              >
+                🧠 Memory Book ({memories.length})
+              </button>
+            </div>
 
-        {snapshots.length > 0 && (
-          <div className="airp-sidebar-section">
-            <button
-              className="airp-sidebar-toggle"
-              onClick={() => setShowSnapshots(!showSnapshots)}
-            >
-              ⭐ Character Growth {showSnapshots ? '▲' : '▼'}
-            </button>
-            {showSnapshots && (
-              <div className="airp-snapshot-list">
-                {snapshots.map(s => (
-                  <div key={s.id} className="airp-snapshot-item">
-                    <span>{s.summary}</span>
+            {snapshots.length > 0 && (
+              <div className="airp-sidebar-section">
+                <button
+                  className="airp-sidebar-toggle"
+                  onClick={() => setShowSnapshots(!showSnapshots)}
+                >
+                  ⭐ Character Growth {showSnapshots ? '▲' : '▼'}
+                </button>
+                {showSnapshots && (
+                  <div className="airp-snapshot-list">
+                    {snapshots.map(s => (
+                      <div key={s.id} className="airp-snapshot-item">
+                        <span>{s.summary}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
