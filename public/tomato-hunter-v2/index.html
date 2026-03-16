@@ -191,35 +191,35 @@ const LEVELS = [
     platforms: [
       { x:0,   y:440, w:220, h:40 },   // left ground
       { x:634, y:440, w:220, h:40 },   // right ground
-      // Left tower — gap on left side so player can jump up along the wall
-      { x:120, y:368, w:140, h:18 },
-      { x:45,  y:290, w:185, h:18 },
-      { x:90,  y:210, w:140, h:18 },
-      { x:50,  y:135, w:180, h:18 },
+      // Left tower — zigzag staircase up
+      { x:110, y:370, w:130, h:18 },
+      { x:20,  y:300, w:130, h:18 },
+      { x:110, y:230, w:130, h:18 },
+      { x:20,  y:160, w:210, h:18 },
       // Bridge connects the two towers
-      { x:230, y:135, w:394, h:18 },
-      // Right tower — mirrored layout (gap on right side)
-      { x:624, y:135, w:180, h:18 },
-      { x:624, y:210, w:140, h:18 },
-      { x:624, y:290, w:185, h:18 },
-      { x:594, y:368, w:140, h:18 },
+      { x:230, y:160, w:394, h:18 },
+      // Right tower — zigzag staircase up (mirrored)
+      { x:624, y:160, w:210, h:18 },
+      { x:624, y:230, w:130, h:18 },
+      { x:714, y:300, w:130, h:18 },
+      { x:624, y:370, w:130, h:18 },
     ],
     // Moving platform oscillates horizontally in the mid-gap,
     // giving players an alternative route or bonus collectible platform.
     dynPlats: [
-      { ox:337, oy:285, w:150, h:16, ax:80, ay:0, freq:0.012, phase:0 },
+      { ox:337, oy:300, w:150, h:16, ax:80, ay:0, freq:0.012, phase:0 },
     ],
     enemies: [
-      { x:70,  y:290-EH, left:45,  right:206, speed:0.45, dir: 1 },
-      { x:700, y:290-EH, left:624, right:785, speed:0.45, dir:-1 },
+      { x:50,  y:300-EH, left:20,  right:126, speed:0.45, dir: 1 },
+      { x:740, y:300-EH, left:714, right:820, speed:0.45, dir:-1 },
     ],
     spikes: [],
     tomatoes: [
-      { x:95,  y:416 }, { x:700, y:416 },
-      { x:95,  y:344 }, { x:740, y:344 },
-      { x:60,  y:266 }, { x:710, y:266 },
-      { x:60,  y:111 }, { x:740, y:111 },
-      { x:420, y:111 },
+      { x:95,  y:416 }, { x:720, y:416 },
+      { x:150, y:346 }, { x:660, y:346 },
+      { x:50,  y:276 }, { x:760, y:276 },
+      { x:150, y:206 }, { x:660, y:206 },
+      { x:420, y:136 },
     ],
     playerStart: { x:50, y:389 },
   },
@@ -339,7 +339,7 @@ const LEVELS = [
 // ── PHYSICS ───────────────────────────────────────────
 const GRAVITY    = 0.45;
 const JUMP_FORCE = -11.5;
-const MOVE_SPEED = 4.5;
+const MOVE_SPEED = 7;
 const PW = 36, PH = 51;
 
 // ── GAME STATE ────────────────────────────────────────
