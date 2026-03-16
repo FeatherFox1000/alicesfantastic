@@ -99,6 +99,16 @@ function UserDetail({ username, basicInfo, onClose }) {
   );
 }
 
+const ADMIN_COLORS = [
+  '#7b14c9', '#e53e3e', '#3182ce', '#38a169', '#ed8936', '#d53f8c', '#2b6cb0', '#805ad5',
+];
+
+function getUserColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return ADMIN_COLORS[Math.abs(hash) % ADMIN_COLORS.length];
+}
+
 function AdminChat({ username }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -136,8 +146,8 @@ function AdminChat({ username }) {
       <div className="chat-messages">
         {messages.length === 0 && <p className="chat-empty">No messages yet — say hi!</p>}
         {messages.map(m => (
-          <div key={m.id} className={`chat-msg ${m.username === username ? 'chat-msg-mine' : ''}`}>
-            <span className="chat-author">{m.username}</span>
+          <div key={m.id} className={`chat-msg ${m.username === username ? 'chat-msg-mine' : ''}`} style={m.username !== username ? { background: getUserColor(m.username) + '18', borderLeft: `3px solid ${getUserColor(m.username)}` } : undefined}>
+            <span className="chat-author" style={{ color: m.username === username ? undefined : getUserColor(m.username) }}>{m.username}</span>
             <span className="chat-text">{m.message}</span>
             <span className="chat-time">{new Date(m.created_at + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>

@@ -10,7 +10,8 @@ const router = express.Router();
 const JWT_SECRET = process.env.SITE_JWT_SECRET || 'alicesfantastic-secret-change-in-prod';
 
 // Site-wide auth uses its own database, separate from The Sandbox
-const dataDir = fs.existsSync('/data') ? '/data' : path.join(__dirname, '..', 'data');
+// On Fly.io use /data (persistent volume), locally use server/data to share with visitor-tracker
+const dataDir = fs.existsSync('/data') ? '/data' : path.join(__dirname, '..', '..', '..', 'server', 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 const db = new Database(path.join(dataDir, 'site-auth.db'));
 
