@@ -103,10 +103,30 @@ export class CustomizationSystem {
         this.previewCanvas = null;
         this.previewCtx = null;
         this.selectedStarterItem = null;
+        this.isAdmin = false;
 
+        this.checkAdminStatus();
         this.setupEventListeners();
         this.updateCoinDisplay();
         this.checkFirstTimePlayer();
+    }
+
+    async checkAdminStatus() {
+        try {
+            const token = localStorage.getItem('site_token');
+            if (!token) return;
+            const API_BASE = window.location.hostname === 'localhost'
+                ? 'http://localhost:3003/api/site-auth'
+                : 'https://ai-rp-studio.fly.dev/api/site-auth';
+            const res = await fetch(API_BASE + '/me', {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (data.is_admin) {
+                this.isAdmin = true;
+                this.populateCustomizationOptions();
+            }
+        } catch {}
     }
 
     setupEventListeners() {
@@ -313,7 +333,7 @@ export class CustomizationSystem {
         const colorContainer = document.getElementById('color-options');
         colorContainer.innerHTML = '';
         CUSTOMIZATION_ITEMS.colors.forEach(color => {
-            const unlocked = this.inventory.colors.includes(color.id);
+            const unlocked = this.isAdmin || this.inventory.colors.includes(color.id);
             const item = document.createElement('div');
             item.className = `option-item ${this.currentCustomization.color === color.id ? 'selected' : ''} ${!unlocked ? 'locked' : ''}`;
             item.innerHTML = `
@@ -343,7 +363,7 @@ export class CustomizationSystem {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
         CUSTOMIZATION_ITEMS[categoryKey].forEach(item => {
-            const unlocked = this.inventory[categoryKey].includes(item.id);
+            const unlocked = this.isAdmin || this.inventory[categoryKey].includes(item.id);
             const optionDiv = document.createElement('div');
             optionDiv.className = `option-item ${this.currentCustomization[customizationKey] === item.id ? 'selected' : ''} ${!unlocked ? 'locked' : ''}`;
             optionDiv.innerHTML = `
@@ -363,54 +383,208 @@ export class CustomizationSystem {
         this.drawPreview();
     }
 
-    drawPreview() {
-        // Clear canvas
-        this.previewCtx.fillStyle = '#f0f0f0';
-        this.previewCtx.fillRect(0, 0, 200, 200);
+    darkenColor(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) - amt;
+        const G = (num >> 8 & 0x00FF) - amt;
+        const B = (num & 0x0000FF) - amt;
+        return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+            (B < 255 ? B < 1 ? 0 : B : 255))
+            .toString(16).slice(1);
+    }
 
-        // Get current color
+    drawPreview() {
+        const ctx = this.previewCtx;
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, 200, 200);
+
         const colorItem = CUSTOMIZATION_ITEMS.colors.find(c => c.id === this.currentCustomization.color);
         const color = colorItem ? colorItem.color : '#FF6B6B';
+        const darker = this.darkenColor(color, 20);
+        const darkPaw = this.darkenColor(color, 40);
 
-        // Draw simplified dog at center
-        const x = 80;
-        const y = 80;
-        const scale = 2;
+        // Draw a cute dog centered in the 200x200 canvas
+        const cx = 100, cy = 105;
 
-        // Body
-        this.previewCtx.fillStyle = color;
-        this.previewCtx.fillRect(x, y + 12 * scale, 40 * scale, 28 * scale);
+        // Tail (starts from back of body)
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - 42, cy);
+        ctx.quadraticCurveTo(cx - 60, cy - 15, cx - 52, cy - 35);
+        ctx.stroke();
+        ctx.lineCap = 'butt';
 
-        // Head
-        this.previewCtx.fillRect(x + 22 * scale, y, 15 * scale, 15 * scale);
+        // Tail tip
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(cx - 52, cy - 37, 7, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Apply pattern
-        if (this.currentCustomization.pattern === 'spots') {
-            this.previewCtx.fillStyle = 'rgba(0,0,0,0.3)';
-            this.previewCtx.beginPath();
-            this.previewCtx.arc(x + 10, y + 30, 5, 0, Math.PI * 2);
-            this.previewCtx.arc(x + 50, y + 40, 6, 0, Math.PI * 2);
-            this.previewCtx.arc(x + 30, y + 50, 4, 0, Math.PI * 2);
-            this.previewCtx.fill();
-        } else if (this.currentCustomization.pattern === 'sparkle') {
-            this.previewCtx.fillStyle = '#FFD700';
-            this.previewCtx.font = '20px Arial';
-            this.previewCtx.fillText('✨', x + 5, y + 35);
-            this.previewCtx.fillText('✨', x + 45, y + 50);
+        // Body (rounded rectangle)
+        ctx.fillStyle = color;
+        const bx = cx - 45, by = cy - 15, bw = 90, bh = 55;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, 12);
+        ctx.fill();
+
+        // Legs
+        ctx.fillStyle = color;
+        ctx.fillRect(cx - 32, cy + 35, 14, 25);
+        ctx.fillRect(cx + 18, cy + 35, 14, 25);
+        // Back legs (slightly behind)
+        ctx.fillStyle = darker;
+        ctx.fillRect(cx - 22, cy + 32, 12, 22);
+        ctx.fillRect(cx + 10, cy + 32, 12, 22);
+
+        // Paws
+        ctx.fillStyle = darkPaw;
+        ctx.beginPath();
+        ctx.roundRect(cx - 34, cy + 57, 18, 8, 4);
+        ctx.roundRect(cx + 16, cy + 57, 18, 8, 4);
+        ctx.fill();
+
+        // Head (big and round)
+        const hx = cx + 30, hy = cy - 25;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(hx - 22, hy - 22, 52, 48, 14);
+        ctx.fill();
+
+        // Floppy ears (hanging down from sides of head)
+        ctx.fillStyle = darker;
+        // Left ear
+        ctx.beginPath();
+        ctx.ellipse(hx - 22, hy - 1, 9, 20, 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        // Right ear
+        ctx.beginPath();
+        ctx.ellipse(hx + 30, hy - 1, 9, 20, -0.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner ears
+        ctx.fillStyle = this.darkenColor(color, 35);
+        ctx.beginPath();
+        ctx.ellipse(hx - 20, hy + 1, 5, 14, 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(hx + 28, hy + 1, 5, 14, -0.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Snout (lighter bump)
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.ellipse(hx + 4, hy + 10, 16, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Eyes
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(hx - 6, hy - 2, 9, 0, Math.PI * 2);
+        ctx.arc(hx + 16, hy - 2, 9, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pupils
+        ctx.fillStyle = '#222';
+        ctx.beginPath();
+        ctx.arc(hx - 3, hy - 1, 5, 0, Math.PI * 2);
+        ctx.arc(hx + 19, hy - 1, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye shine
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(hx - 5, hy - 4, 2, 0, Math.PI * 2);
+        ctx.arc(hx + 17, hy - 4, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Nose
+        ctx.fillStyle = '#222';
+        ctx.beginPath();
+        ctx.ellipse(hx + 5, hy + 10, 6, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Nose shine
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(hx + 4, hy + 8, 2, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mouth
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(hx + 5, hy + 15);
+        ctx.lineTo(hx + 5, hy + 18);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(hx - 1, hy + 18, 6, 0, Math.PI * 0.9);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(hx + 11, hy + 18, 6, Math.PI * 0.1, Math.PI);
+        ctx.stroke();
+
+        // Tongue
+        ctx.fillStyle = '#ff8a9e';
+        ctx.beginPath();
+        ctx.ellipse(hx + 5, hy + 22, 4, 6, 0, 0, Math.PI);
+        ctx.fill();
+
+        // Pattern on body
+        const pat = this.currentCustomization.pattern;
+        if (pat === 'spots') {
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.arc(cx - 20, cy + 5, 8, 0, Math.PI * 2);
+            ctx.arc(cx + 10, cy + 15, 10, 0, Math.PI * 2);
+            ctx.arc(cx - 5, cy + 25, 6, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (pat === 'dots') {
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                ctx.arc(cx - 25 + i * 15, cy + 5 + (i % 2) * 15, 5, 0, Math.PI * 2);
+            }
+            ctx.fill();
+        } else if (pat === 'stripes') {
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            for (let i = 0; i < 3; i++) {
+                ctx.fillRect(bx + 10, by + 12 + i * 16, bw - 20, 5);
+            }
+        } else if (pat === 'sparkle') {
+            ctx.font = '24px Arial';
+            ctx.fillText('✨', cx - 30, cy + 10);
+            ctx.fillText('✨', cx + 5, cy + 25);
+        } else if (pat === 'flames') {
+            ctx.font = '22px Arial';
+            ctx.fillText('🔥', cx - 30, cy + 15);
+            ctx.fillText('🔥', cx, cy + 25);
+        } else if (pat === 'stars') {
+            ctx.font = '18px Arial';
+            ctx.fillText('⭐', cx - 30, cy + 5);
+            ctx.fillText('⭐', cx - 5, cy + 20);
+            ctx.fillText('⭐', cx + 15, cy + 8);
         }
 
         // Hat
         const hatItem = CUSTOMIZATION_ITEMS.hats.find(h => h.id === this.currentCustomization.hat);
         if (hatItem && hatItem.id !== 'none') {
-            this.previewCtx.font = 'bold 30px Arial';
-            this.previewCtx.fillText(hatItem.icon, x + 20, y - 5);
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(hatItem.icon, hx + 4, hy - 28);
+            ctx.textAlign = 'left';
         }
 
         // Accessory
         const accItem = CUSTOMIZATION_ITEMS.accessories.find(a => a.id === this.currentCustomization.accessory);
         if (accItem && accItem.id !== 'none') {
-            this.previewCtx.font = 'bold 25px Arial';
-            this.previewCtx.fillText(accItem.icon, x + 25, y + 25);
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText(accItem.icon, hx - 10, hy + 40);
         }
     }
 

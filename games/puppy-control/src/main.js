@@ -283,6 +283,11 @@ class PuppyControl {
         document.getElementById('fullscreen-btn').addEventListener('click', () => {
             this.toggleFullscreen();
         });
+
+        // Leave game button
+        document.getElementById('leave-game-btn').addEventListener('click', () => {
+            this.leaveRoom();
+        });
     }
 
     setupKeyboardControls() {
