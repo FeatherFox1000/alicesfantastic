@@ -82,7 +82,11 @@ function SpacePups() {
           >
             <iframe
               ref={iframeRef}
-              src={import.meta.env.DEV ? 'http://localhost:3002' : 'https://space-pups-game.fly.dev'}
+              src={(() => {
+                const base = import.meta.env.DEV ? 'http://localhost:3002' : 'https://space-pups-game.fly.dev';
+                const token = localStorage.getItem('site_token');
+                return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+              })()}
               title="Space Pups Game"
               className="game-iframe"
               style={{width: '100%', height: '100%', border: 'none'}}

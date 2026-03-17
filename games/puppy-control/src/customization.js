@@ -113,7 +113,8 @@ export class CustomizationSystem {
 
     async checkAdminStatus() {
         try {
-            const token = localStorage.getItem('site_token');
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token') || localStorage.getItem('site_token');
             if (!token) return;
             const API_BASE = window.location.hostname === 'localhost'
                 ? 'http://localhost:3003/api/site-auth'
@@ -124,7 +125,6 @@ export class CustomizationSystem {
             const data = await res.json();
             if (data.is_admin) {
                 this.isAdmin = true;
-                this.populateCustomizationOptions();
             }
         } catch {}
     }
@@ -312,12 +312,15 @@ export class CustomizationSystem {
         return 'common'; // 70%
     }
 
-    openCustomizeModal() {
+    async openCustomizeModal() {
         document.getElementById('customize-modal').classList.add('active');
 
         // Setup preview canvas
         this.previewCanvas = document.getElementById('preview-canvas');
         this.previewCtx = this.previewCanvas.getContext('2d');
+
+        // Ensure admin status is resolved before populating
+        await this.checkAdminStatus();
 
         // Populate options
         this.populateCustomizationOptions();
@@ -401,9 +404,26 @@ export class CustomizationSystem {
         ctx.fillRect(0, 0, 200, 200);
 
         const colorItem = CUSTOMIZATION_ITEMS.colors.find(c => c.id === this.currentCustomization.color);
-        const color = colorItem ? colorItem.color : '#FF6B6B';
-        const darker = this.darkenColor(color, 20);
-        const darkPaw = this.darkenColor(color, 40);
+        const isRainbow = colorItem && colorItem.color === 'rainbow';
+        let color, darker, darkPaw;
+        if (isRainbow) {
+            // Create a rainbow gradient for the body
+            const grad = ctx.createLinearGradient(55, 90, 145, 160);
+            grad.addColorStop(0, '#FF0000');
+            grad.addColorStop(0.17, '#FF8800');
+            grad.addColorStop(0.33, '#FFFF00');
+            grad.addColorStop(0.5, '#00CC00');
+            grad.addColorStop(0.67, '#0088FF');
+            grad.addColorStop(0.83, '#6600CC');
+            grad.addColorStop(1, '#CC00CC');
+            color = grad;
+            darker = '#8844AA';
+            darkPaw = '#663388';
+        } else {
+            color = colorItem ? colorItem.color : '#FF6B6B';
+            darker = this.darkenColor(color, 20);
+            darkPaw = this.darkenColor(color, 40);
+        }
 
         // Draw a cute dog centered in the 200x200 canvas
         const cx = 100, cy = 105;
@@ -424,9 +444,38 @@ export class CustomizationSystem {
         ctx.arc(cx - 52, cy - 37, 7, 0, Math.PI * 2);
         ctx.fill();
 
+        // Cape - drawn BEHIND body (before body)
+        const bx = cx - 45, by = cy - 15, bw = 90, bh = 55;
+        if (this.currentCustomization.accessory === 'cape') {
+            // Cape flows from neck down behind the dog
+            const capeCx = cx + 15; // near neck/shoulder area
+            const capeTop = by - 2;
+            // Main cape shape - flows down and billows out
+            ctx.fillStyle = '#8E44AD';
+            ctx.beginPath();
+            ctx.moveTo(capeCx - 15, capeTop);           // left shoulder
+            ctx.lineTo(capeCx + 15, capeTop);           // right shoulder
+            ctx.quadraticCurveTo(capeCx + 30, cy + 20, capeCx + 25, cy + 65);  // right edge flows down
+            ctx.quadraticCurveTo(capeCx + 10, cy + 60, capeCx, cy + 68);       // bottom curve
+            ctx.quadraticCurveTo(capeCx - 10, cy + 60, capeCx - 25, cy + 65);  // left bottom
+            ctx.quadraticCurveTo(capeCx - 30, cy + 20, capeCx - 15, capeTop);  // left edge back up
+            ctx.closePath();
+            ctx.fill();
+            // Inner cape lining
+            ctx.fillStyle = '#C0392B';
+            ctx.beginPath();
+            ctx.moveTo(capeCx - 10, capeTop + 4);
+            ctx.lineTo(capeCx + 10, capeTop + 4);
+            ctx.quadraticCurveTo(capeCx + 22, cy + 20, capeCx + 18, cy + 58);
+            ctx.quadraticCurveTo(capeCx + 5, cy + 54, capeCx, cy + 60);
+            ctx.quadraticCurveTo(capeCx - 5, cy + 54, capeCx - 18, cy + 58);
+            ctx.quadraticCurveTo(capeCx - 22, cy + 20, capeCx - 10, capeTop + 4);
+            ctx.closePath();
+            ctx.fill();
+        }
+
         // Body (rounded rectangle)
         ctx.fillStyle = color;
-        const bx = cx - 45, by = cy - 15, bw = 90, bh = 55;
         ctx.beginPath();
         ctx.roundRect(bx, by, bw, bh, 12);
         ctx.fill();
@@ -447,8 +496,208 @@ export class CustomizationSystem {
         ctx.roundRect(cx + 16, cy + 57, 18, 8, 4);
         ctx.fill();
 
-        // Head (big and round)
+        // Define head position (used by accessories and head drawing)
         const hx = cx + 30, hy = cy - 25;
+
+        // Neck/body accessories - drawn AFTER body but BEFORE head
+        const accId = this.currentCustomization.accessory;
+        const neckY = cy - 2;
+        const neckCx = hx;
+        if (accId === 'scarf') {
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.ellipse(neckCx, neckY, 22, 8, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#C0392B';
+            ctx.beginPath();
+            ctx.roundRect(neckCx + 10, neckY + 2, 10, 22, 4);
+            ctx.fill();
+            ctx.fillStyle = '#F5B041';
+            ctx.fillRect(neckCx + 12, neckY + 8, 6, 3);
+            ctx.fillRect(neckCx + 12, neckY + 15, 6, 3);
+        } else if (accId === 'bowtie') {
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.moveTo(neckCx, neckY);
+            ctx.lineTo(neckCx - 12, neckY - 7);
+            ctx.lineTo(neckCx - 12, neckY + 7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(neckCx, neckY);
+            ctx.lineTo(neckCx + 12, neckY - 7);
+            ctx.lineTo(neckCx + 12, neckY + 7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#C0392B';
+            ctx.beginPath();
+            ctx.arc(neckCx, neckY, 4, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (accId === 'necktie') {
+            ctx.fillStyle = '#2C3E50';
+            ctx.beginPath();
+            ctx.moveTo(neckCx - 5, neckY - 4);
+            ctx.lineTo(neckCx + 5, neckY - 4);
+            ctx.lineTo(neckCx + 8, neckY + 24);
+            ctx.lineTo(neckCx, neckY + 30);
+            ctx.lineTo(neckCx - 8, neckY + 24);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#34495E';
+            ctx.beginPath();
+            ctx.moveTo(neckCx - 6, neckY - 4);
+            ctx.lineTo(neckCx + 6, neckY - 4);
+            ctx.lineTo(neckCx + 3, neckY + 4);
+            ctx.lineTo(neckCx - 3, neckY + 4);
+            ctx.closePath();
+            ctx.fill();
+        } else if (accId === 'bandana') {
+            ctx.fillStyle = '#E67E22';
+            ctx.beginPath();
+            ctx.moveTo(neckCx - 18, neckY - 4);
+            ctx.lineTo(neckCx + 18, neckY - 4);
+            ctx.lineTo(neckCx + 14, neckY + 4);
+            ctx.lineTo(neckCx, neckY + 16);
+            ctx.lineTo(neckCx - 14, neckY + 4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.beginPath();
+            ctx.arc(neckCx - 6, neckY + 2, 2, 0, Math.PI * 2);
+            ctx.arc(neckCx + 6, neckY + 2, 2, 0, Math.PI * 2);
+            ctx.arc(neckCx, neckY + 8, 2, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (accId === 'collar') {
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.ellipse(neckCx, neckY, 20, 7, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#DAA520';
+            ctx.beginPath();
+            ctx.ellipse(neckCx, neckY, 18, 5, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(neckCx, neckY + 10, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFF';
+            ctx.font = '8px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('⭐', neckCx, neckY + 13);
+            ctx.textAlign = 'left';
+        } else if (accId === 'necklace') {
+            ctx.strokeStyle = '#C0C0C0';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(neckCx, neckY - 2, 16, 0.2, Math.PI - 0.2);
+            ctx.stroke();
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.arc(neckCx, neckY + 14, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 1;
+        } else if (accId === 'wings') {
+            // Big wings sprouting from the dog's back
+            // Left wing
+            ctx.fillStyle = 'rgba(135, 206, 250, 0.8)';
+            ctx.beginPath();
+            ctx.moveTo(cx - 10, by + 5);                    // base on back
+            ctx.quadraticCurveTo(cx - 50, by - 40, cx - 55, by - 50);  // wing tip up-left
+            ctx.quadraticCurveTo(cx - 40, by - 25, cx - 45, by - 10);  // feather curve
+            ctx.quadraticCurveTo(cx - 35, by - 5, cx - 10, by + 15);   // back to body
+            ctx.closePath();
+            ctx.fill();
+            // Left wing inner
+            ctx.fillStyle = 'rgba(175, 225, 255, 0.6)';
+            ctx.beginPath();
+            ctx.moveTo(cx - 8, by + 8);
+            ctx.quadraticCurveTo(cx - 40, by - 30, cx - 45, by - 38);
+            ctx.quadraticCurveTo(cx - 32, by - 18, cx - 8, by + 12);
+            ctx.closePath();
+            ctx.fill();
+            // Right wing
+            ctx.fillStyle = 'rgba(135, 206, 250, 0.8)';
+            ctx.beginPath();
+            ctx.moveTo(cx + 10, by + 5);
+            ctx.quadraticCurveTo(cx + 50, by - 40, cx + 55, by - 50);
+            ctx.quadraticCurveTo(cx + 40, by - 25, cx + 45, by - 10);
+            ctx.quadraticCurveTo(cx + 35, by - 5, cx + 10, by + 15);
+            ctx.closePath();
+            ctx.fill();
+            // Right wing inner
+            ctx.fillStyle = 'rgba(175, 225, 255, 0.6)';
+            ctx.beginPath();
+            ctx.moveTo(cx + 8, by + 8);
+            ctx.quadraticCurveTo(cx + 40, by - 30, cx + 45, by - 38);
+            ctx.quadraticCurveTo(cx + 32, by - 18, cx + 8, by + 12);
+            ctx.closePath();
+            ctx.fill();
+        } else if (accId === 'medal') {
+            ctx.strokeStyle = '#2980B9';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(neckCx - 5, neckY - 2);
+            ctx.lineTo(neckCx, neckY + 14);
+            ctx.lineTo(neckCx + 5, neckY - 2);
+            ctx.stroke();
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(neckCx, neckY + 18, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#DAA520';
+            ctx.beginPath();
+            ctx.arc(neckCx, neckY + 18, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 1;
+        } else if (accId === 'rocket') {
+            // Rocket pack on the dog's back
+            const rx = cx, ry = by - 4;  // centered on top of body
+            // Left thruster
+            ctx.fillStyle = '#888';
+            ctx.beginPath();
+            ctx.roundRect(rx - 14, ry - 20, 12, 24, 4);
+            ctx.fill();
+            // Right thruster
+            ctx.beginPath();
+            ctx.roundRect(rx + 2, ry - 20, 12, 24, 4);
+            ctx.fill();
+            // Red top cap
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.roundRect(rx - 16, ry - 26, 16, 8, 3);
+            ctx.roundRect(rx, ry - 26, 16, 8, 3);
+            ctx.fill();
+            // Flames from thrusters
+            ctx.fillStyle = '#F39C12';
+            ctx.beginPath();
+            ctx.moveTo(rx - 12, ry + 4);
+            ctx.lineTo(rx - 8, ry + 18);
+            ctx.lineTo(rx - 4, ry + 4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(rx + 4, ry + 4);
+            ctx.lineTo(rx + 8, ry + 18);
+            ctx.lineTo(rx + 12, ry + 4);
+            ctx.closePath();
+            ctx.fill();
+            // Inner flames
+            ctx.fillStyle = '#FFEB3B';
+            ctx.beginPath();
+            ctx.moveTo(rx - 11, ry + 4);
+            ctx.lineTo(rx - 8, ry + 12);
+            ctx.lineTo(rx - 5, ry + 4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(rx + 5, ry + 4);
+            ctx.lineTo(rx + 8, ry + 12);
+            ctx.lineTo(rx + 11, ry + 4);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Head (big and round)
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.roundRect(hx - 22, hy - 22, 52, 48, 14);
@@ -466,7 +715,7 @@ export class CustomizationSystem {
         ctx.fill();
 
         // Inner ears
-        ctx.fillStyle = this.darkenColor(color, 35);
+        ctx.fillStyle = isRainbow ? '#553388' : this.darkenColor(color, 35);
         ctx.beginPath();
         ctx.ellipse(hx - 20, hy + 1, 5, 14, 0.4, 0, Math.PI * 2);
         ctx.fill();
@@ -571,20 +820,301 @@ export class CustomizationSystem {
             ctx.fillText('⭐', cx + 15, cy + 8);
         }
 
-        // Hat
-        const hatItem = CUSTOMIZATION_ITEMS.hats.find(h => h.id === this.currentCustomization.hat);
-        if (hatItem && hatItem.id !== 'none') {
-            ctx.font = 'bold 36px Arial';
+        // Hat - draw on top of head
+        const hatId = this.currentCustomization.hat;
+        const headTop = hy - 22; // top of head
+        const headCx = hx + 4;  // center of head horizontally
+        if (hatId === 'party') {
+            // Party hat (triangle cone)
+            ctx.fillStyle = '#FF6B9D';
+            ctx.beginPath();
+            ctx.moveTo(headCx, headTop - 28);
+            ctx.lineTo(headCx - 14, headTop + 4);
+            ctx.lineTo(headCx + 14, headTop + 4);
+            ctx.closePath();
+            ctx.fill();
+            // Stripes on party hat
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(headCx - 5, headTop - 10);
+            ctx.lineTo(headCx + 9, headTop - 10);
+            ctx.moveTo(headCx - 10, headTop);
+            ctx.lineTo(headCx + 12, headTop);
+            ctx.stroke();
+            // Pom pom on top
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(headCx, headTop - 30, 5, 0, Math.PI * 2);
+            ctx.fill();
+            // Brim
+            ctx.fillStyle = '#FF6B9D';
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop + 4, 18, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (hatId === 'tophat') {
+            // Top hat
+            ctx.fillStyle = '#222';
+            ctx.fillRect(headCx - 12, headTop - 24, 24, 22);
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop - 2, 20, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Hat band
+            ctx.fillStyle = '#C0392B';
+            ctx.fillRect(headCx - 12, headTop - 8, 24, 4);
+        } else if (hatId === 'crown') {
+            // Crown
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.moveTo(headCx - 16, headTop + 2);
+            ctx.lineTo(headCx - 16, headTop - 12);
+            ctx.lineTo(headCx - 10, headTop - 6);
+            ctx.lineTo(headCx - 3, headTop - 16);
+            ctx.lineTo(headCx + 4, headTop - 6);
+            ctx.lineTo(headCx + 10, headTop - 16);
+            ctx.lineTo(headCx + 16, headTop - 6);
+            ctx.lineTo(headCx + 16, headTop + 2);
+            ctx.closePath();
+            ctx.fill();
+            // Jewels
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.arc(headCx, headTop - 4, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#3498DB';
+            ctx.beginPath();
+            ctx.arc(headCx - 10, headTop - 2, 2, 0, Math.PI * 2);
+            ctx.arc(headCx + 10, headTop - 2, 2, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (hatId === 'cowboy') {
+            // Cowboy hat
+            ctx.fillStyle = '#8B4513';
+            // Brim
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop + 2, 24, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Top
+            ctx.beginPath();
+            ctx.roundRect(headCx - 12, headTop - 16, 24, 18, 6);
+            ctx.fill();
+            // Dent
+            ctx.fillStyle = '#A0522D';
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop - 14, 8, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Band
+            ctx.fillStyle = '#DAA520';
+            ctx.fillRect(headCx - 12, headTop - 2, 24, 3);
+        } else if (hatId === 'beanie') {
+            // Beanie
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop - 2, 20, 14, 0, Math.PI, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(headCx - 20, headTop - 2, 40, 6);
+            // Brim stripe
+            ctx.fillStyle = '#C0392B';
+            ctx.fillRect(headCx - 20, headTop - 2, 40, 6);
+            // Pom pom
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.arc(headCx, headTop - 16, 6, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (hatId === 'cap') {
+            // Baseball cap
+            ctx.fillStyle = '#3498DB';
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop + 2, 20, 12, 0, Math.PI, Math.PI * 2);
+            ctx.fill();
+            // Brim (sticks out to the right)
+            ctx.fillStyle = '#2980B9';
+            ctx.beginPath();
+            ctx.ellipse(headCx + 14, headTop + 2, 14, 5, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (hatId === 'wizard') {
+            // Wizard hat
+            ctx.fillStyle = '#7D3C98';
+            ctx.beginPath();
+            ctx.moveTo(headCx, headTop - 35);
+            ctx.lineTo(headCx - 18, headTop + 4);
+            ctx.lineTo(headCx + 18, headTop + 4);
+            ctx.closePath();
+            ctx.fill();
+            // Stars on hat
+            ctx.fillStyle = '#F1C40F';
+            ctx.font = '10px Arial';
+            ctx.fillText('⭐', headCx - 6, headTop - 10);
+            ctx.fillText('✨', headCx + 2, headTop - 20);
+            // Brim
+            ctx.fillStyle = '#7D3C98';
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop + 4, 22, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (hatId === 'santa') {
+            // Santa hat
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.moveTo(headCx + 20, headTop - 30);
+            ctx.quadraticCurveTo(headCx, headTop - 20, headCx - 18, headTop + 4);
+            ctx.lineTo(headCx + 18, headTop + 4);
+            ctx.closePath();
+            ctx.fill();
+            // White brim
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop + 4, 20, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Pom pom
+            ctx.beginPath();
+            ctx.arc(headCx + 20, headTop - 30, 7, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (hatId === 'pirate') {
+            // Pirate hat
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.moveTo(headCx - 22, headTop + 2);
+            ctx.quadraticCurveTo(headCx - 10, headTop - 22, headCx, headTop - 18);
+            ctx.quadraticCurveTo(headCx + 10, headTop - 22, headCx + 22, headTop + 2);
+            ctx.closePath();
+            ctx.fill();
+            // Skull
+            ctx.fillStyle = 'white';
+            ctx.font = '14px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(hatItem.icon, hx + 4, hy - 28);
+            ctx.fillText('☠️', headCx, headTop - 4);
             ctx.textAlign = 'left';
+        } else if (hatId === 'chef') {
+            // Chef hat
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(headCx - 8, headTop - 10, 10, 0, Math.PI * 2);
+            ctx.arc(headCx + 8, headTop - 10, 10, 0, Math.PI * 2);
+            ctx.arc(headCx, headTop - 16, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(headCx - 14, headTop - 4, 28, 8);
+        } else if (hatId === 'halo') {
+            // Halo
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop - 12, 18, 6, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            // Glow
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop - 12, 18, 6, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.lineWidth = 1;
+        } else if (hatId === 'ninja') {
+            // Ninja headband
+            ctx.fillStyle = '#222';
+            ctx.fillRect(headCx - 22, headTop + 2, 44, 8);
+            // Trailing band
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(headCx - 22, headTop + 6);
+            ctx.quadraticCurveTo(headCx - 32, headTop + 2, headCx - 36, headTop + 14);
+            ctx.stroke();
+            ctx.lineWidth = 1;
+        } else if (hatId === 'viking') {
+            // Viking helmet
+            ctx.fillStyle = '#888';
+            ctx.beginPath();
+            ctx.ellipse(headCx, headTop, 18, 12, 0, Math.PI, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(headCx - 18, headTop - 2, 36, 6);
+            // Horns
+            ctx.fillStyle = '#F5DEB3';
+            ctx.beginPath();
+            ctx.moveTo(headCx - 18, headTop);
+            ctx.quadraticCurveTo(headCx - 28, headTop - 8, headCx - 24, headTop - 22);
+            ctx.lineTo(headCx - 16, headTop - 4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(headCx + 18, headTop);
+            ctx.quadraticCurveTo(headCx + 28, headTop - 8, headCx + 24, headTop - 22);
+            ctx.lineTo(headCx + 16, headTop - 4);
+            ctx.closePath();
+            ctx.fill();
+        } else if (hatId === 'alien') {
+            // Alien antennae
+            ctx.strokeStyle = '#2ECC71';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(headCx - 8, headTop);
+            ctx.quadraticCurveTo(headCx - 14, headTop - 25, headCx - 16, headTop - 28);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(headCx + 8, headTop);
+            ctx.quadraticCurveTo(headCx + 14, headTop - 25, headCx + 16, headTop - 28);
+            ctx.stroke();
+            // Glowing tips
+            ctx.fillStyle = '#2ECC71';
+            ctx.beginPath();
+            ctx.arc(headCx - 16, headTop - 28, 5, 0, Math.PI * 2);
+            ctx.arc(headCx + 16, headTop - 28, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(46, 204, 113, 0.3)';
+            ctx.beginPath();
+            ctx.arc(headCx - 16, headTop - 28, 8, 0, Math.PI * 2);
+            ctx.arc(headCx + 16, headTop - 28, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 1;
         }
 
-        // Accessory
-        const accItem = CUSTOMIZATION_ITEMS.accessories.find(a => a.id === this.currentCustomization.accessory);
-        if (accItem && accItem.id !== 'none') {
-            ctx.font = 'bold 28px Arial';
-            ctx.fillText(accItem.icon, hx - 10, hy + 40);
+        // Face accessories - drawn AFTER head (on top of face)
+        if (accId === 'glasses') {
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.roundRect(hx - 14, hy - 8, 16, 12, 3);
+            ctx.roundRect(hx + 8, hy - 8, 16, 12, 3);
+            ctx.fill();
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(hx + 2, hy - 2);
+            ctx.lineTo(hx + 8, hy - 2);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(hx - 12, hy - 6, 5, 4);
+            ctx.fillRect(hx + 10, hy - 6, 5, 4);
+            ctx.lineWidth = 1;
+        } else if (accId === 'monocle') {
+            ctx.strokeStyle = '#DAA520';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(hx + 16, hy - 2, 11, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(hx + 27, hy - 2);
+            ctx.quadraticCurveTo(hx + 32, hy + 15, hx + 25, hy + 25);
+            ctx.stroke();
+            ctx.lineWidth = 1;
+        } else if (accId === 'mask') {
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.roundRect(hx - 16, hy - 10, 40, 14, 6);
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.ellipse(hx - 4, hy - 3, 7, 5, 0, 0, Math.PI * 2);
+            ctx.ellipse(hx + 18, hy - 3, 7, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (accId === 'flower') {
+            ctx.fillStyle = '#FF69B4';
+            for (let i = 0; i < 5; i++) {
+                const angle = (i / 5) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.arc(hx + 20 + Math.cos(angle) * 6, hy - 14 + Math.sin(angle) * 6, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.fillStyle = '#F1C40F';
+            ctx.beginPath();
+            ctx.arc(hx + 20, hy - 14, 4, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
 
