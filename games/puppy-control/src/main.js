@@ -1104,39 +1104,60 @@ class PuppyControl {
 
         // Draw trail based on type
         if (trailType === 'smoke') {
-            // Gray smoke trail
+            // Smoke puffs that rise and expand
             for (let i = 0; i < player.trail.length; i++) {
                 const point = player.trail[i];
                 const age = now - point.time;
-                const alpha = Math.max(0, 1 - age / 1000); // Fade over 1 second
-                const size = 8 + (player.trail.length - i) * 0.5;
+                const life = age / 1200;
+                const alpha = Math.max(0, 1 - life) * 0.5;
+                const size = 6 + life * 10 + (player.trail.length - i) * 0.3;
+                const rise = life * 8;
 
-                this.ctx.fillStyle = `rgba(150, 150, 150, ${alpha * 0.5})`;
+                // Multiple overlapping circles for puffy look
+                this.ctx.fillStyle = `rgba(160, 160, 160, ${alpha})`;
                 this.ctx.beginPath();
-                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.arc(point.x - 2, point.y - rise, size * 0.8, 0, Math.PI * 2);
+                this.ctx.arc(point.x + 3, point.y - rise - 2, size * 0.7, 0, Math.PI * 2);
+                this.ctx.arc(point.x, point.y - rise + 1, size * 0.9, 0, Math.PI * 2);
                 this.ctx.fill();
             }
         } else if (trailType === 'fire') {
-            // Fire trail (red/orange/yellow)
+            // Fire trail - actual flame shapes
             for (let i = 0; i < player.trail.length; i++) {
                 const point = player.trail[i];
                 const age = now - point.time;
                 const alpha = Math.max(0, 1 - age / 800);
-                const size = 6 + (player.trail.length - i) * 0.6;
+                const size = 5 + (player.trail.length - i) * 0.5;
+                const flicker = Math.sin(now / 60 + i * 2) * 2;
 
-                // Color shifts from yellow to orange to red
+                // Outer flame (red/orange)
                 const colorIndex = i / player.trail.length;
                 if (colorIndex < 0.33) {
-                    this.ctx.fillStyle = `rgba(255, 255, 0, ${alpha * 0.7})`;
+                    this.ctx.fillStyle = `rgba(255, 220, 0, ${alpha * 0.8})`;
                 } else if (colorIndex < 0.66) {
-                    this.ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.7})`;
+                    this.ctx.fillStyle = `rgba(255, 120, 0, ${alpha * 0.8})`;
                 } else {
-                    this.ctx.fillStyle = `rgba(255, 50, 0, ${alpha * 0.7})`;
+                    this.ctx.fillStyle = `rgba(255, 40, 0, ${alpha * 0.7})`;
                 }
 
+                // Flame shape (teardrop pointing up)
                 this.ctx.beginPath();
-                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.moveTo(point.x, point.y - size * 1.8 + flicker);
+                this.ctx.quadraticCurveTo(point.x + size, point.y - size * 0.3, point.x + size * 0.6, point.y + size * 0.5);
+                this.ctx.quadraticCurveTo(point.x, point.y + size * 0.8, point.x - size * 0.6, point.y + size * 0.5);
+                this.ctx.quadraticCurveTo(point.x - size, point.y - size * 0.3, point.x, point.y - size * 1.8 + flicker);
                 this.ctx.fill();
+
+                // Inner flame (bright yellow core)
+                if (colorIndex < 0.5) {
+                    this.ctx.fillStyle = `rgba(255, 255, 200, ${alpha * 0.6})`;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(point.x, point.y - size * 0.9 + flicker);
+                    this.ctx.quadraticCurveTo(point.x + size * 0.4, point.y, point.x + size * 0.2, point.y + size * 0.3);
+                    this.ctx.quadraticCurveTo(point.x, point.y + size * 0.4, point.x - size * 0.2, point.y + size * 0.3);
+                    this.ctx.quadraticCurveTo(point.x - size * 0.4, point.y, point.x, point.y - size * 0.9 + flicker);
+                    this.ctx.fill();
+                }
             }
         } else if (trailType === 'rainbow') {
             // Rainbow trail
@@ -1153,30 +1174,47 @@ class PuppyControl {
                 this.ctx.fill();
             }
         } else if (trailType === 'stars') {
-            // Star trail
+            // Canvas-drawn star trail
             for (let i = 0; i < player.trail.length; i++) {
-                if (i % 3 !== 0) continue; // Sparse stars
-
+                if (i % 3 !== 0) continue;
                 const point = player.trail[i];
                 const age = now - point.time;
                 const alpha = Math.max(0, 1 - age / 1200);
+                const size = 4 + (i % 3) * 2;
+                const spin = now / 500 + i;
 
-                this.ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
-                this.ctx.font = `${12 + Math.random() * 8}px Arial`;
-                this.ctx.fillText('⭐', point.x - 6, point.y + 6);
+                this.ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+                this.ctx.beginPath();
+                for (let p = 0; p < 5; p++) {
+                    const a = (p / 5) * Math.PI * 2 - Math.PI / 2 + spin;
+                    const ox = point.x + Math.cos(a) * size;
+                    const oy = point.y + Math.sin(a) * size;
+                    const ia = a + Math.PI / 5;
+                    const ix = point.x + Math.cos(ia) * (size * 0.4);
+                    const iy = point.y + Math.sin(ia) * (size * 0.4);
+                    if (p === 0) this.ctx.moveTo(ox, oy); else this.ctx.lineTo(ox, oy);
+                    this.ctx.lineTo(ix, iy);
+                }
+                this.ctx.closePath();
+                this.ctx.fill();
             }
         } else if (trailType === 'hearts') {
-            // Heart trail
+            // Canvas-drawn heart trail
             for (let i = 0; i < player.trail.length; i++) {
-                if (i % 4 !== 0) continue; // Sparse hearts
-
+                if (i % 3 !== 0) continue;
                 const point = player.trail[i];
                 const age = now - point.time;
                 const alpha = Math.max(0, 1 - age / 1000);
+                const size = 5 + (i % 3);
+                const rise = (age / 1000) * 6;
 
-                this.ctx.fillStyle = `rgba(255, 100, 150, ${alpha})`;
-                this.ctx.font = `${14 + Math.random() * 6}px Arial`;
-                this.ctx.fillText('💖', point.x - 7, point.y + 7);
+                this.ctx.fillStyle = i % 2 === 0 ? `rgba(255, 105, 180, ${alpha})` : `rgba(255, 20, 147, ${alpha})`;
+                const hx = point.x, hy = point.y - rise;
+                this.ctx.beginPath();
+                this.ctx.moveTo(hx, hy + size * 0.3);
+                this.ctx.bezierCurveTo(hx - size, hy - size * 0.5, hx - size * 1.2, hy + size * 0.4, hx, hy + size);
+                this.ctx.bezierCurveTo(hx + size * 1.2, hy + size * 0.4, hx + size, hy - size * 0.5, hx, hy + size * 0.3);
+                this.ctx.fill();
             }
         } else if (trailType === 'bubbles') {
             // Bubble trail
@@ -1216,37 +1254,70 @@ class PuppyControl {
                 this.ctx.restore();
             }
         } else if (trailType === 'ice') {
-            // Ice/snow trail
+            // Ice crystals / snowflakes
             for (let i = 0; i < player.trail.length; i++) {
                 const point = player.trail[i];
                 const age = now - point.time;
                 const alpha = Math.max(0, 1 - age / 1200);
-                const size = 5 + (player.trail.length - i) * 0.3;
+                const size = 4 + (player.trail.length - i) * 0.3;
+                const spin = now / 800 + i;
 
-                this.ctx.fillStyle = `rgba(173, 216, 230, ${alpha * 0.8})`;
+                // Icy glow behind
+                this.ctx.fillStyle = `rgba(173, 216, 255, ${alpha * 0.4})`;
                 this.ctx.beginPath();
-                this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                this.ctx.arc(point.x, point.y, size + 2, 0, Math.PI * 2);
                 this.ctx.fill();
 
-                // Add sparkle
-                if (i % 4 === 0) {
-                    this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-                    this.ctx.fillRect(point.x - 1, point.y - 3, 2, 6);
-                    this.ctx.fillRect(point.x - 3, point.y - 1, 6, 2);
+                // Snowflake: 6 lines radiating out
+                this.ctx.strokeStyle = `rgba(220, 240, 255, ${alpha})`;
+                this.ctx.lineWidth = 1.5;
+                for (let a = 0; a < 6; a++) {
+                    const angle = (a / 6) * Math.PI * 2 + spin;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(point.x, point.y);
+                    const ex = point.x + Math.cos(angle) * size;
+                    const ey = point.y + Math.sin(angle) * size;
+                    this.ctx.lineTo(ex, ey);
+                    this.ctx.stroke();
+                    // Small branches
+                    if (size > 4) {
+                        const mid = 0.6;
+                        const mx = point.x + Math.cos(angle) * size * mid;
+                        const my = point.y + Math.sin(angle) * size * mid;
+                        const ba = angle + 0.5;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(mx, my);
+                        this.ctx.lineTo(mx + Math.cos(ba) * size * 0.3, my + Math.sin(ba) * size * 0.3);
+                        this.ctx.stroke();
+                    }
                 }
             }
         } else if (trailType === 'leaves') {
-            // Falling leaves trail
+            // Canvas-drawn falling leaves
             for (let i = 0; i < player.trail.length; i++) {
                 if (i % 3 !== 0) continue;
-
                 const point = player.trail[i];
                 const age = now - point.time;
                 const alpha = Math.max(0, 1 - age / 1500);
+                const drift = Math.sin(now / 300 + i) * 4;
+                const fall = (age / 1500) * 8;
+                const spin = now / 400 + i * 1.2;
 
-                this.ctx.fillStyle = `rgba(34, 139, 34, ${alpha})`;
-                this.ctx.font = `${14 + Math.random() * 4}px Arial`;
-                this.ctx.fillText('🍃', point.x - 7, point.y + 7);
+                this.ctx.fillStyle = i % 2 === 0 ? `rgba(34, 180, 34, ${alpha})` : `rgba(60, 140, 30, ${alpha})`;
+                this.ctx.save();
+                this.ctx.translate(point.x + drift, point.y + fall);
+                this.ctx.rotate(spin);
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, 3, 7, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                // Leaf vein
+                this.ctx.strokeStyle = `rgba(20, 100, 20, ${alpha * 0.5})`;
+                this.ctx.lineWidth = 0.5;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, -7);
+                this.ctx.lineTo(0, 7);
+                this.ctx.stroke();
+                this.ctx.restore();
             }
         } else if (trailType === 'electric') {
             // Electric/lightning trail
@@ -1269,17 +1340,28 @@ class PuppyControl {
                 this.ctx.stroke();
             }
         } else if (trailType === 'sakura') {
-            // Cherry blossom trail
+            // Canvas-drawn cherry blossom petals
             for (let i = 0; i < player.trail.length; i++) {
                 if (i % 2 !== 0) continue;
-
                 const point = player.trail[i];
                 const age = now - point.time;
                 const alpha = Math.max(0, 1 - age / 1800);
+                const drift = Math.sin(now / 400 + i * 0.7) * 5;
+                const fall = (age / 1800) * 10;
+                const spin = now / 600 + i;
 
-                this.ctx.fillStyle = `rgba(255, 182, 193, ${alpha})`;
-                this.ctx.font = `${12 + Math.random() * 6}px Arial`;
-                this.ctx.fillText('🌸', point.x - 6, point.y + 6);
+                this.ctx.save();
+                this.ctx.translate(point.x + drift, point.y + fall);
+                this.ctx.rotate(spin);
+                // Petal shape - two overlapping ellipses
+                this.ctx.fillStyle = i % 2 === 0 ? `rgba(255, 183, 197, ${alpha})` : `rgba(255, 140, 170, ${alpha})`;
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, 2, 5, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, 5, 2, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
             }
         } else if (trailType === 'neon') {
             // Neon trail
