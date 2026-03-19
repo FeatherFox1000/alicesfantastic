@@ -76,7 +76,7 @@
     let gameState = 'waiting'; // waiting, playing, dead
     let score = 0;
     let highScore = parseInt(localStorage.getItem('penguinRunnerHigh') || '0');
-    let gameSpeed = 8;
+    let gameSpeed = 12;
     let frameCount = 0;
 
     // Ground
@@ -95,8 +95,8 @@
       walkTimer: 0
     };
 
-    const GRAVITY = 0.3;
-    const JUMP_FORCE = -6;
+    const GRAVITY = 0.45;
+    const JUMP_FORCE = -7.5;
     const DUCK_HEIGHT = 7;
     const NORMAL_HEIGHT = 12;
 
@@ -192,7 +192,7 @@
     function startGame() {
       gameState = 'playing';
       score = 0;
-      gameSpeed = 8;
+      gameSpeed = 12;
       obstacles = [];
       obstacleTimer = 0;
     }

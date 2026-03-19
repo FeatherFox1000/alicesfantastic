@@ -366,6 +366,7 @@ class PuppyControl {
         const colorItem = CUSTOMIZATION_ITEMS.colors.find(c => c.id === customization.color);
 
         // Create preview player
+        const nameInput = document.getElementById('player-name');
         this.lobbyPreviewPlayer = {
             x: 50,
             y: 150,
@@ -376,6 +377,7 @@ class PuppyControl {
             isJumping: false,
             color: colorItem ? colorItem.color : '#FF6B6B',
             direction: 1,
+            name: nameInput ? nameInput.value || 'You' : 'You',
             customization: customization,
             trail: []
         };
@@ -463,46 +465,11 @@ class PuppyControl {
     }
 
     drawTrailSmall(player, ctx) {
-        if (!player.customization || !player.customization.trail || player.customization.trail === 'none') {
-            return;
-        }
-
-        if (player.trail.length < 2) return;
-
-        const trailType = player.customization.trail;
-        const now = Date.now();
-
-        // Simplified trail rendering for lobby
-        for (let i = 0; i < player.trail.length; i++) {
-            const point = player.trail[i];
-            const age = now - point.time;
-            const alpha = Math.max(0, 1 - age / 1000);
-            const size = 4 + (player.trail.length - i) * 0.3;
-
-            if (trailType === 'smoke') {
-                ctx.fillStyle = `rgba(150, 150, 150, ${alpha * 0.5})`;
-            } else if (trailType === 'fire') {
-                ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.7})`;
-            } else if (trailType === 'rainbow') {
-                const hue = (i / player.trail.length) * 360;
-                ctx.fillStyle = `hsla(${hue}, 100%, 60%, ${alpha * 0.6})`;
-            } else if (trailType === 'stars' || trailType === 'hearts') {
-                if (i % 2 === 0) {
-                    ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
-                    ctx.font = '10px Arial';
-                    ctx.fillText(trailType === 'stars' ? '⭐' : '💖', point.x - 5, point.y + 5);
-                }
-                continue;
-            } else if (trailType === 'cosmic') {
-                ctx.fillStyle = `rgba(147, 51, 234, ${alpha * 0.8})`;
-            } else {
-                ctx.fillStyle = `rgba(200, 200, 200, ${alpha * 0.5})`;
-            }
-
-            ctx.beginPath();
-            ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        // Reuse the full drawTrail by temporarily swapping ctx
+        const savedCtx = this.ctx;
+        this.ctx = ctx;
+        this.drawTrail(player);
+        this.ctx = savedCtx;
     }
 
     drawPlayerSmall(player, ctx) {
