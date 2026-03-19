@@ -394,6 +394,30 @@
   color: #cba8ff;
 }
 
+[data-theme="dark"] .chat-msg {
+  background: #2a2040;
+}
+
+[data-theme="dark"] .chat-msg .chat-text {
+  color: #111;
+}
+
+[data-theme="dark"] .chat-msg .chat-time {
+  color: #8878a0;
+}
+
+[data-theme="dark"] .chat-msg-mine {
+  background: #7b14c9;
+}
+
+[data-theme="dark"] .chat-msg-mine .chat-text {
+  color: white;
+}
+
+[data-theme="dark"] .chat-input-row {
+  border-top-color: #333;
+}
+
 .chat-input-row {
   display: flex;
   gap: 0.5rem;
