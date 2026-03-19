@@ -806,18 +806,84 @@ export class CustomizationSystem {
                 ctx.fillRect(bx + 10, by + 12 + i * 16, bw - 20, 5);
             }
         } else if (pat === 'sparkle') {
-            ctx.font = '24px Arial';
-            ctx.fillText('✨', cx - 30, cy + 10);
-            ctx.fillText('✨', cx + 5, cy + 25);
+            // Sparkles drawn on body
+            ctx.fillStyle = 'rgba(255,215,0,0.7)';
+            const sparkPos = [[cx - 25, cy + 5], [cx + 10, cy + 15], [cx - 5, cy + 25], [cx + 20, cy + 5]];
+            sparkPos.forEach(([sx, sy]) => {
+                const s = 5;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy - s);
+                ctx.lineTo(sx + s * 0.3, sy - s * 0.3);
+                ctx.lineTo(sx + s, sy);
+                ctx.lineTo(sx + s * 0.3, sy + s * 0.3);
+                ctx.lineTo(sx, sy + s);
+                ctx.lineTo(sx - s * 0.3, sy + s * 0.3);
+                ctx.lineTo(sx - s, sy);
+                ctx.lineTo(sx - s * 0.3, sy - s * 0.3);
+                ctx.closePath();
+                ctx.fill();
+            });
         } else if (pat === 'flames') {
-            ctx.font = '22px Arial';
-            ctx.fillText('🔥', cx - 30, cy + 15);
-            ctx.fillText('🔥', cx, cy + 25);
+            // Flames rising from bottom of body
+            const flameColors = ['#FF4500', '#FF6600', '#FF8C00', '#FFD700'];
+            for (let i = 0; i < 7; i++) {
+                ctx.fillStyle = flameColors[i % flameColors.length];
+                ctx.globalAlpha = 0.7;
+                const fx = bx + 8 + i * 12;
+                const fy = by + bh;
+                ctx.beginPath();
+                ctx.moveTo(fx - 5, fy);
+                ctx.quadraticCurveTo(fx, fy - 14 - (i % 3) * 5, fx + 5, fy);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
         } else if (pat === 'stars') {
-            ctx.font = '18px Arial';
-            ctx.fillText('⭐', cx - 30, cy + 5);
-            ctx.fillText('⭐', cx - 5, cy + 20);
-            ctx.fillText('⭐', cx + 15, cy + 8);
+            // Stars on the body
+            ctx.fillStyle = 'rgba(255,215,0,0.6)';
+            const starPos = [[cx - 20, cy + 5], [cx + 10, cy + 15], [cx - 5, cy + 25]];
+            starPos.forEach(([sx, sy]) => {
+                const size = 6;
+                ctx.beginPath();
+                for (let p = 0; p < 5; p++) {
+                    const angle = (p / 5) * Math.PI * 2 - Math.PI / 2;
+                    const ox = sx + Math.cos(angle) * size;
+                    const oy = sy + Math.sin(angle) * size;
+                    const ia = angle + Math.PI / 5;
+                    const ix = sx + Math.cos(ia) * (size * 0.4);
+                    const iy = sy + Math.sin(ia) * (size * 0.4);
+                    if (p === 0) ctx.moveTo(ox, oy);
+                    else ctx.lineTo(ox, oy);
+                    ctx.lineTo(ix, iy);
+                }
+                ctx.closePath();
+                ctx.fill();
+            });
+        } else if (pat === 'zigzag') {
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let row = 0; row < 3; row++) {
+                const rowY = by + 12 + row * 16;
+                ctx.moveTo(bx + 8, rowY);
+                for (let i = 0; i < 6; i++) {
+                    ctx.lineTo(bx + 8 + (i + 0.5) * 12, rowY + (i % 2 === 0 ? 8 : -2));
+                }
+            }
+            ctx.stroke();
+        } else if (pat === 'checkers') {
+            const size = 10;
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 6; col++) {
+                    if ((row + col) % 2 === 0) {
+                        const px = bx + 10 + col * size;
+                        const py = by + 10 + row * size;
+                        if (px + size < bx + bw - 5 && py + size < by + bh - 5) {
+                            ctx.fillRect(px, py, size, size);
+                        }
+                    }
+                }
+            }
         }
 
         // Hat - draw on top of head
@@ -1115,6 +1181,319 @@ export class CustomizationSystem {
             ctx.beginPath();
             ctx.arc(hx + 20, hy - 14, 4, 0, Math.PI * 2);
             ctx.fill();
+        }
+
+        // Trail effects - drawn around the dog
+        const trailId = this.currentCustomization.trail;
+        if (trailId === 'smoke') {
+            ctx.fillStyle = 'rgba(180,180,180,0.4)';
+            ctx.beginPath();
+            ctx.arc(cx - 50, cy + 40, 12, 0, Math.PI * 2);
+            ctx.arc(cx - 60, cy + 30, 10, 0, Math.PI * 2);
+            ctx.arc(cx - 65, cy + 15, 8, 0, Math.PI * 2);
+            ctx.arc(cx - 55, cy + 5, 6, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (trailId === 'bubbles') {
+            const bubbleColors = ['rgba(100,200,255,0.4)', 'rgba(150,220,255,0.3)', 'rgba(180,240,255,0.35)'];
+            const positions = [[25, 140], [40, 155], [15, 160], [50, 145], [10, 135], [55, 165], [30, 170]];
+            positions.forEach(([px, py], i) => {
+                ctx.fillStyle = bubbleColors[i % bubbleColors.length];
+                ctx.beginPath();
+                ctx.arc(px, py, 5 + (i % 3) * 2, 0, Math.PI * 2);
+                ctx.fill();
+                // Shine on bubble
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath();
+                ctx.arc(px - 1, py - 2, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        } else if (trailId === 'confetti') {
+            const confettiColors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#FF6BD6', '#FF9F43'];
+            for (let i = 0; i < 12; i++) {
+                ctx.fillStyle = confettiColors[i % confettiColors.length];
+                ctx.save();
+                const px = 20 + Math.sin(i * 2.3) * 70 + 40;
+                const py = 20 + (i * 15) % 170;
+                ctx.translate(px, py);
+                ctx.rotate(i * 0.8);
+                ctx.fillRect(-4, -2, 8, 4);
+                ctx.restore();
+            }
+        } else if (trailId === 'fire') {
+            // Flames under/behind dog
+            const flameColors = ['#FF4500', '#FF6600', '#FF8C00', '#FFD700'];
+            for (let i = 0; i < 6; i++) {
+                ctx.fillStyle = flameColors[i % flameColors.length];
+                ctx.globalAlpha = 0.6;
+                const fx = cx - 35 + i * 14;
+                const fy = cy + 60;
+                ctx.beginPath();
+                ctx.moveTo(fx - 6, fy);
+                ctx.quadraticCurveTo(fx, fy - 18 - (i % 3) * 6, fx + 6, fy);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        } else if (trailId === 'ice') {
+            // Ice crystals around dog
+            ctx.strokeStyle = 'rgba(100,200,255,0.7)';
+            ctx.lineWidth = 2;
+            const icePositions = [[20, 50], [170, 60], [25, 140], [175, 150], [15, 100], [185, 95]];
+            icePositions.forEach(([ix, iy]) => {
+                for (let a = 0; a < 6; a++) {
+                    const angle = (a / 6) * Math.PI * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(ix, iy);
+                    ctx.lineTo(ix + Math.cos(angle) * 10, iy + Math.sin(angle) * 10);
+                    ctx.stroke();
+                }
+            });
+            ctx.lineWidth = 1;
+        } else if (trailId === 'hearts') {
+            const heartPositions = [[20, 40], [170, 55], [30, 150], [165, 140], [15, 90], [180, 100]];
+            heartPositions.forEach(([hpx, hpy], i) => {
+                ctx.fillStyle = i % 2 === 0 ? '#FF69B4' : '#FF1493';
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.moveTo(hpx, hpy + 4);
+                ctx.bezierCurveTo(hpx - 6, hpy - 4, hpx - 10, hpy + 4, hpx, hpy + 10);
+                ctx.bezierCurveTo(hpx + 10, hpy + 4, hpx + 6, hpy - 4, hpx, hpy + 4);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        } else if (trailId === 'leaves') {
+            const leafPositions = [[25, 50], [170, 70], [20, 145], [175, 155], [35, 100]];
+            leafPositions.forEach(([lx, ly], i) => {
+                ctx.fillStyle = i % 2 === 0 ? '#2ECC71' : '#27AE60';
+                ctx.globalAlpha = 0.7;
+                ctx.save();
+                ctx.translate(lx, ly);
+                ctx.rotate(i * 1.2);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 4, 9, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#1a8a4a';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, -9);
+                ctx.lineTo(0, 9);
+                ctx.stroke();
+                ctx.restore();
+            });
+            ctx.globalAlpha = 1;
+        } else if (trailId === 'electric') {
+            // Small electric sparks around dog
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 2;
+            const sparkPositions = [[25, 60], [175, 70], [20, 135], [180, 140], [30, 95], [170, 100]];
+            sparkPositions.forEach(([sx, sy]) => {
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(sx + 5, sy - 8);
+                ctx.lineTo(sx + 2, sy - 4);
+                ctx.lineTo(sx + 8, sy - 12);
+                ctx.stroke();
+            });
+            ctx.lineWidth = 1;
+        } else if (trailId === 'rainbow') {
+            // Rainbow arc over dog
+            const rainbowColors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#8B00FF'];
+            rainbowColors.forEach((rc, i) => {
+                ctx.strokeStyle = rc;
+                ctx.lineWidth = 3;
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath();
+                ctx.arc(100, 50, 60 + i * 4, Math.PI * 0.15, Math.PI * 0.85);
+                ctx.stroke();
+            });
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 1;
+        } else if (trailId === 'stars') {
+            // Twinkling stars around dog
+            const starPositions = [[20, 45], [175, 55], [25, 155], [170, 145], [100, 20], [15, 100], [185, 95]];
+            starPositions.forEach(([sx, sy], i) => {
+                const size = 4 + (i % 3) * 2;
+                ctx.fillStyle = i % 2 === 0 ? '#FFD700' : '#FFF8DC';
+                ctx.globalAlpha = 0.7;
+                ctx.beginPath();
+                for (let p = 0; p < 5; p++) {
+                    const angle = (p / 5) * Math.PI * 2 - Math.PI / 2;
+                    const outerX = sx + Math.cos(angle) * size;
+                    const outerY = sy + Math.sin(angle) * size;
+                    const innerAngle = angle + Math.PI / 5;
+                    const innerX = sx + Math.cos(innerAngle) * (size * 0.4);
+                    const innerY = sy + Math.sin(innerAngle) * (size * 0.4);
+                    if (p === 0) ctx.moveTo(outerX, outerY);
+                    else ctx.lineTo(outerX, outerY);
+                    ctx.lineTo(innerX, innerY);
+                }
+                ctx.closePath();
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        } else if (trailId === 'sakura') {
+            // Cherry blossom petals
+            const petalPositions = [[20, 40], [170, 55], [30, 150], [165, 160], [100, 15], [60, 170], [140, 25]];
+            petalPositions.forEach(([px, py], i) => {
+                ctx.fillStyle = i % 2 === 0 ? '#FFB7C5' : '#FF69B4';
+                ctx.globalAlpha = 0.6;
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.rotate(i * 1.1);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 3, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 7, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+            ctx.globalAlpha = 1;
+        } else if (trailId === 'neon') {
+            // Neon glow around dog
+            ctx.shadowColor = '#0ff';
+            ctx.shadowBlur = 15;
+            ctx.strokeStyle = '#0ff';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.roundRect(bx - 10, by - 35, bw + 55, bh + 55, 20);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 1;
+        } else if (trailId === 'cosmic') {
+            // Swirling cosmic particles
+            ctx.globalAlpha = 0.7;
+            const cosmicColors = ['#9B59B6', '#3498DB', '#1ABC9C', '#E91E63', '#FF9800'];
+            for (let i = 0; i < 15; i++) {
+                const angle = (i / 15) * Math.PI * 2;
+                const r = 70 + Math.sin(i * 1.7) * 20;
+                const px = 100 + Math.cos(angle) * r;
+                const py = 100 + Math.sin(angle) * r;
+                ctx.fillStyle = cosmicColors[i % cosmicColors.length];
+                ctx.beginPath();
+                ctx.arc(px, py, 2 + (i % 3), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        } else if (trailId === 'aurora') {
+            // Aurora borealis curtain at top
+            const auroraColors = ['rgba(0,255,100,0.2)', 'rgba(0,200,255,0.2)', 'rgba(100,0,255,0.15)', 'rgba(0,255,200,0.2)'];
+            for (let i = 0; i < 4; i++) {
+                ctx.fillStyle = auroraColors[i];
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(50 + i * 30, 30 + i * 10, 100 + i * 20, 0);
+                ctx.lineTo(200, 0);
+                ctx.lineTo(200, 40 + i * 8);
+                ctx.quadraticCurveTo(100, 50 + i * 12, 0, 35 + i * 8);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        // Lightning pattern - animated with cloud and bolt
+        if (pat === 'lightning') {
+            // Cloud at top
+            ctx.fillStyle = '#8899AA';
+            ctx.beginPath();
+            ctx.arc(100, 22, 18, 0, Math.PI * 2);
+            ctx.arc(80, 25, 14, 0, Math.PI * 2);
+            ctx.arc(120, 25, 14, 0, Math.PI * 2);
+            ctx.arc(90, 18, 12, 0, Math.PI * 2);
+            ctx.arc(110, 18, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Lightning bolt (animated - flashes)
+            if (this._lightningVisible) {
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.moveTo(105, 36);
+                ctx.lineTo(95, 60);
+                ctx.lineTo(103, 58);
+                ctx.lineTo(93, 80);
+                ctx.lineTo(112, 52);
+                ctx.lineTo(104, 54);
+                ctx.lineTo(115, 36);
+                ctx.closePath();
+                ctx.fill();
+                // Glow
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                ctx.beginPath();
+                ctx.moveTo(105, 36);
+                ctx.lineTo(90, 62);
+                ctx.lineTo(100, 60);
+                ctx.lineTo(88, 85);
+                ctx.lineTo(117, 50);
+                ctx.lineTo(107, 52);
+                ctx.lineTo(120, 34);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Start lightning animation if not already running
+            if (!this._lightningTimer) {
+                this._lightningVisible = false;
+                this._lightningTimer = setInterval(() => {
+                    this._lightningVisible = true;
+                    this.drawPreview();
+                    setTimeout(() => {
+                        this._lightningVisible = false;
+                        this.drawPreview();
+                    }, 300);
+                }, 10000);
+                // Show first flash after 1 second
+                setTimeout(() => {
+                    this._lightningVisible = true;
+                    this.drawPreview();
+                    setTimeout(() => {
+                        this._lightningVisible = false;
+                        this.drawPreview();
+                    }, 300);
+                }, 1000);
+            }
+        } else if (this._lightningTimer) {
+            // Clear lightning timer if switching away from lightning pattern
+            clearInterval(this._lightningTimer);
+            this._lightningTimer = null;
+            this._lightningVisible = false;
+        }
+
+        // Sparkle pattern special - sparkles float around the dog
+        if (pat === 'sparkle') {
+            ctx.globalAlpha = 0.7;
+            const sparkPositions = [[15, 35], [180, 45], [20, 160], [175, 155], [95, 10], [10, 95], [190, 100]];
+            sparkPositions.forEach(([sx, sy], i) => {
+                const size = 3 + (i % 3) * 2;
+                ctx.fillStyle = '#FFD700';
+                // 4-point star shape
+                ctx.beginPath();
+                ctx.moveTo(sx, sy - size);
+                ctx.lineTo(sx + size * 0.3, sy - size * 0.3);
+                ctx.lineTo(sx + size, sy);
+                ctx.lineTo(sx + size * 0.3, sy + size * 0.3);
+                ctx.lineTo(sx, sy + size);
+                ctx.lineTo(sx - size * 0.3, sy + size * 0.3);
+                ctx.lineTo(sx - size, sy);
+                ctx.lineTo(sx - size * 0.3, sy - size * 0.3);
+                ctx.closePath();
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // Glow pattern special - glowing aura around dog
+        if (pat === 'glow') {
+            ctx.save();
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 25;
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = 0.4;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.roundRect(bx - 15, by - 40, bw + 60, bh + 60, 25);
+            ctx.stroke();
+            ctx.restore();
         }
     }
 
