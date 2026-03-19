@@ -307,8 +307,8 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
           <>
             <div className="airp-char-info">
               <div className="airp-char-avatar">🐾</div>
-              <h3>{character.name}</h3>
               <p className="airp-world-name">🌍 {character.world_name}</p>
+              <h3>{character.name}</h3>
               <button className="airp-edit-char-btn" onClick={() => onEditCharacter(character)}>
                 ✏️ Edit Character
               </button>

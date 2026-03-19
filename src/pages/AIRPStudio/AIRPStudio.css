@@ -261,8 +261,8 @@
 .airp-new-icon { font-size: 2rem; }
 .airp-loading-card { opacity: 0.5; min-height: 140px; display: flex; align-items: center; justify-content: center; }
 .airp-char-emoji { font-size: 2.5rem; margin-bottom: 0.5rem; }
-.airp-character-card h3 { margin: 0 0 0.25rem; font-size: 1.15rem; color: #2d1a4e; }
-.airp-world-name { font-size: 0.85rem; color: #7c3aed; margin: 0 0 0.5rem; }
+.airp-character-card h3 { margin: 0 0 0.25rem; font-size: 0.85rem; color: #2d1a4e; }
+.airp-world-name { font-size: 1.15rem; font-weight: 700; color: #7c3aed; margin: 0 0 0.25rem; }
 .airp-char-preview { font-size: 0.85rem; color: #5b3d8a; margin: 0 0 0.5rem; }
 .airp-char-date { font-size: 0.75rem; color: #6b5a8e; margin: 0; }
 .airp-card-actions {
@@ -430,7 +430,7 @@
 .airp-sidebar-back { margin-bottom: 0; font-size: 0.9rem; }
 .airp-char-info { text-align: center; padding: 0.75rem; background: rgba(90, 61, 138, 0.2); border-radius: 0.75rem; }
 .airp-char-avatar { font-size: 2.5rem; }
-.airp-char-info h3 { margin: 0.25rem 0 0; font-size: 1rem; color: white; }
+.airp-char-info h3 { margin: 0.25rem 0 0; font-size: 0.8rem; color: white; }
 .airp-new-adventure-btn { font-size: 0.9rem; padding: 0.6rem; }
 .airp-sidebar-section { display: flex; flex-direction: column; gap: 0.5rem; }
 .airp-sidebar-toggle {
