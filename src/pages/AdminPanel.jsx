@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './AdminPanel.css';
 
@@ -31,9 +31,6 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
   const [notifySent, setNotifySent] = useState(false);
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState('');
-  const notesBoxRef = useRef(null);
-  const shouldScrollNotes = useRef(true);
-
   useEffect(() => {
     adminRequest('GET', `/admin/user/${username}`).then(data => {
       if (!data.error) setExtra(data);
@@ -46,19 +43,11 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
     if (Array.isArray(data)) setNotes(data);
   }
 
-  useEffect(() => {
-    if (shouldScrollNotes.current && notesBoxRef.current) {
-      notesBoxRef.current.scrollTop = notesBoxRef.current.scrollHeight;
-      shouldScrollNotes.current = false;
-    }
-  }, [notes]);
-
   async function sendNote(e) {
     e.preventDefault();
     if (!noteText.trim()) return;
     const msg = noteText.trim();
     setNoteText('');
-    shouldScrollNotes.current = true;
     const result = await adminRequest('POST', `/admin/user-notes/${username}`, { message: msg });
     if (result.id) setNotes(prev => [...prev, result]);
   }
@@ -147,7 +136,7 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
         {notifySent && <p className="notify-sent">Notification sent!</p>}
 
         <h3 className="scores-title">Admin Notes about {username}</h3>
-        <div className="user-notes-chat" ref={notesBoxRef}>
+        <div className="user-notes-chat">
           {notes.length === 0 && <p className="chat-empty">No notes yet — start a discussion about this user.</p>}
           {notes.map(n => (
             <div key={n.id} className={`chat-msg ${n.author_username === currentAdmin ? 'chat-msg-mine' : ''}`} style={n.author_username !== currentAdmin ? { background: getUserColor(n.author_username) + '18', borderLeft: `3px solid ${getUserColor(n.author_username)}` } : undefined}>
@@ -192,9 +181,6 @@ function getUserColor(name) {
 function AdminChat({ username }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
-  const chatBoxRef = useRef(null);
-  const shouldScroll = useRef(true);
-
   async function loadMessages() {
     const data = await adminRequest('GET', '/admin/chat');
     if (Array.isArray(data)) setMessages(data);
@@ -211,24 +197,16 @@ function AdminChat({ username }) {
     if (!text.trim()) return;
     const msg = text.trim();
     setText('');
-    shouldScroll.current = true;
     const result = await adminRequest('POST', '/admin/chat', { message: msg });
     if (result.id) {
       setMessages(prev => [...prev, result]);
     }
   }
 
-  useEffect(() => {
-    if (shouldScroll.current && chatBoxRef.current) {
-      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
-      shouldScroll.current = false;
-    }
-  }, [messages]);
-
   return (
     <div className="admin-chat">
       <h2>Admin Chat</h2>
-      <div className="chat-messages" ref={chatBoxRef}>
+      <div className="chat-messages">
         {messages.length === 0 && <p className="chat-empty">No messages yet — say hi!</p>}
         {messages.map(m => (
           <div key={m.id} className={`chat-msg ${m.username === username ? 'chat-msg-mine' : ''}`} style={m.username !== username ? { background: getUserColor(m.username) + '18', borderLeft: `3px solid ${getUserColor(m.username)}` } : undefined}>
