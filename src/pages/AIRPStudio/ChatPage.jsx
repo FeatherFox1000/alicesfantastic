@@ -153,10 +153,14 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
   async function newAdventure() {
     const title = `Adventure ${sessions.length + 1}`;
     try {
-      const session = await api.createSession(character.id, title);
+      const session = await api.createSession(character.id, title, character.intro_text || undefined);
       setSessions(s => [session, ...s]);
       setActiveSession(session);
-      setMessages([]);
+      if (character.intro_text) {
+        setMessages([{ role: 'assistant', content: character.intro_text, created_at: new Date().toISOString() }]);
+      } else {
+        setMessages([]);
+      }
       setShowHistory(false);
     } catch (err) {
       setError(err.message);
@@ -171,7 +175,7 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
     let currentSession = activeSession;
     if (!currentSession) {
       try {
-        currentSession = await api.createSession(character.id, 'Adventure 1');
+        currentSession = await api.createSession(character.id, 'Adventure 1', character.intro_text || undefined);
         setSessions(s => [currentSession, ...s]);
         setActiveSession(currentSession);
       } catch (err) {
@@ -495,13 +499,6 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
         </div>
 
         <div className="airp-messages">
-          {messages.length === 0 && !sending && character.intro_text && (
-            <div className="airp-intro-box">
-              <div className="airp-intro-icon">📜</div>
-              <p className="airp-intro-text">{character.intro_text}</p>
-            </div>
-          )}
-
           {messages.length === 0 && !sending && (
             <div className="airp-welcome-message">
               <div className="airp-welcome-icon">🌟</div>
