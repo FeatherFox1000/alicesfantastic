@@ -14,8 +14,9 @@ body { font-family: 'Segoe UI', sans-serif; background: #f5f0ff; overflow: hidde
   padding: 0.5rem 1rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.6rem;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 .top-bar h1 { font-size: 1.2rem; }
 .room-tabs { display: flex; gap: 0.3rem; margin-left: auto; }
@@ -23,19 +24,29 @@ body { font-family: 'Segoe UI', sans-serif; background: #f5f0ff; overflow: hidde
   background: rgba(255,255,255,0.2);
   border: none;
   color: white;
-  padding: 0.4rem 0.8rem;
+  padding: 0.35rem 0.7rem;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   transition: background 0.2s;
 }
 .room-tab:hover { background: rgba(255,255,255,0.35); }
 .room-tab.active { background: white; color: #7b14c9; }
+.top-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.top-btn:hover { background: rgba(255,255,255,0.3); }
 
 .main { display: flex; flex: 1; overflow: hidden; }
 
-/* Furniture palette */
 .palette {
   width: 180px;
   background: white;
@@ -45,26 +56,35 @@ body { font-family: 'Segoe UI', sans-serif; background: #f5f0ff; overflow: hidde
   flex-shrink: 0;
   overflow-y: auto;
 }
-.palette-title {
+.palette-search {
+  margin: 0.5rem 0.5rem 0;
+  padding: 0.35rem 0.5rem;
+  border: 2px solid #e0d4f5;
+  border-radius: 6px;
   font-size: 0.8rem;
+  outline: none;
+}
+.palette-search:focus { border-color: #7b14c9; }
+.palette-cat {
+  font-size: 0.7rem;
   font-weight: 700;
   color: #7b14c9;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 0.6rem 0.8rem 0.3rem;
+  padding: 0.5rem 0.6rem 0.2rem;
 }
 .palette-items {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0.4rem 0.6rem;
+  gap: 0.3rem;
+  padding: 0.3rem 0.5rem;
 }
 .palette-item {
-  width: 72px;
-  height: 72px;
+  width: 52px;
+  height: 58px;
   background: #f9f5ff;
   border: 2px solid #e0d4f5;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -74,117 +94,73 @@ body { font-family: 'Segoe UI', sans-serif; background: #f5f0ff; overflow: hidde
   user-select: none;
 }
 .palette-item:hover { border-color: #7b14c9; background: #f0e6ff; }
-.palette-item .icon { font-size: 1.8rem; line-height: 1; }
-.palette-item .label { font-size: 0.6rem; color: #666; margin-top: 2px; font-weight: 600; }
+.palette-item .icon { font-size: 1.4rem; line-height: 1; }
+.palette-item .label { font-size: 0.5rem; color: #666; margin-top: 1px; font-weight: 600; text-align: center; overflow: hidden; max-width: 48px; white-space: nowrap; text-overflow: ellipsis; }
 
-/* Room area */
-.room-container {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-}
-.room {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  transition: background 0.4s;
-}
-
-/* Room themes */
+.room-container { flex: 1; position: relative; overflow: hidden; }
+.room { width: 100%; height: 100%; position: relative; transition: background 0.4s; }
 .room-bedroom { background: linear-gradient(180deg, #e8d5f5 0%, #d4b8e8 40%, #c4956a 40%, #c4956a 100%); }
 .room-cafe { background: linear-gradient(180deg, #ffecd2 0%, #fcb69f 40%, #8b6f5e 40%, #8b6f5e 100%); }
 .room-gaming { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 40%, #2d2d44 40%, #2d2d44 100%); }
+.room::before { content: ''; position: absolute; left: 0; right: 0; top: 40%; height: 3px; background: rgba(0,0,0,0.15); z-index: 1; }
 
-/* Wall and floor details */
-.room::before {
-  content: '';
-  position: absolute;
-  left: 0; right: 0;
-  top: 40%;
-  height: 3px;
-  background: rgba(0,0,0,0.15);
-  z-index: 1;
-}
-
-/* Placed furniture items */
 .furniture {
   position: absolute;
   cursor: grab;
   user-select: none;
-  transition: box-shadow 0.15s;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 6px;
 }
 .furniture:hover { filter: brightness(1.05); }
 .furniture.dragging { opacity: 0.7; z-index: 100; cursor: grabbing; }
-.furniture .delete-btn {
+.furniture .btn-row {
   display: none;
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -10px;
+  right: -4px;
+  gap: 2px;
+  z-index: 10;
+}
+.furniture:hover .btn-row { display: flex; }
+.furniture .fb {
   background: #e53e3e;
   color: white;
   border: none;
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
 }
-.furniture:hover .delete-btn { display: flex; }
-
-/* Drag preview */
-.drag-preview {
-  position: fixed;
-  pointer-events: none;
-  z-index: 10000;
-  opacity: 0.8;
-  font-size: 3rem;
-  transform: translate(-50%, -50%);
-}
-
-/* Clear button */
-.clear-btn {
-  background: rgba(255,255,255,0.2);
-  border: 1px solid rgba(255,255,255,0.4);
-  color: white;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
+.furniture .fb.color-btn { background: #7b14c9; position: relative; }
+.furniture .fb.color-btn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
   cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
+  width: 100%;
+  height: 100%;
 }
-.clear-btn:hover { background: rgba(255,255,255,0.3); }
 
-/* Undo button */
-.undo-btn {
-  background: rgba(255,255,255,0.2);
-  border: 1px solid rgba(255,255,255,0.4);
-  color: white;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-.undo-btn:hover { background: rgba(255,255,255,0.3); }
+.drag-preview { position: fixed; pointer-events: none; z-index: 10000; opacity: 0.8; font-size: 3rem; transform: translate(-50%, -50%); }
 </style>
 </head>
 <body>
 
 <div class="top-bar">
   <h1>Homey</h1>
-  <button class="undo-btn" onclick="undo()">Undo</button>
-  <button class="clear-btn" onclick="clearRoom()">Clear Room</button>
+  <button class="top-btn" onclick="undo()">Undo</button>
+  <button class="top-btn" onclick="clearRoom()">Clear</button>
   <div class="room-tabs">
     <button class="room-tab active" onclick="switchRoom('bedroom')">Bedroom</button>
-    <button class="room-tab" onclick="switchRoom('cafe')">Café</button>
-    <button class="room-tab" onclick="switchRoom('gaming')">Gaming Setup</button>
+    <button class="room-tab" onclick="switchRoom('cafe')">Cafe</button>
+    <button class="room-tab" onclick="switchRoom('gaming')">Gaming</button>
   </div>
 </div>
 
@@ -199,55 +175,185 @@ body { font-family: 'Segoe UI', sans-serif; background: #f5f0ff; overflow: hidde
 
 <script>
 const FURNITURE = {
-  bedroom: [
-    { id: 'bed',        icon: '🛏️', label: 'Bed',        w: 120, h: 70 },
-    { id: 'pillow',     icon: '🛋️', label: 'Couch',      w: 100, h: 55 },
-    { id: 'lamp',       icon: '🪔', label: 'Lamp',       w: 40,  h: 60 },
-    { id: 'plant',      icon: '🪴', label: 'Plant',      w: 45,  h: 55 },
-    { id: 'dresser',    icon: '🗄️', label: 'Dresser',    w: 70,  h: 65 },
-    { id: 'mirror',     icon: '🪞', label: 'Mirror',     w: 40,  h: 55 },
-    { id: 'teddy',      icon: '🧸', label: 'Teddy',      w: 40,  h: 40 },
-    { id: 'books',      icon: '📚', label: 'Books',      w: 45,  h: 40 },
-    { id: 'clock',      icon: '🕰️', label: 'Clock',      w: 35,  h: 45 },
-    { id: 'rug',        icon: '🟫', label: 'Rug',        w: 100, h: 30 },
-    { id: 'candle',     icon: '🕯️', label: 'Candle',     w: 30,  h: 40 },
-    { id: 'picture',    icon: '🖼️', label: 'Picture',    w: 50,  h: 45 },
-    { id: 'star',       icon: '⭐',  label: 'Star Light', w: 35,  h: 35 },
-    { id: 'curtain',    icon: '🪟', label: 'Window',     w: 70,  h: 70 },
-  ],
-  cafe: [
-    { id: 'table',      icon: '🪑', label: 'Chair',      w: 45,  h: 50 },
-    { id: 'table2',     icon: '🍽️', label: 'Table',      w: 80,  h: 50 },
-    { id: 'coffee',     icon: '☕',  label: 'Coffee',     w: 35,  h: 35 },
-    { id: 'cake',       icon: '🍰', label: 'Cake',       w: 40,  h: 35 },
-    { id: 'croissant',  icon: '🥐', label: 'Croissant',  w: 35,  h: 30 },
-    { id: 'plant2',     icon: '🌿', label: 'Plant',      w: 45,  h: 50 },
-    { id: 'menu',       icon: '📋', label: 'Menu Board', w: 50,  h: 60 },
-    { id: 'counter',    icon: '🧱', label: 'Counter',    w: 120, h: 50 },
-    { id: 'cup',        icon: '🫖', label: 'Teapot',     w: 40,  h: 35 },
-    { id: 'flower',     icon: '💐', label: 'Flowers',    w: 40,  h: 45 },
-    { id: 'light',      icon: '💡', label: 'Light',      w: 35,  h: 40 },
-    { id: 'sign',       icon: '🪧', label: 'Sign',       w: 50,  h: 50 },
-    { id: 'donut',      icon: '🍩', label: 'Donut',      w: 35,  h: 30 },
-    { id: 'muffin',     icon: '🧁', label: 'Muffin',     w: 35,  h: 35 },
-  ],
-  gaming: [
-    { id: 'monitor',    icon: '🖥️', label: 'Monitor',    w: 80,  h: 60 },
-    { id: 'keyboard',   icon: '⌨️', label: 'Keyboard',   w: 70,  h: 25 },
-    { id: 'mouse',      icon: '🖱️', label: 'Mouse',      w: 25,  h: 30 },
-    { id: 'headphones', icon: '🎧', label: 'Headphones', w: 40,  h: 40 },
-    { id: 'controller', icon: '🎮', label: 'Controller', w: 45,  h: 35 },
-    { id: 'desk',       icon: '🪑', label: 'Chair',      w: 55,  h: 60 },
-    { id: 'speaker',    icon: '🔊', label: 'Speaker',    w: 35,  h: 45 },
-    { id: 'console',    icon: '🕹️', label: 'Console',    w: 50,  h: 40 },
-    { id: 'poster',     icon: '🖼️', label: 'Poster',     w: 50,  h: 60 },
-    { id: 'rgb',        icon: '🌈', label: 'RGB Strip',  w: 90,  h: 15 },
-    { id: 'pizza',      icon: '🍕', label: 'Pizza',      w: 40,  h: 35 },
-    { id: 'soda',       icon: '🥤', label: 'Soda',       w: 25,  h: 40 },
-    { id: 'trophy',     icon: '🏆', label: 'Trophy',     w: 35,  h: 45 },
-    { id: 'lamp2',      icon: '🔮', label: 'Lava Lamp',  w: 30,  h: 50 },
-  ],
+  bedroom: {
+    'Beds & Seating': [
+      { id:'bed1',     icon:'🛏️', label:'Bed',        w:120,h:70 },
+      { id:'bed2',     icon:'🛌', label:'Sleep Bed',  w:110,h:65 },
+      { id:'couch1',   icon:'🛋️', label:'Couch',      w:100,h:55 },
+      { id:'chair1',   icon:'💺', label:'Armchair',   w:50, h:55 },
+      { id:'bean',     icon:'🫘', label:'Bean Bag',   w:55, h:45 },
+      { id:'stool1',   icon:'🪑', label:'Stool',      w:35, h:40 },
+      { id:'bench',    icon:'🪵', label:'Bench',      w:90, h:35 },
+    ],
+    'Storage': [
+      { id:'dresser',  icon:'🗄️', label:'Dresser',    w:70, h:65 },
+      { id:'shelf',    icon:'📦', label:'Shelf',      w:70, h:55 },
+      { id:'wardrobe', icon:'🚪', label:'Wardrobe',   w:60, h:80 },
+      { id:'chest',    icon:'🧳', label:'Chest',      w:60, h:40 },
+      { id:'box',      icon:'📫', label:'Box',        w:40, h:35 },
+      { id:'basket',   icon:'🧺', label:'Basket',     w:45, h:35 },
+    ],
+    'Lighting': [
+      { id:'lamp1',    icon:'🪔', label:'Lamp',       w:40, h:60 },
+      { id:'lamp2',    icon:'💡', label:'Ceiling',    w:35, h:40 },
+      { id:'candle',   icon:'🕯️', label:'Candle',     w:30, h:40 },
+      { id:'star',     icon:'⭐', label:'Star Light', w:35, h:35 },
+      { id:'lantern',  icon:'🏮', label:'Lantern',    w:30, h:40 },
+      { id:'fairy',    icon:'✨', label:'Fairy Light',w:80, h:15 },
+    ],
+    'Decor': [
+      { id:'plant1',   icon:'🪴', label:'Plant',      w:45, h:55 },
+      { id:'flower1',  icon:'🌸', label:'Sakura',     w:35, h:35 },
+      { id:'flower2',  icon:'🌻', label:'Sunflower',  w:35, h:40 },
+      { id:'flower3',  icon:'🌹', label:'Rose',       w:30, h:35 },
+      { id:'cactus',   icon:'🌵', label:'Cactus',     w:30, h:45 },
+      { id:'mirror',   icon:'🪞', label:'Mirror',     w:40, h:55 },
+      { id:'picture',  icon:'🖼️', label:'Picture',    w:50, h:45 },
+      { id:'clock1',   icon:'🕰️', label:'Clock',      w:35, h:45 },
+      { id:'globe',    icon:'🌍', label:'Globe',      w:35, h:40 },
+      { id:'trophy',   icon:'🏆', label:'Trophy',     w:35, h:45 },
+      { id:'window',   icon:'🪟', label:'Window',     w:70, h:70 },
+      { id:'curtain',  icon:'🎭', label:'Curtain',    w:60, h:80 },
+    ],
+    'Toys & Fun': [
+      { id:'teddy',    icon:'🧸', label:'Teddy',      w:40, h:40 },
+      { id:'books',    icon:'📚', label:'Books',      w:45, h:40 },
+      { id:'guitar',   icon:'🎸', label:'Guitar',     w:30, h:60 },
+      { id:'balloon',  icon:'🎈', label:'Balloon',    w:25, h:45 },
+      { id:'kite',     icon:'🪁', label:'Kite',       w:40, h:45 },
+      { id:'snow',     icon:'🎿', label:'Snow Globe',  w:35, h:40 },
+      { id:'dino',     icon:'🦕', label:'Dino',       w:50, h:40 },
+      { id:'bunny',    icon:'🐰', label:'Bunny',      w:35, h:40 },
+    ],
+    'Rugs & Floors': [
+      { id:'rug1',     icon:'🟫', label:'Brown Rug',  w:100,h:30 },
+      { id:'rug2',     icon:'🟪', label:'Purple Rug', w:100,h:30 },
+      { id:'rug3',     icon:'🟩', label:'Green Rug',  w:80, h:25 },
+      { id:'mat',      icon:'🧶', label:'Mat',        w:60, h:20 },
+    ],
+  },
+  cafe: {
+    'Tables & Chairs': [
+      { id:'chair2',   icon:'🪑', label:'Chair',      w:45, h:50 },
+      { id:'table1',   icon:'🍽️', label:'Table',      w:80, h:50 },
+      { id:'table2',   icon:'🪵', label:'Wood Table', w:70, h:45 },
+      { id:'stool2',   icon:'💺', label:'Bar Stool',  w:35, h:45 },
+      { id:'booth',    icon:'🛋️', label:'Booth',      w:100,h:55 },
+      { id:'high',     icon:'🪜', label:'High Chair', w:35, h:55 },
+      { id:'patio',    icon:'⛱️', label:'Patio Set',  w:80, h:60 },
+    ],
+    'Food & Drinks': [
+      { id:'coffee',   icon:'☕', label:'Coffee',     w:35, h:35 },
+      { id:'tea',      icon:'🍵', label:'Tea',        w:35, h:30 },
+      { id:'teapot',   icon:'🫖', label:'Teapot',     w:40, h:35 },
+      { id:'cake',     icon:'🍰', label:'Cake',       w:40, h:35 },
+      { id:'crois',    icon:'🥐', label:'Croissant',  w:35, h:30 },
+      { id:'donut',    icon:'🍩', label:'Donut',      w:35, h:30 },
+      { id:'muffin',   icon:'🧁', label:'Muffin',     w:35, h:35 },
+      { id:'cookie',   icon:'🍪', label:'Cookie',     w:30, h:28 },
+      { id:'bread',    icon:'🍞', label:'Bread',      w:35, h:30 },
+      { id:'sandwich', icon:'🥪', label:'Sandwich',   w:40, h:30 },
+      { id:'salad',    icon:'🥗', label:'Salad',      w:40, h:35 },
+      { id:'juice',    icon:'🧃', label:'Juice',      w:25, h:35 },
+      { id:'smooth',   icon:'🥤', label:'Smoothie',   w:25, h:40 },
+      { id:'icecream', icon:'🍦', label:'Ice Cream',  w:30, h:40 },
+      { id:'choco',    icon:'🍫', label:'Chocolate',  w:35, h:25 },
+      { id:'fruit',    icon:'🍓', label:'Berries',    w:35, h:30 },
+      { id:'wine',     icon:'🍷', label:'Wine Glass', w:25, h:40 },
+    ],
+    'Equipment': [
+      { id:'counter',  icon:'🧱', label:'Counter',    w:120,h:50 },
+      { id:'machine',  icon:'⚙️', label:'Espresso',   w:45, h:50 },
+      { id:'oven',     icon:'🫕', label:'Oven',       w:55, h:50 },
+      { id:'fridge',   icon:'🧊', label:'Fridge',     w:50, h:70 },
+      { id:'blender',  icon:'🥣', label:'Blender',    w:30, h:45 },
+      { id:'register', icon:'🧮', label:'Register',   w:45, h:35 },
+    ],
+    'Decor': [
+      { id:'plant3',   icon:'🌿', label:'Plant',      w:45, h:50 },
+      { id:'flower4',  icon:'💐', label:'Flowers',    w:40, h:45 },
+      { id:'flower5',  icon:'🌷', label:'Tulip',      w:30, h:40 },
+      { id:'menu',     icon:'📋', label:'Menu',       w:50, h:60 },
+      { id:'sign1',    icon:'🪧', label:'Sign',       w:50, h:50 },
+      { id:'light2',   icon:'💡', label:'Pendant',    w:35, h:40 },
+      { id:'lamp3',    icon:'🪔', label:'Wall Lamp',  w:30, h:35 },
+      { id:'clock2',   icon:'🕐', label:'Clock',      w:35, h:35 },
+      { id:'art1',     icon:'🎨', label:'Art',        w:50, h:45 },
+      { id:'bell',     icon:'🔔', label:'Door Bell',  w:25, h:30 },
+      { id:'chalkb',   icon:'📝', label:'Chalkboard', w:60, h:45 },
+      { id:'window2',  icon:'🪟', label:'Window',     w:70, h:70 },
+    ],
+  },
+  gaming: {
+    'Desk Setup': [
+      { id:'monitor1', icon:'🖥️', label:'Monitor',    w:80, h:60 },
+      { id:'monitor2', icon:'📺', label:'TV',         w:100,h:60 },
+      { id:'laptop',   icon:'💻', label:'Laptop',     w:60, h:40 },
+      { id:'keyboard', icon:'⌨️', label:'Keyboard',   w:70, h:25 },
+      { id:'mouse',    icon:'🖱️', label:'Mouse',      w:25, h:30 },
+      { id:'tablet',   icon:'📱', label:'Tablet',     w:30, h:40 },
+      { id:'webcam',   icon:'📸', label:'Webcam',     w:25, h:25 },
+      { id:'desk1',    icon:'🪵', label:'Desk',       w:110,h:45 },
+      { id:'chair3',   icon:'🪑', label:'Gaming Chair',w:55,h:60 },
+    ],
+    'Gaming': [
+      { id:'control',  icon:'🎮', label:'Controller', w:45, h:35 },
+      { id:'console1', icon:'🕹️', label:'Arcade',     w:50, h:65 },
+      { id:'console2', icon:'📟', label:'Console',    w:50, h:35 },
+      { id:'headset',  icon:'🎧', label:'Headset',    w:40, h:40 },
+      { id:'vr',       icon:'🥽', label:'VR Set',     w:45, h:35 },
+      { id:'dice',     icon:'🎲', label:'Dice',       w:25, h:25 },
+      { id:'cards',    icon:'🃏', label:'Cards',      w:35, h:30 },
+      { id:'chess',    icon:'♟️', label:'Chess',      w:40, h:35 },
+    ],
+    'Audio': [
+      { id:'speaker1', icon:'🔊', label:'Speaker',    w:35, h:45 },
+      { id:'speaker2', icon:'📻', label:'Radio',      w:45, h:35 },
+      { id:'mic',      icon:'🎤', label:'Mic',        w:25, h:45 },
+      { id:'vinyl',    icon:'💿', label:'Vinyl',      w:40, h:40 },
+      { id:'guitar2',  icon:'🎸', label:'Guitar',     w:30, h:60 },
+      { id:'drum',     icon:'🥁', label:'Drum',       w:45, h:40 },
+    ],
+    'Lighting & Decor': [
+      { id:'rgb',      icon:'🌈', label:'RGB Strip',  w:90, h:15 },
+      { id:'lava',     icon:'🔮', label:'Lava Lamp',  w:30, h:50 },
+      { id:'neon',     icon:'💜', label:'Neon Sign',  w:60, h:30 },
+      { id:'led',      icon:'💡', label:'LED Panel',  w:50, h:30 },
+      { id:'poster1',  icon:'🖼️', label:'Poster',     w:50, h:60 },
+      { id:'poster2',  icon:'🎬', label:'Movie Post', w:45, h:55 },
+      { id:'flag',     icon:'🏳️', label:'Flag',       w:50, h:35 },
+      { id:'clock3',   icon:'⏰', label:'Clock',      w:30, h:30 },
+      { id:'moon',     icon:'🌙', label:'Moon Light', w:35, h:35 },
+      { id:'star2',    icon:'⭐', label:'Star',       w:30, h:30 },
+      { id:'planet',   icon:'🪐', label:'Planet',     w:40, h:40 },
+      { id:'rocket',   icon:'🚀', label:'Rocket',     w:30, h:50 },
+    ],
+    'Snacks & Drinks': [
+      { id:'pizza',    icon:'🍕', label:'Pizza',      w:40, h:35 },
+      { id:'soda',     icon:'🥤', label:'Soda',       w:25, h:40 },
+      { id:'chips',    icon:'🍿', label:'Popcorn',    w:30, h:40 },
+      { id:'ramen',    icon:'🍜', label:'Ramen',      w:40, h:35 },
+      { id:'burger',   icon:'🍔', label:'Burger',     w:35, h:35 },
+      { id:'energy',   icon:'🧃', label:'Energy',     w:25, h:35 },
+      { id:'candy',    icon:'🍬', label:'Candy',      w:25, h:25 },
+    ],
+    'Misc': [
+      { id:'trophy2',  icon:'🏆', label:'Trophy',     w:35, h:45 },
+      { id:'medal',    icon:'🥇', label:'Medal',      w:30, h:35 },
+      { id:'plant4',   icon:'🪴', label:'Plant',      w:40, h:50 },
+      { id:'cat',      icon:'🐱', label:'Cat',        w:35, h:35 },
+      { id:'dog',      icon:'🐶', label:'Dog',        w:35, h:35 },
+      { id:'fish',     icon:'🐠', label:'Fish Tank',  w:55, h:40 },
+      { id:'robot',    icon:'🤖', label:'Robot',      w:35, h:40 },
+      { id:'ufo',      icon:'🛸', label:'UFO',        w:45, h:30 },
+    ],
+  },
 };
+
+// Count total items
+let totalItems = 0;
+Object.values(FURNITURE).forEach(room => Object.values(room).forEach(cat => totalItems += cat.length));
+console.log('Total furniture items:', totalItems);
 
 let currentRoom = 'bedroom';
 let placed = { bedroom: [], cafe: [], gaming: [] };
@@ -270,26 +376,26 @@ function switchRoom(name) {
   renderRoom();
 }
 
-function renderPalette() {
-  const items = FURNITURE[currentRoom];
-  palette.innerHTML = `<div class="palette-title">Furniture</div><div class="palette-items">${
-    items.map(f => `
-      <div class="palette-item" data-id="${f.id}"
-           onmousedown="startDragNew(event, '${f.id}')"
-           ontouchstart="startDragNew(event, '${f.id}')">
-        <span class="icon">${f.icon}</span>
-        <span class="label">${f.label}</span>
-      </div>
-    `).join('')
-  }</div>`;
+function renderPalette(filter = '') {
+  const cats = FURNITURE[currentRoom];
+  let html = `<input class="palette-search" type="text" placeholder="Search..." oninput="renderPalette(this.value)" value="${filter}">`;
+  const lf = filter.toLowerCase();
+  for (const [catName, items] of Object.entries(cats)) {
+    const filtered = lf ? items.filter(f => f.label.toLowerCase().includes(lf) || f.icon.includes(lf)) : items;
+    if (filtered.length === 0) continue;
+    html += `<div class="palette-cat">${catName}</div><div class="palette-items">`;
+    for (const f of filtered) {
+      html += `<div class="palette-item" data-id="${f.id}" onmousedown="startDragNew(event,'${f.id}')" ontouchstart="startDragNew(event,'${f.id}')">
+        <span class="icon">${f.icon}</span><span class="label">${f.label}</span></div>`;
+    }
+    html += `</div>`;
+  }
+  palette.innerHTML = html;
 }
 
 function renderRoom() {
   room.innerHTML = '';
-  placed[currentRoom].forEach(p => {
-    const el = createFurnitureEl(p);
-    room.appendChild(el);
-  });
+  placed[currentRoom].forEach(p => room.appendChild(createFurnitureEl(p)));
 }
 
 function createFurnitureEl(p) {
@@ -300,8 +406,14 @@ function createFurnitureEl(p) {
   el.style.width = p.w + 'px';
   el.style.height = p.h + 'px';
   el.style.fontSize = Math.min(p.w, p.h) * 0.7 + 'px';
-  el.innerHTML = `<span>${p.icon}</span><button class="delete-btn" onmousedown="event.stopPropagation()" onclick="removeFurniture(${p.uid})">✕</button>`;
+  if (p.color) el.style.background = p.color + '55';
   el.dataset.uid = p.uid;
+
+  el.innerHTML = `<span>${p.icon}</span>
+    <div class="btn-row">
+      <button class="fb color-btn" title="Color" onmousedown="event.stopPropagation()">🎨<input type="color" value="${p.color || '#ffffff'}" onchange="changeColor(${p.uid}, this.value)" onmousedown="event.stopPropagation()"></button>
+      <button class="fb" onmousedown="event.stopPropagation()" onclick="removeFurniture(${p.uid})">✕</button>
+    </div>`;
 
   el.addEventListener('mousedown', e => startDragExisting(e, p.uid));
   el.addEventListener('touchstart', e => startDragExisting(e, p.uid), { passive: false });
@@ -309,11 +421,23 @@ function createFurnitureEl(p) {
 }
 
 function getFurnitureDef(id) {
-  for (const cat of Object.values(FURNITURE)) {
-    const f = cat.find(item => item.id === id);
-    if (f) return f;
+  for (const roomCats of Object.values(FURNITURE)) {
+    for (const items of Object.values(roomCats)) {
+      const f = items.find(item => item.id === id);
+      if (f) return f;
+    }
   }
   return null;
+}
+
+function changeColor(uid, color) {
+  saveHistory();
+  const p = placed[currentRoom].find(item => item.uid === uid);
+  if (p) {
+    p.color = color;
+    renderRoom();
+    save();
+  }
 }
 
 function startDragNew(e, id) {
@@ -337,7 +461,6 @@ function startDragExisting(e, uid) {
   dragOffset.x = pos.x - rect.left - p.x;
   dragOffset.y = pos.y - rect.top - p.y;
   dragItem = { type: 'existing', uid };
-
   const el = room.querySelector(`[data-uid="${uid}"]`);
   if (el) { el.classList.add('dragging'); draggingEl = el; }
 }
@@ -354,7 +477,6 @@ function onDragMove(e) {
   if (!dragItem) return;
   e.preventDefault();
   const pos = getPointerPos(e);
-
   if (dragItem.type === 'new') {
     preview.style.left = pos.x + 'px';
     preview.style.top = pos.y + 'px';
@@ -374,75 +496,38 @@ document.addEventListener('touchend', onDragEnd);
 
 function onDragEnd(e) {
   if (!dragItem) return;
-
   if (dragItem.type === 'new') {
     preview.style.display = 'none';
     const pos = e.changedTouches ? { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY } : { x: e.clientX, y: e.clientY };
     const rect = room.getBoundingClientRect();
     if (pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom) {
       saveHistory();
-      const nx = pos.x - rect.left - dragItem.w / 2;
-      const ny = pos.y - rect.top - dragItem.h / 2;
       placed[currentRoom].push({
-        uid: dragItem.uid,
-        id: dragItem.id,
-        icon: dragItem.icon,
-        w: dragItem.w,
-        h: dragItem.h,
-        x: Math.max(0, Math.min(rect.width - dragItem.w, nx)),
-        y: Math.max(0, Math.min(rect.height - dragItem.h, ny)),
+        uid: dragItem.uid, id: dragItem.id, icon: dragItem.icon,
+        w: dragItem.w, h: dragItem.h,
+        x: Math.max(0, Math.min(rect.width - dragItem.w, pos.x - rect.left - dragItem.w / 2)),
+        y: Math.max(0, Math.min(rect.height - dragItem.h, pos.y - rect.top - dragItem.h / 2)),
+        color: null,
       });
       renderRoom();
       save();
     }
-  } else if (dragItem.type === 'existing') {
-    if (draggingEl) {
-      saveHistory();
-      const p = placed[currentRoom].find(item => item.uid === dragItem.uid);
-      if (p) {
-        p.x = parseFloat(draggingEl.style.left);
-        p.y = parseFloat(draggingEl.style.top);
-      }
-      draggingEl.classList.remove('dragging');
-      draggingEl = null;
-      save();
-    }
+  } else if (dragItem.type === 'existing' && draggingEl) {
+    saveHistory();
+    const p = placed[currentRoom].find(item => item.uid === dragItem.uid);
+    if (p) { p.x = parseFloat(draggingEl.style.left); p.y = parseFloat(draggingEl.style.top); }
+    draggingEl.classList.remove('dragging');
+    draggingEl = null;
+    save();
   }
-
   dragItem = null;
 }
 
-function removeFurniture(uid) {
-  saveHistory();
-  placed[currentRoom] = placed[currentRoom].filter(p => p.uid !== uid);
-  renderRoom();
-  save();
-}
-
-function clearRoom() {
-  if (placed[currentRoom].length === 0) return;
-  saveHistory();
-  placed[currentRoom] = [];
-  renderRoom();
-  save();
-}
-
-function saveHistory() {
-  history[currentRoom].push(JSON.parse(JSON.stringify(placed[currentRoom])));
-  if (history[currentRoom].length > 30) history[currentRoom].shift();
-}
-
-function undo() {
-  if (history[currentRoom].length === 0) return;
-  placed[currentRoom] = history[currentRoom].pop();
-  renderRoom();
-  save();
-}
-
-function save() {
-  try { localStorage.setItem('homey_rooms', JSON.stringify(placed)); } catch {}
-}
-
+function removeFurniture(uid) { saveHistory(); placed[currentRoom] = placed[currentRoom].filter(p => p.uid !== uid); renderRoom(); save(); }
+function clearRoom() { if (!placed[currentRoom].length) return; saveHistory(); placed[currentRoom] = []; renderRoom(); save(); }
+function saveHistory() { history[currentRoom].push(JSON.parse(JSON.stringify(placed[currentRoom]))); if (history[currentRoom].length > 30) history[currentRoom].shift(); }
+function undo() { if (!history[currentRoom].length) return; placed[currentRoom] = history[currentRoom].pop(); renderRoom(); save(); }
+function save() { try { localStorage.setItem('homey_rooms', JSON.stringify(placed)); } catch {} }
 function load() {
   try {
     const data = JSON.parse(localStorage.getItem('homey_rooms'));
