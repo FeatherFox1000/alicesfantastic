@@ -367,8 +367,8 @@ router.get('/scores/:game', (req, res) => {
   res.json(scores);
 });
 
-// Admin: set/update a user's score
-router.post('/admin/scores/:username', adminOnly, (req, res) => {
+// Owner only: set/update a user's score
+router.post('/admin/scores/:username', ownerOnly, (req, res) => {
   const { game, score } = req.body;
   if (!VALID_GAMES.includes(game)) return res.status(400).json({ error: 'Invalid game.' });
   if (!Number.isInteger(score) || score < 0) return res.status(400).json({ error: 'Invalid score.' });

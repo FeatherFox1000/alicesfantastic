@@ -143,16 +143,18 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
             {extra.scores.map(s => (
               <div key={s.game} className="score-item">
                 <span className="score-game">{GAME_NAMES[s.game] || s.game}</span>
-                {editingScore === s.game ? (
+                {currentAdmin === 'warrior_cats' && editingScore === s.game ? (
                   <span className="score-edit-row">
                     <input type="number" className="score-edit-input" value={scoreVal} onChange={e => setScoreVal(e.target.value)} min="0" />
                     <button className="score-save-btn" onClick={() => saveScore(s.game, scoreVal)}>Save</button>
                     <button className="score-cancel-btn" onClick={() => setEditingScore(null)}>Cancel</button>
                   </span>
-                ) : (
+                ) : currentAdmin === 'warrior_cats' ? (
                   <span className="score-value" onClick={() => { setEditingScore(s.game); setScoreVal(String(s.score)); }} title="Click to edit" style={{ cursor: 'pointer' }}>
                     {s.score.toLocaleString()} ✏️
                   </span>
+                ) : (
+                  <span className="score-value">{s.score.toLocaleString()}</span>
                 )}
               </div>
             ))}
@@ -160,20 +162,22 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
         ) : (
           <p className="no-scores">No scores yet</p>
         )}
-        <form className="score-add-form" onSubmit={addNewScore}>
-          <select value={addGame} onChange={e => setAddGame(e.target.value)} className="score-add-select">
-            <option value="">Add score...</option>
-            {Object.entries(GAME_NAMES).map(([key, name]) => (
-              <option key={key} value={key}>{name}</option>
-            ))}
-          </select>
-          {addGame && (
-            <>
-              <input type="number" className="score-edit-input" value={addScore} onChange={e => setAddScore(e.target.value)} placeholder="Score" min="0" />
-              <button type="submit" className="score-save-btn">Add</button>
-            </>
-          )}
-        </form>
+        {currentAdmin === 'warrior_cats' && (
+          <form className="score-add-form" onSubmit={addNewScore}>
+            <select value={addGame} onChange={e => setAddGame(e.target.value)} className="score-add-select">
+              <option value="">Add score...</option>
+              {Object.entries(GAME_NAMES).map(([key, name]) => (
+                <option key={key} value={key}>{name}</option>
+              ))}
+            </select>
+            {addGame && (
+              <>
+                <input type="number" className="score-edit-input" value={addScore} onChange={e => setAddScore(e.target.value)} placeholder="Score" min="0" />
+                <button type="submit" className="score-save-btn">Add</button>
+              </>
+            )}
+          </form>
+        )}
 
         <h3 className="scores-title">Send Notification</h3>
         <form className="notify-form" onSubmit={sendNotification}>
