@@ -32,6 +32,10 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState('');
   const [notifs, setNotifs] = useState([]);
+  const [editingScore, setEditingScore] = useState(null);
+  const [scoreVal, setScoreVal] = useState('');
+  const [addGame, setAddGame] = useState('');
+  const [addScore, setAddScore] = useState('');
   useEffect(() => {
     adminRequest('GET', `/admin/user/${username}`).then(data => {
       if (!data.error) setExtra(data);
@@ -48,6 +52,24 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
   async function loadNotifs() {
     const data = await adminRequest('GET', `/admin/notifications/${username}`);
     if (Array.isArray(data)) setNotifs(data);
+  }
+
+  async function saveScore(game, score) {
+    const val = parseInt(score);
+    if (isNaN(val) || val < 0) return;
+    await adminRequest('POST', `/admin/scores/${username}`, { game, score: val });
+    const data = await adminRequest('GET', `/admin/user/${username}`);
+    if (!data.error) setExtra(data);
+    setEditingScore(null);
+    setScoreVal('');
+  }
+
+  async function addNewScore(e) {
+    e.preventDefault();
+    if (!addGame || !addScore) return;
+    await saveScore(addGame, addScore);
+    setAddGame('');
+    setAddScore('');
   }
 
   async function sendNote(e) {
@@ -121,13 +143,37 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
             {extra.scores.map(s => (
               <div key={s.game} className="score-item">
                 <span className="score-game">{GAME_NAMES[s.game] || s.game}</span>
-                <span className="score-value">{s.score.toLocaleString()}</span>
+                {editingScore === s.game ? (
+                  <span className="score-edit-row">
+                    <input type="number" className="score-edit-input" value={scoreVal} onChange={e => setScoreVal(e.target.value)} min="0" />
+                    <button className="score-save-btn" onClick={() => saveScore(s.game, scoreVal)}>Save</button>
+                    <button className="score-cancel-btn" onClick={() => setEditingScore(null)}>Cancel</button>
+                  </span>
+                ) : (
+                  <span className="score-value" onClick={() => { setEditingScore(s.game); setScoreVal(String(s.score)); }} title="Click to edit" style={{ cursor: 'pointer' }}>
+                    {s.score.toLocaleString()} ✏️
+                  </span>
+                )}
               </div>
             ))}
           </div>
         ) : (
           <p className="no-scores">No scores yet</p>
         )}
+        <form className="score-add-form" onSubmit={addNewScore}>
+          <select value={addGame} onChange={e => setAddGame(e.target.value)} className="score-add-select">
+            <option value="">Add score...</option>
+            {Object.entries(GAME_NAMES).map(([key, name]) => (
+              <option key={key} value={key}>{name}</option>
+            ))}
+          </select>
+          {addGame && (
+            <>
+              <input type="number" className="score-edit-input" value={addScore} onChange={e => setAddScore(e.target.value)} placeholder="Score" min="0" />
+              <button type="submit" className="score-save-btn">Add</button>
+            </>
+          )}
+        </form>
 
         <h3 className="scores-title">Send Notification</h3>
         <form className="notify-form" onSubmit={sendNotification}>

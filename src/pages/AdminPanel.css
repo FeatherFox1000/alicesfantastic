@@ -318,6 +318,65 @@
   font-style: italic;
 }
 
+.score-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.score-edit-input {
+  width: 90px;
+  padding: 0.3rem 0.5rem;
+  border: 2px solid #e0d4f5;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.score-edit-input:focus {
+  border-color: #7b14c9;
+}
+
+.score-save-btn {
+  background: #38a169;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.6rem;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.score-cancel-btn {
+  background: #e2e3e5;
+  color: #555;
+  border: none;
+  padding: 0.25rem 0.6rem;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.score-add-form {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.score-add-select {
+  padding: 0.3rem 0.5rem;
+  border: 2px solid #e0d4f5;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.score-add-select:focus {
+  border-color: #7b14c9;
+}
+
 /* Admin Chat */
 .admin-chat {
   margin-top: 2.5rem;

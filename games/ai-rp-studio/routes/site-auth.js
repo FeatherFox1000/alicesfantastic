@@ -367,6 +367,20 @@ router.get('/scores/:game', (req, res) => {
   res.json(scores);
 });
 
+// Admin: set/update a user's score
+router.post('/admin/scores/:username', adminOnly, (req, res) => {
+  const { game, score } = req.body;
+  if (!VALID_GAMES.includes(game)) return res.status(400).json({ error: 'Invalid game.' });
+  if (!Number.isInteger(score) || score < 0) return res.status(400).json({ error: 'Invalid score.' });
+  const target = db.prepare('SELECT id, username FROM users WHERE username = ?').get(req.params.username);
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  db.prepare(
+    `INSERT INTO scores (user_id, username, game, score) VALUES (?, ?, ?, ?)
+     ON CONFLICT(user_id, game) DO UPDATE SET score = excluded.score, created_at = datetime('now')`
+  ).run(target.id, target.username, game, score);
+  res.json({ success: true, game, score });
+});
+
 // --- Per-User Admin Notes (admins discuss a user) ---
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_notes (
