@@ -1,5 +1,6 @@
 // Creator Game - Main Logic
 import { ShapeEditor, CharacterCustomizer } from './customization.js';
+import { toast, confirmDialog, promptDialog } from './notify.js';
 
 class CreatorGame {
     constructor() {
@@ -142,10 +143,14 @@ class CreatorGame {
                     this.dragOffsetY = worldY - clickedObject.y;
                     this.saveToHistory();
                 } else if (!clickedObject) {
-                    // Place new object if not clicking on existing one
+                    // Place new object and start drag-to-place
+                    this.isPlacing = true;
+                    this.saveToHistory();
                     this.placeObject(e);
+                    this.lastPlacedGrid = this.getGridPos(e);
                 }
             } else if (this.mode === 'delete') {
+                this.isDeleting = true;
                 this.deleteObjectAtMouse(e);
             }
         });
@@ -160,14 +165,34 @@ class CreatorGame {
                 this.draggedObject.y = Math.floor((worldY - this.dragOffsetY) / this.gridSize) * this.gridSize;
 
                 this.render();
+            } else if (this.isPlacing && this.mode === 'build') {
+                // Drag to place blocks continuously
+                const gridPos = this.getGridPos(e);
+                if (!this.lastPlacedGrid || gridPos.gx !== this.lastPlacedGrid.gx || gridPos.gy !== this.lastPlacedGrid.gy) {
+                    const worldX = e.clientX - this.canvas.getBoundingClientRect().left + this.cameraX;
+                    const worldY = e.clientY - this.canvas.getBoundingClientRect().top + this.cameraY;
+                    if (!this.getObjectAt(worldX, worldY)) {
+                        this.placeObject(e);
+                    }
+                    this.lastPlacedGrid = gridPos;
+                }
+            } else if (this.isDeleting && this.mode === 'delete') {
+                this.deleteObjectAtMouse(e);
             }
         });
 
         this.canvas.addEventListener('mouseup', (e) => {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.draggedObject = null;
-            }
+            this.isDragging = false;
+            this.draggedObject = null;
+            this.isPlacing = false;
+            this.isDeleting = false;
+            this.lastPlacedGrid = null;
+        });
+
+        this.canvas.addEventListener('mouseleave', () => {
+            this.isPlacing = false;
+            this.isDeleting = false;
+            this.lastPlacedGrid = null;
         });
 
         // Keyboard controls
@@ -319,13 +344,18 @@ class CreatorGame {
         }
     }
 
+    getGridPos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return {
+            gx: Math.floor((e.clientX - rect.left + this.cameraX) / this.gridSize),
+            gy: Math.floor((e.clientY - rect.top + this.cameraY) / this.gridSize)
+        };
+    }
+
     placeObject(e) {
         const rect = this.canvas.getBoundingClientRect();
         let x = Math.floor((e.clientX - rect.left + this.cameraX) / this.gridSize) * this.gridSize;
         let y = Math.floor((e.clientY - rect.top + this.cameraY) / this.gridSize) * this.gridSize;
-
-        // Save current state to history before making changes
-        this.saveToHistory();
 
         const obj = {
             shape: this.selectedShape,
@@ -752,8 +782,8 @@ class CreatorGame {
         requestAnimationFrame(() => this.gameLoop());
     }
 
-    saveWorld() {
-        const worldName = prompt('Enter a name for your world:', 'My World');
+    async saveWorld() {
+        const worldName = await promptDialog('Enter a name for your world:', 'My World');
         if (!worldName) return;
 
         const worldData = {
@@ -780,7 +810,7 @@ class CreatorGame {
 
         URL.revokeObjectURL(url);
 
-        alert('World saved successfully!');
+        toast('World saved successfully!');
     }
 
     getSavedWorlds() {
@@ -894,7 +924,7 @@ class CreatorGame {
         this.updateUndoButton();
         this.render();
         this.closeLoadWorldsModal();
-        alert(`World "${world.name}" loaded successfully!`);
+        toast(`World "${world.name}" loaded!`);
     }
 
     downloadWorld(world) {
@@ -910,8 +940,8 @@ class CreatorGame {
         URL.revokeObjectURL(url);
     }
 
-    deleteSavedWorld(worldId) {
-        if (!confirm('Are you sure you want to delete this world?')) return;
+    async deleteSavedWorld(worldId) {
+        if (!await confirmDialog('Are you sure you want to delete this world?')) return;
 
         const savedWorlds = this.getSavedWorlds();
         const filtered = savedWorlds.filter(w => w.id !== worldId);
@@ -936,9 +966,9 @@ class CreatorGame {
                     this.updateUndoButton();
                     this.render();
                     this.closeLoadWorldsModal();
-                    alert('World loaded successfully!');
+                    toast('World loaded!');
                 } catch (error) {
-                    alert('Error loading world file!');
+                    toast('Error loading world file!');
                 }
             };
 
@@ -962,15 +992,15 @@ class CreatorGame {
 
         // Copy to clipboard
         navigator.clipboard.writeText(shareUrl).then(() => {
-            alert('Share link copied to clipboard!\n\nAnyone with this link can load your world.');
+            toast('Share link copied to clipboard!');
         }).catch(() => {
             // Fallback: show the URL
-            prompt('Share this link:', shareUrl);
+            promptDialog('Share this link:', shareUrl);
         });
     }
 
-    clearWorld() {
-        if (confirm('Are you sure you want to clear your entire world? This cannot be undone.')) {
+    async clearWorld() {
+        if (await confirmDialog('Clear your entire world?')) {
             this.saveToHistory();
             this.objects = [];
             this.render();
@@ -1018,7 +1048,7 @@ class CreatorGame {
                 const worldData = JSON.parse(decoded);
                 this.objects = worldData.objects || [];
                 this.render();
-                alert('Shared world loaded!');
+                toast('Shared world loaded!');
             } catch (error) {
                 console.error('Error loading shared world:', error);
             }
@@ -1081,8 +1111,8 @@ class CreatorGame {
         });
     }
 
-    deleteCustomShape(index) {
-        if (confirm('Delete this custom shape?')) {
+    async deleteCustomShape(index) {
+        if (await confirmDialog('Delete this custom shape?')) {
             this.customShapes.splice(index, 1);
             this.renderCustomShapes();
         }

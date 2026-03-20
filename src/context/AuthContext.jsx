@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const AuthContext = createContext(null);
 
 export const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:3001/api/auth'
+  ? 'http://localhost:3003/api/site-auth'
   : 'https://ai-rp-studio.fly.dev/api/site-auth';
 
 async function request(method, path, body) {

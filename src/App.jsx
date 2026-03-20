@@ -12,6 +12,7 @@ import Podcasts from './pages/Podcasts';
 import AIRPStudio from './pages/AIRPStudio';
 import JumpingPenguin from './pages/JumpingPenguin';
 import PenguinRunner from './pages/PenguinRunner';
+import PresentMaker from './pages/PresentMaker';
 import LoginPage from './pages/LoginPage';
 import AdminPanel from './pages/AdminPanel';
 import ParentalConsent from './pages/ParentalConsent';
@@ -24,19 +25,6 @@ function AppContent() {
 
   if (loading) return null;
 
-  // Not logged in — show login, consent, and privacy pages
-  if (!user) {
-    return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/consent/:token" element={<ParentalConsent />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    );
-  }
-
-  // Logged in — show the full site
   return (
     <div className="app">
       <Header />
@@ -51,10 +39,12 @@ function AppContent() {
           <Route path="/ai-rp-studio" element={<AIRPStudio />} />
           <Route path="/jumping-penguin" element={<JumpingPenguin />} />
           <Route path="/penguin-runner" element={<PenguinRunner />} />
+          <Route path="/present-maker" element={<PresentMaker />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/consent/:token" element={<ParentalConsent />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Footer />

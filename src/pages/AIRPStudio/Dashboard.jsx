@@ -86,8 +86,8 @@ export default function Dashboard({ username, email, onSelectCharacter, onCreate
             onClick={() => onSelectCharacter(char)}
           >
             <div className="airp-char-emoji">🐾</div>
-            <h3>{char.name}</h3>
             <p className="airp-world-name">🌍 {char.world_name}</p>
+            <h3>{char.name}</h3>
             <p className="airp-char-preview">{char.character_description.slice(0, 80)}...</p>
             <p className="airp-char-date">Created {new Date(char.created_at).toLocaleDateString()}</p>
             <div className="airp-card-actions">

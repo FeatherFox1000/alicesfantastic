@@ -105,9 +105,392 @@
   background: #2f855a;
 }
 
+.child-badge {
+  background: #ed8936;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.status-pending {
+  color: #ed8936;
+  font-weight: 600;
+}
+
+.approve-btn {
+  background: #3182ce;
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.approve-btn:hover {
+  background: #2b6cb0;
+}
+
+.action-cell {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.make-admin-btn {
+  background: #7b14c9;
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.make-admin-btn:hover {
+  background: #6310a3;
+}
+
+.remove-admin-btn {
+  background: #ed8936;
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.remove-admin-btn:hover {
+  background: #dd6b20;
+}
+
 .user-count {
   text-align: right;
   color: #888;
   margin-top: 1rem;
   font-size: 0.9rem;
+}
+
+.username-link {
+  color: #7b14c9;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+.username-link:hover {
+  color: #5a0e96;
+  text-decoration-style: solid;
+}
+
+/* User detail modal */
+.user-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.user-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #888;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.modal-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.user-modal h2 {
+  font-size: 1.5rem;
+  color: #7b14c9;
+  margin: 0 0 0.5rem;
+}
+
+.user-detail-badges {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.user-detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 0.95rem;
+  color: #333;
+  word-break: break-all;
+}
+
+.detail-hash {
+  font-family: monospace;
+  font-size: 0.75rem;
+  background: #f5f5f5;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  color: #666;
+}
+
+.scores-title {
+  font-size: 1.1rem;
+  color: #7b14c9;
+  margin: 0 0 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.scores-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9f5ff;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+}
+
+.score-game {
+  font-weight: 600;
+  color: #555;
+}
+
+.score-value {
+  font-weight: 700;
+  color: #7b14c9;
+  font-size: 1.1rem;
+}
+
+.no-scores {
+  color: #999;
+  font-style: italic;
+}
+
+/* Admin Chat */
+.admin-chat {
+  margin-top: 2.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.admin-chat h2 {
+  background: #7b14c9;
+  color: white;
+  margin: 0;
+  padding: 0.8rem 1rem;
+  font-size: 1.1rem;
+}
+
+.chat-messages {
+  height: 300px;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-empty {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.chat-msg {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  background: #f5f0ff;
+  max-width: 85%;
+  align-self: flex-start;
+}
+
+.chat-msg-mine {
+  background: #7b14c9;
+  color: white;
+  align-self: flex-end;
+}
+
+.chat-author {
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.chat-msg-mine .chat-author {
+  color: #e0c8ff;
+}
+
+.chat-text {
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+.chat-time {
+  font-size: 0.7rem;
+  color: #999;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.chat-msg-mine .chat-time {
+  color: #cba8ff;
+}
+
+[data-theme="dark"] .chat-msg {
+  background: #2a2040;
+}
+
+[data-theme="dark"] .chat-msg .chat-text {
+  color: #111;
+}
+
+[data-theme="dark"] .chat-msg .chat-time {
+  color: #8878a0;
+}
+
+[data-theme="dark"] .chat-msg-mine {
+  background: #7b14c9;
+}
+
+[data-theme="dark"] .chat-msg-mine .chat-text {
+  color: white;
+}
+
+[data-theme="dark"] .chat-input-row {
+  border-top-color: #333;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #eee;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e0d4f5;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-input:focus {
+  border-color: #7b14c9;
+}
+
+.chat-send-btn {
+  background: #7b14c9;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.chat-send-btn:hover {
+  background: #6310a3;
+}
+
+/* Notify form in user modal */
+.notify-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.notify-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e0d4f5;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.notify-input:focus {
+  border-color: #7b14c9;
+}
+
+.notify-btn {
+  background: #7b14c9;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.notify-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notify-sent {
+  color: #38a169;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  font-weight: 600;
 }

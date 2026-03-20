@@ -1,3 +1,5 @@
+import { toast, confirmDialog, promptDialog } from './notify.js';
+
 // Custom Shape Editor
 export class ShapeEditor {
     constructor(game) {
@@ -139,8 +141,8 @@ export class CharacterCustomizer {
         this.game = game;
         this.canvas = document.getElementById('character-builder-canvas');
         this.ctx = this.canvas.getContext('2d');
-        this.gridSize = 10;
-        this.cellSize = 35;
+        this.gridSize = 16;
+        this.cellSize = 25;
 
         // Set canvas size explicitly
         this.canvas.width = this.gridSize * this.cellSize;
@@ -169,8 +171,32 @@ export class CharacterCustomizer {
                 document.querySelectorAll('.builder-color-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedColor = btn.dataset.color;
+                // Turn off eraser
+                this.eraserMode = false;
+                const eraserBtn = document.getElementById('eraser-btn');
+                if (eraserBtn) eraserBtn.classList.remove('active');
+                // Sync the color picker
+                const picker = document.getElementById('builder-color-picker');
+                const preview = document.getElementById('builder-color-preview');
+                if (picker) picker.value = btn.dataset.color;
+                if (preview) preview.style.background = btn.dataset.color;
             });
         });
+
+        // Custom color picker
+        const colorPicker = document.getElementById('builder-color-picker');
+        const colorPreview = document.getElementById('builder-color-preview');
+        if (colorPicker) {
+            colorPicker.addEventListener('input', (e) => {
+                this.selectedColor = e.target.value;
+                if (colorPreview) colorPreview.style.background = e.target.value;
+                // Deselect preset buttons and turn off eraser
+                document.querySelectorAll('.builder-color-btn').forEach(b => b.classList.remove('active'));
+                this.eraserMode = false;
+                const eraserBtn = document.getElementById('eraser-btn');
+                if (eraserBtn) eraserBtn.classList.remove('active');
+            });
+        }
 
         // Canvas drawing
         this.canvas.addEventListener('mousedown', (e) => {
@@ -209,6 +235,16 @@ export class CharacterCustomizer {
         // Clear button
         document.getElementById('clear-character-builder').addEventListener('click', () => {
             this.clear();
+        });
+
+        // Eraser toggle
+        this.eraserMode = false;
+        document.getElementById('eraser-btn').addEventListener('click', () => {
+            this.eraserMode = !this.eraserMode;
+            document.getElementById('eraser-btn').classList.toggle('active', this.eraserMode);
+            if (this.eraserMode) {
+                document.querySelectorAll('.builder-color-btn').forEach(b => b.classList.remove('active'));
+            }
         });
 
         // Use default button
@@ -268,7 +304,7 @@ export class CharacterCustomizer {
         const y = Math.floor((e.clientY - rect.top) / this.cellSize);
 
         if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
-            this.grid[y][x] = this.selectedColor;
+            this.grid[y][x] = this.eraserMode ? null : this.selectedColor;
             this.frames[this.currentFrameIndex] = this.grid;
             this.render();
         }
@@ -398,13 +434,13 @@ export class CharacterCustomizer {
         this.render();
     }
 
-    deleteFrame() {
+    async deleteFrame() {
         if (this.frames.length <= 1) {
-            alert('You must have at least one frame!');
+            toast('You must have at least one frame!');
             return;
         }
 
-        if (confirm('Delete this frame?')) {
+        if (await confirmDialog('Delete this frame?')) {
             this.frames.splice(this.currentFrameIndex, 1);
             if (this.currentFrameIndex >= this.frames.length) {
                 this.currentFrameIndex = this.frames.length - 1;
@@ -456,7 +492,7 @@ export class CharacterCustomizer {
         nextBtn.disabled = this.currentFrameIndex === this.frames.length - 1;
     }
 
-    saveCharacter() {
+    async saveCharacter() {
         // Calculate bounding box from all frames
         let minX = this.gridSize, maxX = 0, minY = this.gridSize, maxY = 0;
         let hasBlocks = false;
@@ -476,15 +512,15 @@ export class CharacterCustomizer {
         }
 
         if (!hasBlocks) {
-            alert('Please draw your character first!');
+            toast('Please draw your character first!');
             return;
         }
 
         // Ask if user wants to save as template
-        const saveAsTemplate = confirm('Would you like to save this character as a template for future use?');
+        const saveAsTemplate = await confirmDialog('Save this character as a template for future use?');
 
         if (saveAsTemplate) {
-            const templateName = prompt('Enter a name for your character template:', 'My Character');
+            const templateName = await promptDialog('Enter a name for your character template:', 'My Character');
             if (templateName) {
                 const templateData = {
                     name: templateName,
@@ -522,10 +558,10 @@ export class CharacterCustomizer {
 
         this.closeCustomizer();
         const frameText = this.frames.length > 1 ? ` with ${this.frames.length} animation frames` : '';
-        alert(`Character saved successfully${frameText}!`);
+        toast(`Character saved${frameText}!`);
     }
 
-    saveTemplate() {
+    async saveTemplate() {
         let hasBlocks = false;
         for (const frame of this.frames) {
             for (let y = 0; y < this.gridSize; y++) {
@@ -541,11 +577,11 @@ export class CharacterCustomizer {
         }
 
         if (!hasBlocks) {
-            alert('Please draw your character first!');
+            toast('Please draw your character first!');
             return;
         }
 
-        const templateName = prompt('Enter a name for your character template:', 'My Character');
+        const templateName = await promptDialog('Enter a name for your character template:', 'My Character');
         if (!templateName) return;
 
         const templateData = {
@@ -571,7 +607,7 @@ export class CharacterCustomizer {
 
         URL.revokeObjectURL(url);
 
-        alert('Character template saved successfully!');
+        toast('Character template saved!');
     }
 
     getSavedTemplates() {
@@ -672,7 +708,7 @@ export class CharacterCustomizer {
         this.updateFrameIndicator();
         this.render();
         this.closeLoadTemplateModal();
-        alert(`Character template "${template.name}" loaded successfully!`);
+        toast(`Template "${template.name}" loaded!`);
     }
 
     downloadTemplate(template) {
@@ -688,8 +724,8 @@ export class CharacterCustomizer {
         URL.revokeObjectURL(url);
     }
 
-    deleteTemplate(templateId) {
-        if (!confirm('Are you sure you want to delete this character template?')) return;
+    async deleteTemplate(templateId) {
+        if (!await confirmDialog('Delete this character template?')) return;
 
         const savedTemplates = this.getSavedTemplates();
         const filtered = savedTemplates.filter(t => t.id !== templateId);
@@ -715,9 +751,9 @@ export class CharacterCustomizer {
                     this.updateFrameIndicator();
                     this.render();
                     this.closeLoadTemplateModal();
-                    alert('Character template loaded successfully!');
+                    toast('Character template loaded!');
                 } catch (error) {
-                    alert('Error loading character template file!');
+                    toast('Error loading template file!');
                 }
             };
 

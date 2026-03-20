@@ -81,3 +81,4 @@ router.get('/me', (req, res) => {
 
 module.exports = router;
 module.exports.JWT_SECRET = JWT_SECRET;
+module.exports.verifyToken = verifyToken;

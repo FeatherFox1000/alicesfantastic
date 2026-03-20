@@ -138,6 +138,19 @@ function Home() {
             </div>
           </Link>
 
+          <Link to="/present-maker" className="game-card">
+            <div className="game-image-wrapper" style={{background: 'linear-gradient(135deg, #ad1457, #e91e63)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px'}}>
+              <span style={{fontSize: '4rem'}}>🎁</span>
+            </div>
+            <div className="game-content">
+              <h3>Present Maker</h3>
+              <p className="game-date">March 2026</p>
+              <p className="game-description">
+                Design your own wrapping paper with any color and pattern! Pick from polka dots, stripes, stars, hearts, and more — then wrap it on a 3D present with a bow.
+              </p>
+            </div>
+          </Link>
+
           <Link to="/tomato-hunter" className="game-card">
             <div className="game-image-wrapper">
               <img src="/images/tomato-hunter.png" alt="Tomato Hunter" className="game-image" />

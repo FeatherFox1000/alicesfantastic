@@ -60,7 +60,7 @@ export default function PrivacyPolicy() {
         </ul>
 
         <h2>Contact Us</h2>
-        <p>If you have questions about this privacy policy, or if a parent wants to review, delete, or withdraw consent for their child's data, please contact us at: <strong>aliceofritz@gmail.com</strong></p>
+        <p>If you have questions about this privacy policy, or if a parent wants to review, delete, or withdraw consent for their child's data, please contact us at: <strong>info@alicesfantastic.com</strong></p>
       </div>
     </div>
   );

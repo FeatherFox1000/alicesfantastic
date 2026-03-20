@@ -142,6 +142,12 @@
                             <button class="builder-color-btn" data-color="#FFFFFF" style="background: #FFFFFF;"></button>
                             <button class="builder-color-btn" data-color="#000000" style="background: #000000;"></button>
                         </div>
+                        <div class="builder-color-picker-row">
+                            <label for="builder-color-picker">Custom Color:</label>
+                            <input type="color" id="builder-color-picker" value="#FF6B6B">
+                            <div id="builder-color-preview" class="builder-color-preview" style="background: #FF6B6B;"></div>
+                        </div>
+                        <button id="eraser-btn" class="eraser-btn">🗑️ Eraser</button>
                         <button id="undo-character-btn" disabled>↶ Undo</button>
                         <button id="load-character-template">📂 Load Template</button>
                         <button id="clear-character-builder">Clear</button>
@@ -222,6 +228,17 @@
         </div>
     </div>
 
+    <div id="toast-container"></div>
+    <div id="confirm-modal" class="modal" style="display:none">
+        <div class="modal-content confirm-modal-content">
+            <p id="confirm-message"></p>
+            <div id="confirm-input-wrap" style="display:none"><input id="confirm-input" type="text" class="confirm-input"></div>
+            <div class="confirm-actions">
+                <button id="confirm-cancel" class="confirm-cancel-btn">Cancel</button>
+                <button id="confirm-ok" class="confirm-ok-btn">OK</button>
+            </div>
+        </div>
+    </div>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
