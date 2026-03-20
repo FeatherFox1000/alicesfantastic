@@ -97,21 +97,6 @@
   font-size: 0.9rem;
 }
 
-.bugs-link {
-  color: #a0d8ef;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.85rem;
-  padding: 0.3rem 0.6rem;
-  border: 1px solid #a0d8ef;
-  border-radius: 6px;
-  text-align: center;
-  transition: all 0.2s;
-}
-.bugs-link:hover {
-  background: rgba(160, 216, 239, 0.2);
-}
-
 .admin-link {
   color: #ffd700;
   text-decoration: none;

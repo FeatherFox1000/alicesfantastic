@@ -495,54 +495,18 @@
   font-weight: 600;
 }
 
-/* Tickets */
-.admin-back-btn {
-  background: none;
-  border: none;
-  color: var(--color-primary, #7b14c9);
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 0.75rem;
-}
-.ticket-list { display: flex; flex-direction: column; gap: 0.4rem; }
-.ticket-row {
+/* Per-user admin notes chat */
+.user-notes-chat {
+  max-height: 250px;
+  overflow-y: auto;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.8rem;
-  background: #f9f5ff;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
 }
-.ticket-row:hover { background: #f0e6ff; }
-[data-theme="dark"] .ticket-row { background: #2a2040; }
-[data-theme="dark"] .ticket-row:hover { background: #3a2a5a; }
 
-.ticket-badge { font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 5px; }
-.ticket-bug { background: #ffe0e0; color: #c0392b; }
-.ticket-comment { background: #e0e8ff; color: #2c3e80; }
-.ticket-subject { flex: 1; font-weight: 600; font-size: 0.9rem; }
-.ticket-user { font-size: 0.8rem; color: #888; }
-.ticket-status { font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.4rem; border-radius: 4px; }
-.ticket-status-open { background: #d4edda; color: #155724; }
-.ticket-status-resolved { background: #cce5ff; color: #004085; }
-.ticket-status-closed { background: #e2e3e5; color: #555; }
-.ticket-date { font-size: 0.75rem; color: #999; }
-.ticket-status-select {
-  padding: 0.2rem 0.4rem;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  font-size: 0.8rem;
+.user-notes-input {
+  border-top: none;
+  padding: 0;
+  margin-top: 0.5rem;
 }
-.ticket-messages { display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto; }
-.ticket-msg { padding: 0.5rem 0.75rem; border-radius: 8px; }
-.ticket-msg-user { background: #f5f0ff; }
-.ticket-msg-admin { background: #7b14c9; color: white; align-self: flex-end; }
-[data-theme="dark"] .ticket-msg-user { background: #2a2040; }
-.ticket-msg-author { font-weight: 700; font-size: 0.8rem; margin-right: 0.5rem; }
-.ticket-msg-admin .ticket-msg-author { color: #e0c8ff; }
-.ticket-msg-time { font-size: 0.7rem; color: #999; }
-.ticket-msg-admin .ticket-msg-time { color: #cba8ff; }
-.ticket-msg-text { margin: 0.25rem 0 0; font-size: 0.9rem; white-space: pre-wrap; }
