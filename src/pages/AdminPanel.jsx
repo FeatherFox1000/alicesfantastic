@@ -31,7 +31,8 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
   const [notifySent, setNotifySent] = useState(false);
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState('');
-  const notesEndRef = useRef(null);
+  const notesBoxRef = useRef(null);
+  const shouldScrollNotes = useRef(true);
 
   useEffect(() => {
     adminRequest('GET', `/admin/user/${username}`).then(data => {
@@ -46,8 +47,10 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
   }
 
   useEffect(() => {
-    const el = notesEndRef.current;
-    if (el) el.parentElement.scrollTop = el.parentElement.scrollHeight;
+    if (shouldScrollNotes.current && notesBoxRef.current) {
+      notesBoxRef.current.scrollTop = notesBoxRef.current.scrollHeight;
+      shouldScrollNotes.current = false;
+    }
   }, [notes]);
 
   async function sendNote(e) {
@@ -55,6 +58,7 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
     if (!noteText.trim()) return;
     const msg = noteText.trim();
     setNoteText('');
+    shouldScrollNotes.current = true;
     const result = await adminRequest('POST', `/admin/user-notes/${username}`, { message: msg });
     if (result.id) setNotes(prev => [...prev, result]);
   }
@@ -143,7 +147,7 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
         {notifySent && <p className="notify-sent">Notification sent!</p>}
 
         <h3 className="scores-title">Admin Notes about {username}</h3>
-        <div className="user-notes-chat">
+        <div className="user-notes-chat" ref={notesBoxRef}>
           {notes.length === 0 && <p className="chat-empty">No notes yet — start a discussion about this user.</p>}
           {notes.map(n => (
             <div key={n.id} className={`chat-msg ${n.author_username === currentAdmin ? 'chat-msg-mine' : ''}`} style={n.author_username !== currentAdmin ? { background: getUserColor(n.author_username) + '18', borderLeft: `3px solid ${getUserColor(n.author_username)}` } : undefined}>
@@ -152,7 +156,6 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
               <span className="chat-time">{new Date(n.created_at + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           ))}
-          <div ref={notesEndRef} />
         </div>
         <form className="chat-input-row user-notes-input" onSubmit={sendNote}>
           <input
@@ -189,7 +192,8 @@ function getUserColor(name) {
 function AdminChat({ username }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
-  const chatEndRef = useRef(null);
+  const chatBoxRef = useRef(null);
+  const shouldScroll = useRef(true);
 
   async function loadMessages() {
     const data = await adminRequest('GET', '/admin/chat');
@@ -202,26 +206,29 @@ function AdminChat({ username }) {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const el = chatEndRef.current;
-    if (el) el.parentElement.scrollTop = el.parentElement.scrollHeight;
-  }, [messages]);
-
   async function sendMessage(e) {
     e.preventDefault();
     if (!text.trim()) return;
     const msg = text.trim();
     setText('');
+    shouldScroll.current = true;
     const result = await adminRequest('POST', '/admin/chat', { message: msg });
     if (result.id) {
       setMessages(prev => [...prev, result]);
     }
   }
 
+  useEffect(() => {
+    if (shouldScroll.current && chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+      shouldScroll.current = false;
+    }
+  }, [messages]);
+
   return (
     <div className="admin-chat">
       <h2>Admin Chat</h2>
-      <div className="chat-messages">
+      <div className="chat-messages" ref={chatBoxRef}>
         {messages.length === 0 && <p className="chat-empty">No messages yet — say hi!</p>}
         {messages.map(m => (
           <div key={m.id} className={`chat-msg ${m.username === username ? 'chat-msg-mine' : ''}`} style={m.username !== username ? { background: getUserColor(m.username) + '18', borderLeft: `3px solid ${getUserColor(m.username)}` } : undefined}>
@@ -230,7 +237,6 @@ function AdminChat({ username }) {
             <span className="chat-time">{new Date(m.created_at + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         ))}
-        <div ref={chatEndRef} />
       </div>
       <form className="chat-input-row" onSubmit={sendMessage}>
         <input
