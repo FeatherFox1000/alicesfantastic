@@ -31,16 +31,23 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
   const [notifySent, setNotifySent] = useState(false);
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState('');
+  const [notifs, setNotifs] = useState([]);
   useEffect(() => {
     adminRequest('GET', `/admin/user/${username}`).then(data => {
       if (!data.error) setExtra(data);
     });
     loadNotes();
+    loadNotifs();
   }, [username]);
 
   async function loadNotes() {
     const data = await adminRequest('GET', `/admin/user-notes/${username}`);
     if (Array.isArray(data)) setNotes(data);
+  }
+
+  async function loadNotifs() {
+    const data = await adminRequest('GET', `/admin/notifications/${username}`);
+    if (Array.isArray(data)) setNotifs(data);
   }
 
   async function sendNote(e) {
@@ -59,6 +66,7 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
     setNotifyMsg('');
     setNotifySent(true);
     setTimeout(() => setNotifySent(false), 3000);
+    loadNotifs();
   }
 
   const info = extra || basicInfo;
@@ -134,6 +142,19 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
           <button type="submit" className="notify-btn" disabled={!notifyMsg.trim()}>Send</button>
         </form>
         {notifySent && <p className="notify-sent">Notification sent!</p>}
+        {notifs.length > 0 && (
+          <div className="notif-history">
+            <h4 className="notif-history-title">Sent Notifications</h4>
+            {notifs.map(n => (
+              <div key={n.id} className="notif-history-item">
+                <span className="notif-history-msg">{n.message}</span>
+                <span className="notif-history-meta">
+                  {n.read ? 'Read' : 'Unread'} · {new Date(n.created_at + 'Z').toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <h3 className="scores-title">Admin Notes about {username}</h3>
         <div className="user-notes-chat">

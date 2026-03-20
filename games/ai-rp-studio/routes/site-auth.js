@@ -298,6 +298,14 @@ router.post('/notifications/:id/read', (req, res) => {
   res.json({ ok: true });
 });
 
+// Get all notifications sent to a user (admin only)
+router.get('/admin/notifications/:username', adminOnly, (req, res) => {
+  const target = db.prepare('SELECT id FROM users WHERE username = ?').get(req.params.username);
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  const notifs = db.prepare('SELECT id, message, read, created_at FROM notifications WHERE user_id = ? ORDER BY id DESC').all(target.id);
+  res.json(notifs);
+});
+
 // Send notification to a user (admin only)
 router.post('/admin/notify/:username', adminOnly, (req, res) => {
   const target = db.prepare('SELECT id FROM users WHERE username = ?').get(req.params.username);
