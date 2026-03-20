@@ -359,4 +359,87 @@ router.get('/scores/:game', (req, res) => {
   res.json(scores);
 });
 
+// ========== Bugs & Comments ==========
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tickets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    type TEXT DEFAULT 'comment',
+    subject TEXT NOT NULL,
+    status TEXT DEFAULT 'open',
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ticket_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    is_admin INTEGER DEFAULT 0,
+    message TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id)
+  )
+`);
+
+// Get my tickets (user)
+router.get('/tickets', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in.' });
+  const tickets = db.prepare('SELECT * FROM tickets WHERE user_id = ? ORDER BY created_at DESC').all(user.id);
+  res.json(tickets);
+});
+
+// Create a ticket
+router.post('/tickets', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in.' });
+  const { type, subject, message } = req.body;
+  if (!subject || !message) return res.status(400).json({ error: 'Subject and message are required.' });
+  const result = db.prepare('INSERT INTO tickets (user_id, username, type, subject) VALUES (?, ?, ?, ?)').run(user.id, user.username, type || 'comment', subject);
+  db.prepare('INSERT INTO ticket_messages (ticket_id, user_id, username, is_admin, message) VALUES (?, ?, ?, ?, ?)').run(result.lastInsertRowid, user.id, user.username, user.is_admin ? 1 : 0, message);
+  const ticket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(result.lastInsertRowid);
+  res.json(ticket);
+});
+
+// Get messages for a ticket (user sees only their own tickets)
+router.get('/tickets/:id/messages', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in.' });
+  const ticket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
+  if (ticket.user_id !== user.id && !user.is_admin) return res.status(403).json({ error: 'Not authorized.' });
+  const messages = db.prepare('SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at ASC').all(req.params.id);
+  res.json({ ticket, messages });
+});
+
+// Reply to a ticket
+router.post('/tickets/:id/messages', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in.' });
+  const ticket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
+  if (ticket.user_id !== user.id && !user.is_admin) return res.status(403).json({ error: 'Not authorized.' });
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message is required.' });
+  db.prepare('INSERT INTO ticket_messages (ticket_id, user_id, username, is_admin, message) VALUES (?, ?, ?, ?, ?)').run(req.params.id, user.id, user.username, user.is_admin ? 1 : 0, message);
+  res.json({ success: true });
+});
+
+// Admin: get all tickets
+router.get('/admin/tickets', adminOnly, (req, res) => {
+  const tickets = db.prepare('SELECT * FROM tickets ORDER BY created_at DESC').all();
+  res.json(tickets);
+});
+
+// Admin: update ticket status
+router.put('/admin/tickets/:id', adminOnly, (req, res) => {
+  const { status } = req.body;
+  db.prepare('UPDATE tickets SET status = ? WHERE id = ?').run(status, req.params.id);
+  res.json({ success: true });
+});
+
 module.exports = router;
