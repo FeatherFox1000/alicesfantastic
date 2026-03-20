@@ -16,7 +16,6 @@ import PresentMaker from './pages/PresentMaker';
 import LoginPage from './pages/LoginPage';
 import AdminPanel from './pages/AdminPanel';
 import ParentalConsent from './pages/ParentalConsent';
-import BugsComments from './pages/BugsComments';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import './App.css';
 
@@ -41,7 +40,6 @@ function AppContent() {
           <Route path="/jumping-penguin" element={<JumpingPenguin />} />
           <Route path="/penguin-runner" element={<PenguinRunner />} />
           <Route path="/present-maker" element={<PresentMaker />} />
-          <Route path="/bugs" element={<BugsComments />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/consent/:token" element={<ParentalConsent />} />

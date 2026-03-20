@@ -102,7 +102,6 @@ function Header() {
           <ThemeToggle />
           {user && !collapsed && (
             <div className="user-info">
-              <Link to="/bugs" className="bugs-link">Bugs & Comments</Link>
               {user.is_admin && <Link to="/admin" className="admin-link">Admin</Link>}
               <NotificationBell />
               <span className="user-name">Hi, {user.username}!</span>

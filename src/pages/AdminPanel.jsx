@@ -25,16 +25,39 @@ const GAME_NAMES = {
   'tomato-hunter-v2': 'Tomato Hunter',
 };
 
-function UserDetail({ username, basicInfo, onClose }) {
+function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
   const [extra, setExtra] = useState(null);
   const [notifyMsg, setNotifyMsg] = useState('');
   const [notifySent, setNotifySent] = useState(false);
+  const [notes, setNotes] = useState([]);
+  const [noteText, setNoteText] = useState('');
+  const notesEndRef = useRef(null);
 
   useEffect(() => {
     adminRequest('GET', `/admin/user/${username}`).then(data => {
       if (!data.error) setExtra(data);
     });
+    loadNotes();
   }, [username]);
+
+  async function loadNotes() {
+    const data = await adminRequest('GET', `/admin/user-notes/${username}`);
+    if (Array.isArray(data)) setNotes(data);
+  }
+
+  useEffect(() => {
+    const el = notesEndRef.current;
+    if (el) el.parentElement.scrollTop = el.parentElement.scrollHeight;
+  }, [notes]);
+
+  async function sendNote(e) {
+    e.preventDefault();
+    if (!noteText.trim()) return;
+    const msg = noteText.trim();
+    setNoteText('');
+    const result = await adminRequest('POST', `/admin/user-notes/${username}`, { message: msg });
+    if (result.id) setNotes(prev => [...prev, result]);
+  }
 
   async function sendNotification(e) {
     e.preventDefault();
@@ -45,7 +68,6 @@ function UserDetail({ username, basicInfo, onClose }) {
     setTimeout(() => setNotifySent(false), 3000);
   }
 
-  // Show basic info instantly from the users list, fill in extra when it loads
   const info = extra || basicInfo;
 
   return (
@@ -119,6 +141,30 @@ function UserDetail({ username, basicInfo, onClose }) {
           <button type="submit" className="notify-btn" disabled={!notifyMsg.trim()}>Send</button>
         </form>
         {notifySent && <p className="notify-sent">Notification sent!</p>}
+
+        <h3 className="scores-title">Admin Notes about {username}</h3>
+        <div className="user-notes-chat">
+          {notes.length === 0 && <p className="chat-empty">No notes yet — start a discussion about this user.</p>}
+          {notes.map(n => (
+            <div key={n.id} className={`chat-msg ${n.author_username === currentAdmin ? 'chat-msg-mine' : ''}`} style={n.author_username !== currentAdmin ? { background: getUserColor(n.author_username) + '18', borderLeft: `3px solid ${getUserColor(n.author_username)}` } : undefined}>
+              <span className="chat-author" style={{ color: n.author_username === currentAdmin ? undefined : getUserColor(n.author_username) }}>{n.author_username}</span>
+              <span className="chat-text">{n.message}</span>
+              <span className="chat-time">{new Date(n.created_at + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          ))}
+          <div ref={notesEndRef} />
+        </div>
+        <form className="chat-input-row user-notes-input" onSubmit={sendNote}>
+          <input
+            type="text"
+            value={noteText}
+            onChange={e => setNoteText(e.target.value)}
+            placeholder={`Note about ${username}...`}
+            className="chat-input"
+            maxLength={500}
+          />
+          <button type="submit" className="chat-send-btn">Send</button>
+        </form>
       </div>
     </div>
   );
@@ -157,7 +203,8 @@ function AdminChat({ username }) {
   }, []);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = chatEndRef.current;
+    if (el) el.parentElement.scrollTop = el.parentElement.scrollHeight;
   }, [messages]);
 
   async function sendMessage(e) {
@@ -273,7 +320,7 @@ export default function AdminPanel() {
       <h1>Admin Panel</h1>
       <p className="admin-subtitle">Manage users on Alice's Fantastic — click a username to see details</p>
 
-      {selectedUser && <UserDetail username={selectedUser} basicInfo={users.find(u => u.username === selectedUser)} onClose={() => setSelectedUser(null)} />}
+      {selectedUser && <UserDetail username={selectedUser} basicInfo={users.find(u => u.username === selectedUser)} currentAdmin={user.username} onClose={() => setSelectedUser(null)} />}
 
       {loading ? (
         <p>Loading users...</p>
@@ -349,92 +396,7 @@ export default function AdminPanel() {
       )}
 
       <AdminChat username={user.username} />
-      <AdminTickets />
     </div>
   );
 }
 
-function AdminTickets() {
-  const [tickets, setTickets] = useState([]);
-  const [activeTicket, setActiveTicket] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [reply, setReply] = useState('');
-
-  useEffect(() => { loadTickets(); }, []);
-
-  async function loadTickets() {
-    const data = await adminRequest('/admin/tickets');
-    if (Array.isArray(data)) setTickets(data);
-  }
-
-  async function openTicket(t) {
-    setActiveTicket(t);
-    const data = await adminRequest(`/tickets/${t.id}/messages`);
-    if (data.messages) setMessages(data.messages);
-  }
-
-  async function sendReply(e) {
-    e.preventDefault();
-    if (!reply.trim()) return;
-    await adminRequest(`/tickets/${activeTicket.id}/messages`, 'POST', { message: reply });
-    setReply('');
-    openTicket(activeTicket);
-  }
-
-  async function setStatus(id, status) {
-    await adminRequest(`/admin/tickets/${id}`, 'PUT', { status });
-    loadTickets();
-    if (activeTicket && activeTicket.id === id) {
-      setActiveTicket(t => ({ ...t, status }));
-    }
-  }
-
-  return (
-    <div className="admin-section">
-      <h2>Bugs & Comments</h2>
-      {activeTicket ? (
-        <div>
-          <button className="admin-back-btn" onClick={() => { setActiveTicket(null); setMessages([]); }}>← Back</button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <span className={`ticket-badge ticket-${activeTicket.type}`}>
-              {activeTicket.type === 'bug' ? '🐛 Bug' : '💬 Comment'}
-            </span>
-            <strong>{activeTicket.subject}</strong>
-            <span style={{ fontSize: '0.8rem', color: '#999' }}>by {activeTicket.username}</span>
-            <select value={activeTicket.status} onChange={e => setStatus(activeTicket.id, e.target.value)} className="ticket-status-select">
-              <option value="open">Open</option>
-              <option value="resolved">Resolved</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-          <div className="ticket-messages">
-            {messages.map(m => (
-              <div key={m.id} className={`ticket-msg ${m.is_admin ? 'ticket-msg-admin' : 'ticket-msg-user'}`}>
-                <span className="ticket-msg-author">{m.is_admin ? '🛡️ ' : ''}{m.username}</span>
-                <span className="ticket-msg-time">{new Date(m.created_at).toLocaleString()}</span>
-                <p className="ticket-msg-text">{m.message}</p>
-              </div>
-            ))}
-          </div>
-          <form onSubmit={sendReply} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-            <input value={reply} onChange={e => setReply(e.target.value)} placeholder="Reply as admin..." style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
-            <button type="submit" className="admin-action-btn" disabled={!reply.trim()}>Reply</button>
-          </form>
-        </div>
-      ) : (
-        <div className="ticket-list">
-          {tickets.length === 0 && <p style={{ color: '#999' }}>No tickets yet.</p>}
-          {tickets.map(t => (
-            <div key={t.id} className="ticket-row" onClick={() => openTicket(t)}>
-              <span className={`ticket-badge ticket-${t.type}`}>{t.type === 'bug' ? '🐛' : '💬'}</span>
-              <span className="ticket-subject">{t.subject}</span>
-              <span className="ticket-user">{t.username}</span>
-              <span className={`ticket-status ticket-status-${t.status}`}>{t.status}</span>
-              <span className="ticket-date">{new Date(t.created_at).toLocaleDateString()}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
