@@ -127,6 +127,10 @@ router.post('/characters/:characterId/sessions', authMiddleware, (req, res) => {
   if (!character) return res.status(404).json({ error: 'Character not found.' });
   const title = req.body.title || 'New Adventure';
   const result = db.prepare('INSERT INTO sessions (character_id, title) VALUES (?, ?)').run(req.params.characterId, title);
+  // If intro text provided, save it as the first assistant message
+  if (req.body.intro_text) {
+    db.prepare('INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)').run(result.lastInsertRowid, 'assistant', req.body.intro_text);
+  }
   const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(result.lastInsertRowid);
   res.json(session);
 });

@@ -42,7 +42,7 @@ export const api = {
 
   // Sessions
   getSessions: (characterId) => request('GET', `/characters/${characterId}/sessions`),
-  createSession: (characterId, title) => request('POST', `/characters/${characterId}/sessions`, { title }),
+  createSession: (characterId, title, introText) => request('POST', `/characters/${characterId}/sessions`, { title, intro_text: introText }),
   getSession: (id) => request('GET', `/sessions/${id}`),
   sendMessage: (sessionId, content, style) => request('POST', `/sessions/${sessionId}/messages`, { content, style }),
   getInspirations: (sessionId) => request('POST', `/sessions/${sessionId}/inspirations`),
