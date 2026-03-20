@@ -56,20 +56,31 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
 
   async function saveScore(game, score) {
     const val = parseInt(score);
-    if (isNaN(val) || val < 0) return;
-    await adminRequest('POST', `/admin/scores/${username}`, { game, score: val });
-    const data = await adminRequest('GET', `/admin/user/${username}`);
-    if (!data.error) setExtra(data);
-    setEditingScore(null);
-    setScoreVal('');
+    if (isNaN(val) || val < 0) { alert('Invalid score'); return; }
+    try {
+      const token = localStorage.getItem('site_token');
+      const res = await fetch(API_BASE + `/admin/scores/${username}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game, score: val }),
+      });
+      const result = await res.json();
+      if (result.error) { alert(result.error); return; }
+      const data = await adminRequest('GET', `/admin/user/${username}`);
+      if (!data.error) setExtra(data);
+      setEditingScore(null);
+      setScoreVal('');
+      setAddGame('');
+      setAddScore('');
+    } catch (err) {
+      alert('Failed to save score: ' + err.message);
+    }
   }
 
   async function addNewScore(e) {
     e.preventDefault();
     if (!addGame || !addScore) return;
     await saveScore(addGame, addScore);
-    setAddGame('');
-    setAddScore('');
   }
 
   async function sendNote(e) {
