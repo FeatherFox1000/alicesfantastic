@@ -782,6 +782,24 @@
   flex-direction: column;
   gap: 1rem;
 }
+.airp-intro-box {
+  text-align: center;
+  padding: 1.25rem 1.5rem;
+  max-width: 500px;
+  margin: 1rem auto 0;
+  background: rgba(90, 61, 138, 0.15);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 12px;
+}
+.airp-intro-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.airp-intro-text {
+  color: #e0d0ff;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+  font-style: italic;
+}
+
 .airp-welcome-message {
   text-align: center;
   padding: 2rem 1rem;

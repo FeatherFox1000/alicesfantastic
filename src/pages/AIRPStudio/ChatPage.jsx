@@ -495,6 +495,13 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
         </div>
 
         <div className="airp-messages">
+          {messages.length === 0 && !sending && character.intro_text && (
+            <div className="airp-intro-box">
+              <div className="airp-intro-icon">📜</div>
+              <p className="airp-intro-text">{character.intro_text}</p>
+            </div>
+          )}
+
           {messages.length === 0 && !sending && (
             <div className="airp-welcome-message">
               <div className="airp-welcome-icon">🌟</div>

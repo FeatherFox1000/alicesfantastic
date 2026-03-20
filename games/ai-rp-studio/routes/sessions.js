@@ -48,7 +48,8 @@ ${character.world_description}
 🐱 Character: "${character.name}"
 ${character.character_description}
 ${character.appearance ? `Appearance: ${character.appearance}` : ''}
-${character.personality ? `Personality: ${character.personality}` : ''}${memoriesBlock}
+${character.personality ? `Personality: ${character.personality}` : ''}
+${character.intro_text ? `\n📜 Opening Scene: "${character.intro_text}"\nUse this to set the tone for the start of the adventure.` : ''}${memoriesBlock}
 
 Your role is to be their imaginative adventure partner. You will:
 - Bring their world to life with vivid, fun, age-appropriate descriptions

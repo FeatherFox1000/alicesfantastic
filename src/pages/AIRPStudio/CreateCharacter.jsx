@@ -22,6 +22,7 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
     appearance: character?.appearance || '',
     personality: character?.personality || '',
     player_age: character?.player_age || '',
+    intro_text: character?.intro_text || '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -110,6 +111,16 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
                 required
                 rows={4}
                 maxLength={1000}
+              />
+            </label>
+            <label>
+              Opening Scene <span className="airp-optional">(optional)</span>
+              <textarea
+                value={form.intro_text}
+                onChange={e => set('intro_text', e.target.value)}
+                placeholder="Set the scene! e.g. 'The sun rises over the Dragon Kingdoms as a young dragon wakes up in their cozy cave...'"
+                rows={3}
+                maxLength={500}
               />
             </label>
           </div>

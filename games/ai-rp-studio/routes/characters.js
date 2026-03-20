@@ -31,14 +31,16 @@ router.get('/:id', auth, (req, res) => {
 
 // Create character
 router.post('/', auth, (req, res) => {
-  const { name, world_name, world_description, character_description, appearance, personality, player_age } = req.body;
+  const { name, world_name, world_description, character_description, appearance, personality, player_age, intro_text } = req.body;
   if (!name || !world_name || !world_description || !character_description) {
     return res.status(400).json({ error: 'Name, world name, world description, and character description are required.' });
   }
+  // Ensure intro_text column exists
+  try { db.prepare('ALTER TABLE characters ADD COLUMN intro_text TEXT DEFAULT ""').run(); } catch {}
   const result = db.prepare(`
-    INSERT INTO characters (user_id, name, world_name, world_description, character_description, appearance, personality, player_age)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(req.user.id, name, world_name, world_description, character_description, appearance || '', personality || '', player_age || '');
+    INSERT INTO characters (user_id, name, world_name, world_description, character_description, appearance, personality, player_age, intro_text)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(req.user.id, name, world_name, world_description, character_description, appearance || '', personality || '', player_age || '', intro_text || '');
   const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(result.lastInsertRowid);
   res.json(character);
 });
@@ -47,9 +49,10 @@ router.post('/', auth, (req, res) => {
 router.put('/:id', auth, (req, res) => {
   const character = db.prepare('SELECT * FROM characters WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
   if (!character) return res.status(404).json({ error: 'Character not found.' });
-  const { name, world_name, world_description, character_description, appearance, personality, player_age } = req.body;
+  const { name, world_name, world_description, character_description, appearance, personality, player_age, intro_text } = req.body;
+  try { db.prepare('ALTER TABLE characters ADD COLUMN intro_text TEXT DEFAULT ""').run(); } catch {}
   db.prepare(`
-    UPDATE characters SET name=?, world_name=?, world_description=?, character_description=?, appearance=?, personality=?, player_age=?
+    UPDATE characters SET name=?, world_name=?, world_description=?, character_description=?, appearance=?, personality=?, player_age=?, intro_text=?
     WHERE id=?
   `).run(
     name || character.name,
@@ -59,6 +62,7 @@ router.put('/:id', auth, (req, res) => {
     appearance !== undefined ? appearance : character.appearance,
     personality !== undefined ? personality : character.personality,
     player_age !== undefined ? player_age : character.player_age,
+    intro_text !== undefined ? intro_text : (character.intro_text || ''),
     req.params.id
   );
   const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.params.id);
