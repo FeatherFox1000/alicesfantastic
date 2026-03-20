@@ -178,6 +178,10 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
         currentSession = await api.createSession(character.id, 'Adventure 1', character.intro_text || undefined);
         setSessions(s => [currentSession, ...s]);
         setActiveSession(currentSession);
+        // Add intro as first message if it exists
+        if (character.intro_text) {
+          setMessages([{ role: 'assistant', content: character.intro_text, created_at: new Date().toISOString() }]);
+        }
       } catch (err) {
         setError(err.message);
         return;
