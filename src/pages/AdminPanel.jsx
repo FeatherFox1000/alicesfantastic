@@ -349,6 +349,92 @@ export default function AdminPanel() {
       )}
 
       <AdminChat username={user.username} />
+      <AdminTickets />
+    </div>
+  );
+}
+
+function AdminTickets() {
+  const [tickets, setTickets] = useState([]);
+  const [activeTicket, setActiveTicket] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [reply, setReply] = useState('');
+
+  useEffect(() => { loadTickets(); }, []);
+
+  async function loadTickets() {
+    const data = await adminRequest('/admin/tickets');
+    if (Array.isArray(data)) setTickets(data);
+  }
+
+  async function openTicket(t) {
+    setActiveTicket(t);
+    const data = await adminRequest(`/tickets/${t.id}/messages`);
+    if (data.messages) setMessages(data.messages);
+  }
+
+  async function sendReply(e) {
+    e.preventDefault();
+    if (!reply.trim()) return;
+    await adminRequest(`/tickets/${activeTicket.id}/messages`, 'POST', { message: reply });
+    setReply('');
+    openTicket(activeTicket);
+  }
+
+  async function setStatus(id, status) {
+    await adminRequest(`/admin/tickets/${id}`, 'PUT', { status });
+    loadTickets();
+    if (activeTicket && activeTicket.id === id) {
+      setActiveTicket(t => ({ ...t, status }));
+    }
+  }
+
+  return (
+    <div className="admin-section">
+      <h2>Bugs & Comments</h2>
+      {activeTicket ? (
+        <div>
+          <button className="admin-back-btn" onClick={() => { setActiveTicket(null); setMessages([]); }}>← Back</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            <span className={`ticket-badge ticket-${activeTicket.type}`}>
+              {activeTicket.type === 'bug' ? '🐛 Bug' : '💬 Comment'}
+            </span>
+            <strong>{activeTicket.subject}</strong>
+            <span style={{ fontSize: '0.8rem', color: '#999' }}>by {activeTicket.username}</span>
+            <select value={activeTicket.status} onChange={e => setStatus(activeTicket.id, e.target.value)} className="ticket-status-select">
+              <option value="open">Open</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+          <div className="ticket-messages">
+            {messages.map(m => (
+              <div key={m.id} className={`ticket-msg ${m.is_admin ? 'ticket-msg-admin' : 'ticket-msg-user'}`}>
+                <span className="ticket-msg-author">{m.is_admin ? '🛡️ ' : ''}{m.username}</span>
+                <span className="ticket-msg-time">{new Date(m.created_at).toLocaleString()}</span>
+                <p className="ticket-msg-text">{m.message}</p>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={sendReply} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <input value={reply} onChange={e => setReply(e.target.value)} placeholder="Reply as admin..." style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
+            <button type="submit" className="admin-action-btn" disabled={!reply.trim()}>Reply</button>
+          </form>
+        </div>
+      ) : (
+        <div className="ticket-list">
+          {tickets.length === 0 && <p style={{ color: '#999' }}>No tickets yet.</p>}
+          {tickets.map(t => (
+            <div key={t.id} className="ticket-row" onClick={() => openTicket(t)}>
+              <span className={`ticket-badge ticket-${t.type}`}>{t.type === 'bug' ? '🐛' : '💬'}</span>
+              <span className="ticket-subject">{t.subject}</span>
+              <span className="ticket-user">{t.username}</span>
+              <span className={`ticket-status ticket-status-${t.status}`}>{t.status}</span>
+              <span className="ticket-date">{new Date(t.created_at).toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
