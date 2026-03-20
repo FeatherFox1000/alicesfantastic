@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homey</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #f5f0ff; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+.top-bar {
+  background: linear-gradient(135deg, #7b14c9, #9d4edd);
+  color: white;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+.top-bar h1 { font-size: 1.2rem; }
+.room-tabs { display: flex; gap: 0.3rem; margin-left: auto; }
+.room-tab {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+.room-tab:hover { background: rgba(255,255,255,0.35); }
+.room-tab.active { background: white; color: #7b14c9; }
+
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* Furniture palette */
+.palette {
+  width: 180px;
+  background: white;
+  border-right: 2px solid #e0d4f5;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+.palette-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #7b14c9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.6rem 0.8rem 0.3rem;
+}
+.palette-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+}
+.palette-item {
+  width: 72px;
+  height: 72px;
+  background: #f9f5ff;
+  border: 2px solid #e0d4f5;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  transition: all 0.15s;
+  user-select: none;
+}
+.palette-item:hover { border-color: #7b14c9; background: #f0e6ff; }
+.palette-item .icon { font-size: 1.8rem; line-height: 1; }
+.palette-item .label { font-size: 0.6rem; color: #666; margin-top: 2px; font-weight: 600; }
+
+/* Room area */
+.room-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.room {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: background 0.4s;
+}
+
+/* Room themes */
+.room-bedroom { background: linear-gradient(180deg, #e8d5f5 0%, #d4b8e8 40%, #c4956a 40%, #c4956a 100%); }
+.room-cafe { background: linear-gradient(180deg, #ffecd2 0%, #fcb69f 40%, #8b6f5e 40%, #8b6f5e 100%); }
+.room-gaming { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 40%, #2d2d44 40%, #2d2d44 100%); }
+
+/* Wall and floor details */
+.room::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: 40%;
+  height: 3px;
+  background: rgba(0,0,0,0.15);
+  z-index: 1;
+}
+
+/* Placed furniture items */
+.furniture {
+  position: absolute;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.15s;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.furniture:hover { filter: brightness(1.05); }
+.furniture.dragging { opacity: 0.7; z-index: 100; cursor: grabbing; }
+.furniture .delete-btn {
+  display: none;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #e53e3e;
+  color: white;
+  border: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.6rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.furniture:hover .delete-btn { display: flex; }
+
+/* Drag preview */
+.drag-preview {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0.8;
+  font-size: 3rem;
+  transform: translate(-50%, -50%);
+}
+
+/* Clear button */
+.clear-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.clear-btn:hover { background: rgba(255,255,255,0.3); }
+
+/* Undo button */
+.undo-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.undo-btn:hover { background: rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Homey</h1>
+  <button class="undo-btn" onclick="undo()">Undo</button>
+  <button class="clear-btn" onclick="clearRoom()">Clear Room</button>
+  <div class="room-tabs">
+    <button class="room-tab active" onclick="switchRoom('bedroom')">Bedroom</button>
+    <button class="room-tab" onclick="switchRoom('cafe')">Café</button>
+    <button class="room-tab" onclick="switchRoom('gaming')">Gaming Setup</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="palette" id="palette"></div>
+  <div class="room-container">
+    <div class="room room-bedroom" id="room"></div>
+  </div>
+</div>
+
+<div class="drag-preview" id="dragPreview" style="display:none;"></div>
+
+<script>
+const FURNITURE = {
+  bedroom: [
+    { id: 'bed',        icon: '🛏️', label: 'Bed',        w: 120, h: 70 },
+    { id: 'pillow',     icon: '🛋️', label: 'Couch',      w: 100, h: 55 },
+    { id: 'lamp',       icon: '🪔', label: 'Lamp',       w: 40,  h: 60 },
+    { id: 'plant',      icon: '🪴', label: 'Plant',      w: 45,  h: 55 },
+    { id: 'dresser',    icon: '🗄️', label: 'Dresser',    w: 70,  h: 65 },
+    { id: 'mirror',     icon: '🪞', label: 'Mirror',     w: 40,  h: 55 },
+    { id: 'teddy',      icon: '🧸', label: 'Teddy',      w: 40,  h: 40 },
+    { id: 'books',      icon: '📚', label: 'Books',      w: 45,  h: 40 },
+    { id: 'clock',      icon: '🕰️', label: 'Clock',      w: 35,  h: 45 },
+    { id: 'rug',        icon: '🟫', label: 'Rug',        w: 100, h: 30 },
+    { id: 'candle',     icon: '🕯️', label: 'Candle',     w: 30,  h: 40 },
+    { id: 'picture',    icon: '🖼️', label: 'Picture',    w: 50,  h: 45 },
+    { id: 'star',       icon: '⭐',  label: 'Star Light', w: 35,  h: 35 },
+    { id: 'curtain',    icon: '🪟', label: 'Window',     w: 70,  h: 70 },
+  ],
+  cafe: [
+    { id: 'table',      icon: '🪑', label: 'Chair',      w: 45,  h: 50 },
+    { id: 'table2',     icon: '🍽️', label: 'Table',      w: 80,  h: 50 },
+    { id: 'coffee',     icon: '☕',  label: 'Coffee',     w: 35,  h: 35 },
+    { id: 'cake',       icon: '🍰', label: 'Cake',       w: 40,  h: 35 },
+    { id: 'croissant',  icon: '🥐', label: 'Croissant',  w: 35,  h: 30 },
+    { id: 'plant2',     icon: '🌿', label: 'Plant',      w: 45,  h: 50 },
+    { id: 'menu',       icon: '📋', label: 'Menu Board', w: 50,  h: 60 },
+    { id: 'counter',    icon: '🧱', label: 'Counter',    w: 120, h: 50 },
+    { id: 'cup',        icon: '🫖', label: 'Teapot',     w: 40,  h: 35 },
+    { id: 'flower',     icon: '💐', label: 'Flowers',    w: 40,  h: 45 },
+    { id: 'light',      icon: '💡', label: 'Light',      w: 35,  h: 40 },
+    { id: 'sign',       icon: '🪧', label: 'Sign',       w: 50,  h: 50 },
+    { id: 'donut',      icon: '🍩', label: 'Donut',      w: 35,  h: 30 },
+    { id: 'muffin',     icon: '🧁', label: 'Muffin',     w: 35,  h: 35 },
+  ],
+  gaming: [
+    { id: 'monitor',    icon: '🖥️', label: 'Monitor',    w: 80,  h: 60 },
+    { id: 'keyboard',   icon: '⌨️', label: 'Keyboard',   w: 70,  h: 25 },
+    { id: 'mouse',      icon: '🖱️', label: 'Mouse',      w: 25,  h: 30 },
+    { id: 'headphones', icon: '🎧', label: 'Headphones', w: 40,  h: 40 },
+    { id: 'controller', icon: '🎮', label: 'Controller', w: 45,  h: 35 },
+    { id: 'desk',       icon: '🪑', label: 'Chair',      w: 55,  h: 60 },
+    { id: 'speaker',    icon: '🔊', label: 'Speaker',    w: 35,  h: 45 },
+    { id: 'console',    icon: '🕹️', label: 'Console',    w: 50,  h: 40 },
+    { id: 'poster',     icon: '🖼️', label: 'Poster',     w: 50,  h: 60 },
+    { id: 'rgb',        icon: '🌈', label: 'RGB Strip',  w: 90,  h: 15 },
+    { id: 'pizza',      icon: '🍕', label: 'Pizza',      w: 40,  h: 35 },
+    { id: 'soda',       icon: '🥤', label: 'Soda',       w: 25,  h: 40 },
+    { id: 'trophy',     icon: '🏆', label: 'Trophy',     w: 35,  h: 45 },
+    { id: 'lamp2',      icon: '🔮', label: 'Lava Lamp',  w: 30,  h: 50 },
+  ],
+};
+
+let currentRoom = 'bedroom';
+let placed = { bedroom: [], cafe: [], gaming: [] };
+let history = { bedroom: [], cafe: [], gaming: [] };
+let dragItem = null;
+let dragOffset = { x: 0, y: 0 };
+let draggingEl = null;
+let idCounter = 0;
+
+const room = document.getElementById('room');
+const palette = document.getElementById('palette');
+const preview = document.getElementById('dragPreview');
+
+function switchRoom(name) {
+  currentRoom = name;
+  room.className = 'room room-' + name;
+  document.querySelectorAll('.room-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.room-tab[onclick*="${name}"]`).classList.add('active');
+  renderPalette();
+  renderRoom();
+}
+
+function renderPalette() {
+  const items = FURNITURE[currentRoom];
+  palette.innerHTML = `<div class="palette-title">Furniture</div><div class="palette-items">${
+    items.map(f => `
+      <div class="palette-item" data-id="${f.id}"
+           onmousedown="startDragNew(event, '${f.id}')"
+           ontouchstart="startDragNew(event, '${f.id}')">
+        <span class="icon">${f.icon}</span>
+        <span class="label">${f.label}</span>
+      </div>
+    `).join('')
+  }</div>`;
+}
+
+function renderRoom() {
+  room.innerHTML = '';
+  placed[currentRoom].forEach(p => {
+    const el = createFurnitureEl(p);
+    room.appendChild(el);
+  });
+}
+
+function createFurnitureEl(p) {
+  const el = document.createElement('div');
+  el.className = 'furniture';
+  el.style.left = p.x + 'px';
+  el.style.top = p.y + 'px';
+  el.style.width = p.w + 'px';
+  el.style.height = p.h + 'px';
+  el.style.fontSize = Math.min(p.w, p.h) * 0.7 + 'px';
+  el.innerHTML = `<span>${p.icon}</span><button class="delete-btn" onmousedown="event.stopPropagation()" onclick="removeFurniture(${p.uid})">✕</button>`;
+  el.dataset.uid = p.uid;
+
+  el.addEventListener('mousedown', e => startDragExisting(e, p.uid));
+  el.addEventListener('touchstart', e => startDragExisting(e, p.uid), { passive: false });
+  return el;
+}
+
+function getFurnitureDef(id) {
+  for (const cat of Object.values(FURNITURE)) {
+    const f = cat.find(item => item.id === id);
+    if (f) return f;
+  }
+  return null;
+}
+
+function startDragNew(e, id) {
+  e.preventDefault();
+  const f = getFurnitureDef(id);
+  if (!f) return;
+  dragItem = { type: 'new', ...f, uid: ++idCounter };
+  const pos = getPointerPos(e);
+  preview.textContent = f.icon;
+  preview.style.display = 'block';
+  preview.style.left = pos.x + 'px';
+  preview.style.top = pos.y + 'px';
+}
+
+function startDragExisting(e, uid) {
+  e.preventDefault();
+  const p = placed[currentRoom].find(item => item.uid === uid);
+  if (!p) return;
+  const pos = getPointerPos(e);
+  const rect = room.getBoundingClientRect();
+  dragOffset.x = pos.x - rect.left - p.x;
+  dragOffset.y = pos.y - rect.top - p.y;
+  dragItem = { type: 'existing', uid };
+
+  const el = room.querySelector(`[data-uid="${uid}"]`);
+  if (el) { el.classList.add('dragging'); draggingEl = el; }
+}
+
+function getPointerPos(e) {
+  if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+document.addEventListener('mousemove', onDragMove);
+document.addEventListener('touchmove', onDragMove, { passive: false });
+
+function onDragMove(e) {
+  if (!dragItem) return;
+  e.preventDefault();
+  const pos = getPointerPos(e);
+
+  if (dragItem.type === 'new') {
+    preview.style.left = pos.x + 'px';
+    preview.style.top = pos.y + 'px';
+  } else if (draggingEl) {
+    const rect = room.getBoundingClientRect();
+    let nx = pos.x - rect.left - dragOffset.x;
+    let ny = pos.y - rect.top - dragOffset.y;
+    nx = Math.max(0, Math.min(rect.width - draggingEl.offsetWidth, nx));
+    ny = Math.max(0, Math.min(rect.height - draggingEl.offsetHeight, ny));
+    draggingEl.style.left = nx + 'px';
+    draggingEl.style.top = ny + 'px';
+  }
+}
+
+document.addEventListener('mouseup', onDragEnd);
+document.addEventListener('touchend', onDragEnd);
+
+function onDragEnd(e) {
+  if (!dragItem) return;
+
+  if (dragItem.type === 'new') {
+    preview.style.display = 'none';
+    const pos = e.changedTouches ? { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY } : { x: e.clientX, y: e.clientY };
+    const rect = room.getBoundingClientRect();
+    if (pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom) {
+      saveHistory();
+      const nx = pos.x - rect.left - dragItem.w / 2;
+      const ny = pos.y - rect.top - dragItem.h / 2;
+      placed[currentRoom].push({
+        uid: dragItem.uid,
+        id: dragItem.id,
+        icon: dragItem.icon,
+        w: dragItem.w,
+        h: dragItem.h,
+        x: Math.max(0, Math.min(rect.width - dragItem.w, nx)),
+        y: Math.max(0, Math.min(rect.height - dragItem.h, ny)),
+      });
+      renderRoom();
+      save();
+    }
+  } else if (dragItem.type === 'existing') {
+    if (draggingEl) {
+      saveHistory();
+      const p = placed[currentRoom].find(item => item.uid === dragItem.uid);
+      if (p) {
+        p.x = parseFloat(draggingEl.style.left);
+        p.y = parseFloat(draggingEl.style.top);
+      }
+      draggingEl.classList.remove('dragging');
+      draggingEl = null;
+      save();
+    }
+  }
+
+  dragItem = null;
+}
+
+function removeFurniture(uid) {
+  saveHistory();
+  placed[currentRoom] = placed[currentRoom].filter(p => p.uid !== uid);
+  renderRoom();
+  save();
+}
+
+function clearRoom() {
+  if (placed[currentRoom].length === 0) return;
+  saveHistory();
+  placed[currentRoom] = [];
+  renderRoom();
+  save();
+}
+
+function saveHistory() {
+  history[currentRoom].push(JSON.parse(JSON.stringify(placed[currentRoom])));
+  if (history[currentRoom].length > 30) history[currentRoom].shift();
+}
+
+function undo() {
+  if (history[currentRoom].length === 0) return;
+  placed[currentRoom] = history[currentRoom].pop();
+  renderRoom();
+  save();
+}
+
+function save() {
+  try { localStorage.setItem('homey_rooms', JSON.stringify(placed)); } catch {}
+}
+
+function load() {
+  try {
+    const data = JSON.parse(localStorage.getItem('homey_rooms'));
+    if (data) {
+      placed = { bedroom: data.bedroom || [], cafe: data.cafe || [], gaming: data.gaming || [] };
+      let maxId = 0;
+      Object.values(placed).forEach(arr => arr.forEach(p => { if (p.uid > maxId) maxId = p.uid; }));
+      idCounter = maxId;
+    }
+  } catch {}
+}
+
+load();
+renderPalette();
+renderRoom();
+</script>
+</body>
+</html>

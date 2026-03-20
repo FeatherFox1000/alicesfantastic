@@ -94,6 +94,7 @@ function Header() {
           <Link to="/penguin-runner" className="nav-link">🐧 {!collapsed && 'Penguin Runner'}</Link>
           <Link to="/jumping-penguin" className="nav-link">🐥 {!collapsed && 'Jumping Penguin'}</Link>
           <Link to="/present-maker" className="nav-link">🎁 {!collapsed && 'Present Maker'}</Link>
+          <Link to="/homey" className="nav-link">🏠 {!collapsed && 'Homey'}</Link>
           <Link to="/tomato-hunter" className="nav-link">🍅 {!collapsed && 'Tomato Hunter'}</Link>
           <Link to="/podcasts" className="nav-link">🎙️ {!collapsed && 'Podcasts'}</Link>
         </nav>
