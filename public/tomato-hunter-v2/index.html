@@ -191,35 +191,35 @@ const LEVELS = [
     platforms: [
       { x:0,   y:440, w:220, h:40 },   // left ground
       { x:634, y:440, w:220, h:40 },   // right ground
-      // Left tower — zigzag staircase up
-      { x:110, y:370, w:130, h:18 },
-      { x:20,  y:300, w:130, h:18 },
-      { x:110, y:230, w:130, h:18 },
-      { x:20,  y:90, w:210, h:18 },
+      // Left tower — zigzag staircase up (100px gaps)
+      { x:110, y:340, w:130, h:18 },
+      { x:20,  y:240, w:130, h:18 },
+      { x:110, y:140, w:130, h:18 },
+      { x:20,  y:40,  w:210, h:18 },
       // Bridge connects the two towers
-      { x:230, y:90, w:394, h:18 },
+      { x:230, y:40,  w:394, h:18 },
       // Right tower — zigzag staircase up (mirrored)
-      { x:624, y:90, w:210, h:18 },
-      { x:624, y:230, w:130, h:18 },
-      { x:714, y:300, w:130, h:18 },
-      { x:624, y:370, w:130, h:18 },
+      { x:624, y:40,  w:210, h:18 },
+      { x:624, y:140, w:130, h:18 },
+      { x:714, y:240, w:130, h:18 },
+      { x:624, y:340, w:130, h:18 },
     ],
     // Moving platform oscillates horizontally in the mid-gap,
     // giving players an alternative route or bonus collectible platform.
     dynPlats: [
-      { ox:337, oy:300, w:150, h:16, ax:80, ay:0, freq:0.012, phase:0 },
+      { ox:337, oy:240, w:150, h:16, ax:80, ay:0, freq:0.012, phase:0 },
     ],
     enemies: [
-      { x:50,  y:300-EH, left:20,  right:126, speed:0.45, dir: 1 },
-      { x:740, y:300-EH, left:714, right:820, speed:0.45, dir:-1 },
+      { x:50,  y:240-EH, left:20,  right:126, speed:0.45, dir: 1 },
+      { x:740, y:240-EH, left:714, right:820, speed:0.45, dir:-1 },
     ],
     spikes: [],
     tomatoes: [
       { x:95,  y:416 }, { x:720, y:416 },
-      { x:150, y:346 }, { x:660, y:346 },
-      { x:50,  y:276 }, { x:760, y:276 },
-      { x:150, y:206 }, { x:660, y:206 },
-      { x:420, y:66 },
+      { x:150, y:316 }, { x:660, y:316 },
+      { x:50,  y:216 }, { x:760, y:216 },
+      { x:150, y:116 }, { x:660, y:116 },
+      { x:420, y:16 },
     ],
     playerStart: { x:50, y:389 },
   },
