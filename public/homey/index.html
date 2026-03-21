@@ -35,10 +35,13 @@ body { font-family: 'Segoe UI', sans-serif; background: #f5f0ff; overflow: hidde
 .palette-item .label { font-size: 0.5rem; color: #666; margin-top: 1px; font-weight: 600; text-align: center; max-width: 48px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .room-container { flex: 1; position: relative; overflow: hidden; }
-.room { width: 100%; height: 100%; position: relative; }
-.room-wall { position: absolute; left:0; right:0; top:0; height:40%; }
-.room-floor { position: absolute; left:0; right:0; top:40%; bottom:0; }
-.room-line { position: absolute; left:0; right:0; top:40%; height:3px; background: rgba(0,0,0,0.15); z-index:1; }
+.room { width: 100%; height: 100%; position: relative; background: #888; }
+.room-ceiling { position: absolute; inset: 0; clip-path: polygon(0 0, 100% 0, 87% 10%, 13% 10%); z-index: 0; }
+.room-wall-left { position: absolute; inset: 0; clip-path: polygon(0 0, 13% 10%, 13% 62%, 0 100%); z-index: 0; }
+.room-wall-right { position: absolute; inset: 0; clip-path: polygon(87% 10%, 100% 0, 100% 100%, 87% 62%); z-index: 0; }
+.room-wall { position: absolute; left: 13%; top: 10%; width: 74%; height: 52%; z-index: 0; }
+.room-floor { position: absolute; inset: 0; clip-path: polygon(13% 62%, 87% 62%, 100% 100%, 0 100%); z-index: 0; }
+.room-edges { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .pattern-bar { display: flex; align-items: center; gap: 0.3rem; }
 .pat-btn { width: 26px; height: 26px; border: 2px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer; padding: 0; background: #666; overflow: hidden; }
 .pat-btn.active { border-color: white; box-shadow: 0 0 4px rgba(255,255,255,0.6); }
@@ -80,7 +83,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f5f0ff; overflow: hidde
 </div>
 <div class="main">
   <div class="palette" id="palette"></div>
-  <div class="room-container"><div class="room" id="room"><div class="room-wall" id="roomWall"></div><div class="room-floor" id="roomFloor"></div><div class="room-line"></div></div></div>
+  <div class="room-container"><div class="room" id="room"><div class="room-ceiling" id="roomCeiling"></div><div class="room-wall-left" id="roomWallLeft"></div><div class="room-wall-right" id="roomWallRight"></div><div class="room-wall" id="roomWall"></div><div class="room-floor" id="roomFloor"></div><svg class="room-edges" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="0" y1="0" x2="13" y2="10" stroke="rgba(0,0,0,0.18)" stroke-width="0.3"/><line x1="100" y1="0" x2="87" y2="10" stroke="rgba(0,0,0,0.18)" stroke-width="0.3"/><line x1="0" y1="100" x2="13" y2="62" stroke="rgba(0,0,0,0.18)" stroke-width="0.3"/><line x1="100" y1="100" x2="87" y2="62" stroke="rgba(0,0,0,0.18)" stroke-width="0.3"/><rect x="13" y="10" width="74" height="52" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="0.2"/></svg></div></div>
 </div>
 <canvas class="drag-preview" id="dragPreview" style="display:none;" width="80" height="80"></canvas>
 
@@ -1701,6 +1704,9 @@ function drawItem(canvas, drawId, w, h, color, extra) {
 
 const wallEl = document.getElementById('roomWall');
 const floorEl = document.getElementById('roomFloor');
+const ceilingEl = document.getElementById('roomCeiling');
+const wallLeftEl = document.getElementById('roomWallLeft');
+const wallRightEl = document.getElementById('roomWallRight');
 
 function drawPatternBg(el, patterns, patId, color) {
   const pat = patterns[patId] || patterns.plain;
@@ -1715,6 +1721,11 @@ function applyRoomBg() {
   const c = roomColors[currentRoom];
   drawPatternBg(wallEl, WALL_PATTERNS, c.wallPat, c.wall);
   drawPatternBg(floorEl, FLOOR_PATTERNS, c.floorPat, c.floor);
+  // Side walls - same pattern, slightly darker for depth
+  drawPatternBg(wallLeftEl, WALL_PATTERNS, c.wallPat, darken(c.wall, 18));
+  drawPatternBg(wallRightEl, WALL_PATTERNS, c.wallPat, darken(c.wall, 12));
+  // Ceiling - lighter version of wall color
+  ceilingEl.style.background = lighten(c.wall, 35);
   document.getElementById('wallColor').value = c.wall;
   document.getElementById('floorColor').value = c.floor;
   renderPatternBtns();
