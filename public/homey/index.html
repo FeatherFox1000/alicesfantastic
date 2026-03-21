@@ -57,6 +57,10 @@ body { font-family: 'Segoe UI', sans-serif; background: #f5f0ff; overflow: hidde
 .furniture:hover .resize-handle { display: block; }
 
 .drag-preview { position: fixed; pointer-events: none; z-index: 10000; opacity: 0.8; transform: translate(-50%, -50%); }
+.room.string-mode { cursor: crosshair; }
+.string-point { position: absolute; width: 12px; height: 12px; background: #fbbf24; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 50; pointer-events: none; box-shadow: 0 0 8px rgba(251,191,36,0.8); animation: pulse 0.8s infinite; }
+@keyframes pulse { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.3); } }
+.string-hint { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: rgba(123,20,201,0.9); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; z-index: 50; pointer-events: none; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -194,6 +198,33 @@ const DRAWS = {
     ctx.strokeStyle=darken(c,20);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,h/2);ctx.bezierCurveTo(w*0.25,0,w*0.75,h,w,h/2);ctx.stroke();
     const cols=[c,lighten(c,30),lighten(c,60)];
     for(let i=0;i<8;i++){ctx.fillStyle=cols[i%3];const x=i*w/7.5;const y=h/2+Math.sin(i*1.2)*h*0.25;ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();}
+  },
+  fairystring(ctx,w,h,c,extra){
+    if(!extra) return;
+    const {rx1,ry1,rx2,ry2}=extra;
+    // Draw drooping wire with catenary-like curve
+    const sag=Math.min(60, Math.abs(rx2-rx1)*0.3+15);
+    const midX=(rx1+rx2)/2, midY=Math.max(ry1,ry2)+sag;
+    ctx.strokeStyle=darken(c,30);ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(rx1,ry1);ctx.quadraticCurveTo(midX,midY,rx2,ry2);ctx.stroke();
+    // Draw lights along the curve
+    const cols=[c,lighten(c,30),lighten(c,60),lighten(c,15)];
+    const numLights=Math.max(5,Math.floor(Math.hypot(rx2-rx1,ry2-ry1)/18));
+    for(let i=0;i<=numLights;i++){
+      const t=i/numLights;
+      const x=(1-t)*(1-t)*rx1+2*(1-t)*t*midX+t*t*rx2;
+      const y=(1-t)*(1-t)*ry1+2*(1-t)*t*midY+t*t*ry2;
+      // Glow
+      ctx.fillStyle=cols[i%cols.length]+'44';ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();
+      // Bulb
+      ctx.fillStyle=cols[i%cols.length];ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();
+      // Bright center
+      ctx.fillStyle=lighten(c,80);ctx.beginPath();ctx.arc(x,y,1.2,0,Math.PI*2);ctx.fill();
+    }
+    // Small pins at endpoints
+    ctx.fillStyle=darken(c,40);
+    ctx.beginPath();ctx.arc(rx1,ry1,2.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(rx2,ry2,2.5,0,Math.PI*2);ctx.fill();
   },
   plant(ctx,w,h,c){
     ctx.fillStyle=darken(c,20);rr(ctx,w*0.2,h*0.55,w*0.6,h*0.45,5);
@@ -1660,12 +1691,12 @@ const roomEl = document.getElementById('room');
 const paletteEl = document.getElementById('palette');
 const prevEl = document.getElementById('dragPreview');
 
-function drawItem(canvas, drawId, w, h, color) {
+function drawItem(canvas, drawId, w, h, color, extra) {
   canvas.width = w * 2; canvas.height = h * 2;
   canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
   const ctx = canvas.getContext('2d');
   ctx.scale(2, 2);
-  if (DRAWS[drawId]) DRAWS[drawId](ctx, w, h, color);
+  if (DRAWS[drawId]) DRAWS[drawId](ctx, w, h, color, extra);
 }
 
 const wallEl = document.getElementById('roomWall');
@@ -1771,18 +1802,21 @@ function createFurnitureEl(p) {
   el.className = 'furniture'; el.dataset.uid = p.uid;
   el.style.left = p.x+'px'; el.style.top = p.y+'px'; el.style.width = p.w+'px'; el.style.height = p.h+'px';
   const c = document.createElement('canvas');
-  drawItem(c, p.draw, p.w, p.h, p.color);
+  const extra = p.isString ? {rx1:p.rx1,ry1:p.ry1,rx2:p.rx2,ry2:p.ry2} : null;
+  drawItem(c, p.draw, p.w, p.h, p.color, extra);
   el.appendChild(c);
   const btnRow = document.createElement('div'); btnRow.className = 'btn-row';
   btnRow.innerHTML = `<button class="fb color-btn" title="Color" onmousedown="event.stopPropagation()">🎨<input type="color" value="${p.color}" onmousedown="event.stopPropagation()"></button><button class="fb" onmousedown="event.stopPropagation()" onclick="removeFurniture(${p.uid})">✕</button>`;
   const colorInput = btnRow.querySelector('input[type="color"]');
-  colorInput.addEventListener('input', e => { e.stopPropagation(); const np = placed[currentRoom].find(i=>i.uid===p.uid); if(np){np.color=e.target.value; drawItem(c,np.draw,np.w,np.h,np.color);} });
+  colorInput.addEventListener('input', e => { e.stopPropagation(); const np = placed[currentRoom].find(i=>i.uid===p.uid); if(np){np.color=e.target.value; const ex=np.isString?{rx1:np.rx1,ry1:np.ry1,rx2:np.rx2,ry2:np.ry2}:null; drawItem(c,np.draw,np.w,np.h,np.color,ex);} });
   colorInput.addEventListener('change', e => { e.stopPropagation(); save(); });
   el.appendChild(btnRow);
-  const rh = document.createElement('div'); rh.className = 'resize-handle';
-  rh.addEventListener('mousedown', e => startResize(e, p.uid));
-  rh.addEventListener('touchstart', e => startResize(e, p.uid), {passive:false});
-  el.appendChild(rh);
+  if(!p.isString) {
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => startResize(e, p.uid));
+    rh.addEventListener('touchstart', e => startResize(e, p.uid), {passive:false});
+    el.appendChild(rh);
+  }
   el.addEventListener('mousedown', e => startDragExisting(e, p.uid));
   el.addEventListener('touchstart', e => startDragExisting(e, p.uid), {passive:false});
   return el;
@@ -1797,6 +1831,12 @@ function changeColor(uid, color) { saveHist(); const p = placed[currentRoom].fin
 
 function startDragNew(e, id) {
   e.preventDefault(); const f = getDef(id); if (!f) return;
+  // Fairy lights use string mode (click two points)
+  if(f.draw === 'fairy') {
+    if(stringMode) exitStringMode();
+    enterStringMode(f.id, 'fairystring', f.color);
+    return;
+  }
   dragItem = { type:'new', ...f, uid:++idCounter };
   const pos = getPos(e);
   drawItem(prevEl, f.draw, 60, 60, f.color);
@@ -1840,6 +1880,76 @@ function onEnd(e){if(resizing){resizing=null;save();return;}
     if(pos.x>=r.left&&pos.x<=r.right&&pos.y>=r.top&&pos.y<=r.bottom){saveHist();placed[currentRoom].push({uid:dragItem.uid,id:dragItem.id,draw:dragItem.draw,w:dragItem.w,h:dragItem.h,color:dragItem.color,x:Math.max(0,Math.min(r.width-dragItem.w,pos.x-r.left-dragItem.w/2)),y:Math.max(0,Math.min(r.height-dragItem.h,pos.y-r.top-dragItem.h/2))});renderRoom();save();}}
   else if(dragItem.type==='existing'&&draggingEl){saveHist();const p=placed[currentRoom].find(i=>i.uid===dragItem.uid);if(p){p.x=parseFloat(draggingEl.style.left);p.y=parseFloat(draggingEl.style.top);}draggingEl.classList.remove('dragging');draggingEl=null;save();}
   dragItem=null;}
+
+// ── String Mode (fairy lights between two points) ──
+let stringMode = null; // null or {id, draw, color, point1: null | {x,y}}
+let stringPointEl = null;
+let stringHintEl = null;
+
+function enterStringMode(id, draw, color) {
+  stringMode = {id, draw, color, point1: null};
+  roomEl.classList.add('string-mode');
+  // Show hint
+  stringHintEl = document.createElement('div');
+  stringHintEl.className = 'string-hint';
+  stringHintEl.textContent = 'Click first point on wall';
+  roomEl.appendChild(stringHintEl);
+}
+function exitStringMode() {
+  stringMode = null;
+  roomEl.classList.remove('string-mode');
+  if(stringPointEl){stringPointEl.remove();stringPointEl=null;}
+  if(stringHintEl){stringHintEl.remove();stringHintEl=null;}
+}
+
+roomEl.addEventListener('click', function(e) {
+  if(!stringMode) return;
+  // Ignore clicks on furniture
+  if(e.target.closest('.furniture')) return;
+  const rect = roomEl.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  if(!stringMode.point1) {
+    // Set first point
+    stringMode.point1 = {x, y};
+    stringPointEl = document.createElement('div');
+    stringPointEl.className = 'string-point';
+    stringPointEl.style.left = x+'px'; stringPointEl.style.top = y+'px';
+    roomEl.appendChild(stringPointEl);
+    stringHintEl.textContent = 'Click second point';
+  } else {
+    // Set second point and create the fairy string
+    const p1 = stringMode.point1;
+    const p2 = {x, y};
+    const pad = 15; // padding for sag
+    const minX = Math.min(p1.x, p2.x) - pad;
+    const minY = Math.min(p1.y, p2.y) - pad;
+    const sag = Math.min(60, Math.abs(p2.x-p1.x)*0.3+15);
+    const maxY = Math.max(p1.y, p2.y) + sag + pad;
+    const maxX = Math.max(p1.x, p2.x) + pad;
+    const w = Math.max(40, maxX - minX);
+    const h = Math.max(30, maxY - minY);
+
+    saveHist();
+    placed[currentRoom].push({
+      uid: ++idCounter,
+      id: stringMode.id,
+      draw: 'fairystring',
+      w: Math.round(w), h: Math.round(h),
+      color: stringMode.color,
+      x: Math.round(minX), y: Math.round(minY),
+      isString: true,
+      rx1: Math.round(p1.x - minX), ry1: Math.round(p1.y - minY),
+      rx2: Math.round(p2.x - minX), ry2: Math.round(p2.y - minY)
+    });
+    renderRoom(); save();
+    exitStringMode();
+  }
+});
+
+// Cancel string mode on Escape
+document.addEventListener('keydown', e => { if(e.key==='Escape' && stringMode) exitStringMode(); });
 
 function removeFurniture(uid){saveHist();placed[currentRoom]=placed[currentRoom].filter(p=>p.uid!==uid);renderRoom();save();}
 function clearRoom(){if(!placed[currentRoom].length)return;saveHist();placed[currentRoom]=[];renderRoom();save();}
