@@ -111,18 +111,28 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
   const [loadingInspo, setLoadingInspo] = useState(false);
   const [storyStyle, setStoryStyle] = useState('standard');
   const [showStylePicker, setShowStylePicker] = useState(false);
+  const [showNewAdventureModal, setShowNewAdventureModal] = useState(false);
+  const [keepMemories, setKeepMemories] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     loadSessions();
     api.getSnapshots(character.id).then(setSnapshots).catch(() => {});
-    api.getMemories(character.id).then(setMemories).catch(() => {});
   }, [character.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load memories for the active session
+  useEffect(() => {
+    if (activeSession) {
+      api.getMemories(character.id, activeSession.id).then(setMemories).catch(() => {});
+    } else {
+      setMemories([]);
+    }
+  }, [activeSession?.id, character.id]);
 
   async function loadSessions() {
     setLoadingSessions(true);
@@ -150,10 +160,18 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
     }
   }
 
-  async function newAdventure() {
+  function newAdventure() {
+    setKeepMemories(true);
+    setShowNewAdventureModal(true);
+  }
+
+  async function confirmNewAdventure() {
+    setShowNewAdventureModal(false);
     const title = `Adventure ${sessions.length + 1}`;
     try {
-      const session = await api.createSession(character.id, title, character.intro_text || undefined);
+      // If keeping memories, pass current session id so backend copies them
+      const copyFrom = (keepMemories && activeSession) ? activeSession.id : undefined;
+      const session = await api.createSession(character.id, title, character.intro_text || undefined, copyFrom);
       setSessions(s => [session, ...s]);
       setActiveSession(session);
       if (character.intro_text) {
@@ -240,7 +258,7 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
     if (!content) return;
     setAddingMemory(true);
     try {
-      const memory = await api.addMemory(character.id, content, memoryTab);
+      const memory = await api.addMemory(character.id, content, memoryTab, activeSession?.id);
       setMemories(m => [memory, ...m]);
       setNewMemory('');
     } catch (err) {
@@ -635,6 +653,38 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
           </form>
         </div>
       </div>
+
+      {/* New Adventure Modal */}
+      {showNewAdventureModal && (
+        <div className="airp-membook-overlay" onClick={() => setShowNewAdventureModal(false)}>
+          <div className="airp-new-adventure-modal" onClick={e => e.stopPropagation()}>
+            <h3>Start New Adventure</h3>
+            <p>Starting a new adventure for <strong>{character.name}</strong> in <strong>{character.world_name}</strong></p>
+            {memories.length > 0 && (
+              <div className="airp-memory-toggle-row">
+                <label className="airp-toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={keepMemories}
+                    onChange={e => setKeepMemories(e.target.checked)}
+                  />
+                  <span className="airp-toggle-slider"></span>
+                </label>
+                <span className="airp-toggle-text">
+                  Keep Memories ({memories.length} saved)
+                </span>
+              </div>
+            )}
+            {!keepMemories && memories.length > 0 && (
+              <p className="airp-memory-warning">All memories will be cleared for this character!</p>
+            )}
+            <div className="airp-new-adventure-actions">
+              <button className="airp-btn-secondary" onClick={() => setShowNewAdventureModal(false)}>Cancel</button>
+              <button className="airp-btn-primary" onClick={confirmNewAdventure}>Start Adventure</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

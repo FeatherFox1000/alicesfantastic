@@ -21,8 +21,11 @@ const STYLE_INSTRUCTIONS = {
   romance: `\n\nSTYLE: FRIENDSHIP MODE — Focus on bonds, loyalty, and heartfelt connections between characters. NPCs should feel like real friends with deep personalities. Emphasize teamwork, trust, heartfelt conversations, and the power of friendship. Make emotional moments land.`,
 };
 
-function buildSystemPrompt(character, style) {
-  const memories = db.prepare('SELECT category, content FROM memories WHERE character_id = ? ORDER BY created_at ASC').all(character.id);
+function buildSystemPrompt(character, style, sessionId) {
+  // Load memories for this session (or old memories with no session_id for backward compat)
+  const memories = db.prepare(
+    'SELECT category, content FROM memories WHERE character_id = ? AND (session_id = ? OR session_id IS NULL) ORDER BY created_at ASC'
+  ).all(character.id, sessionId);
   let memoriesBlock = '';
   if (memories.length > 0) {
     const labels = { character: '🐱 Character Facts', story: '📖 Story Events', friends: '👥 Friends & NPCs', items: '🎒 Items & Abilities' };
@@ -127,11 +130,22 @@ router.post('/characters/:characterId/sessions', authMiddleware, (req, res) => {
   if (!character) return res.status(404).json({ error: 'Character not found.' });
   const title = req.body.title || 'New Adventure';
   const result = db.prepare('INSERT INTO sessions (character_id, title) VALUES (?, ?)').run(req.params.characterId, title);
+  const newSessionId = result.lastInsertRowid;
   // If intro text provided, save it as the first assistant message
   if (req.body.intro_text) {
-    db.prepare('INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)').run(result.lastInsertRowid, 'assistant', req.body.intro_text);
+    db.prepare('INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)').run(newSessionId, 'assistant', req.body.intro_text);
   }
-  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(result.lastInsertRowid);
+  // Copy memories from a previous session if requested
+  if (req.body.copy_memories_from) {
+    const oldMemories = db.prepare(
+      'SELECT category, content FROM memories WHERE character_id = ? AND (session_id = ? OR session_id IS NULL)'
+    ).all(req.params.characterId, req.body.copy_memories_from);
+    const insert = db.prepare('INSERT INTO memories (character_id, session_id, category, content) VALUES (?, ?, ?, ?)');
+    for (const m of oldMemories) {
+      insert.run(req.params.characterId, newSessionId, m.category, m.content);
+    }
+  }
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(newSessionId);
   res.json(session);
 });
 
@@ -192,7 +206,7 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 400,
-      system: buildSystemPrompt(character, style),
+      system: buildSystemPrompt(character, style, session.id),
       messages: cleanHistory
     });
 
@@ -215,9 +229,9 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
     // Save extracted memories
     const savedMemories = [];
     for (const mem of newMemories) {
-      const existing = db.prepare('SELECT id FROM memories WHERE character_id = ? AND content = ?').get(session.char_id, mem.content);
+      const existing = db.prepare('SELECT id FROM memories WHERE character_id = ? AND session_id = ? AND content = ?').get(session.char_id, session.id, mem.content);
       if (!existing) {
-        const result = db.prepare('INSERT INTO memories (character_id, category, content) VALUES (?, ?, ?)').run(session.char_id, mem.category, mem.content);
+        const result = db.prepare('INSERT INTO memories (character_id, session_id, category, content) VALUES (?, ?, ?, ?)').run(session.char_id, session.id, mem.category, mem.content);
         savedMemories.push(db.prepare('SELECT * FROM memories WHERE id = ?').get(result.lastInsertRowid));
       }
     }

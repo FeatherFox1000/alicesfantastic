@@ -1071,6 +1071,104 @@
   30% { transform: translateY(-6px); opacity: 1; }
 }
 
+/* ===== NEW ADVENTURE MODAL ===== */
+.airp-new-adventure-modal {
+  background: linear-gradient(135deg, #0d0720 0%, #1a1035 50%, #2a1654 100%);
+  border: 1px solid #5a3d8a;
+  border-radius: 1.25rem;
+  padding: 1.5rem 2rem;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  color: #e8d5ff;
+}
+.airp-new-adventure-modal h3 {
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+  color: #f0e0ff;
+}
+.airp-new-adventure-modal p {
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  color: #c0a8e0;
+}
+.airp-memory-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background: rgba(102, 126, 234, 0.15);
+  border-radius: 10px;
+}
+.airp-toggle-text {
+  font-size: 0.95rem;
+  color: #e0d0f0;
+  font-weight: 500;
+}
+.airp-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.airp-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.airp-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #444;
+  border-radius: 26px;
+  transition: 0.3s;
+}
+.airp-toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+.airp-toggle-switch input:checked + .airp-toggle-slider {
+  background: #7c3aed;
+}
+.airp-toggle-switch input:checked + .airp-toggle-slider::before {
+  transform: translateX(22px);
+}
+.airp-memory-warning {
+  color: #ff6b6b !important;
+  font-weight: 600;
+  font-size: 0.85rem !important;
+}
+.airp-new-adventure-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+.airp-btn-secondary {
+  padding: 0.6rem 1.2rem;
+  border: 1px solid #5a3d8a;
+  border-radius: 8px;
+  background: transparent;
+  color: #c0a8e0;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.airp-btn-secondary:hover {
+  background: rgba(90, 61, 138, 0.3);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 640px) {
   .airp-sidebar { width: 180px; }

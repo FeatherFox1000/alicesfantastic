@@ -69,6 +69,7 @@ db.exec(`
 const migrations = [
   `ALTER TABLE characters ADD COLUMN player_age TEXT DEFAULT ''`,
   `ALTER TABLE memories ADD COLUMN category TEXT NOT NULL DEFAULT 'story'`,
+  `ALTER TABLE memories ADD COLUMN session_id INTEGER REFERENCES sessions(id)`,
 ];
 for (const sql of migrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }

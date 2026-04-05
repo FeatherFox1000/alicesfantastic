@@ -36,13 +36,14 @@ export const api = {
   updateCharacter: (id, data) => request('PUT', `/characters/${id}`, data),
   deleteCharacter: (id) => request('DELETE', `/characters/${id}`),
   getSnapshots: (id) => request('GET', `/characters/${id}/snapshots`),
-  getMemories: (id) => request('GET', `/characters/${id}/memories`),
-  addMemory: (id, content, category) => request('POST', `/characters/${id}/memories`, { content, category }),
+  getMemories: (id, sessionId) => request('GET', `/characters/${id}/memories${sessionId ? `?session_id=${sessionId}` : ''}`),
+  addMemory: (id, content, category, sessionId) => request('POST', `/characters/${id}/memories`, { content, category, session_id: sessionId }),
   deleteMemory: (id, memoryId) => request('DELETE', `/characters/${id}/memories/${memoryId}`),
+  clearMemories: (id) => request('DELETE', `/characters/${id}/memories`),
 
   // Sessions
   getSessions: (characterId) => request('GET', `/characters/${characterId}/sessions`),
-  createSession: (characterId, title, introText) => request('POST', `/characters/${characterId}/sessions`, { title, intro_text: introText }),
+  createSession: (characterId, title, introText, copyMemoriesFrom) => request('POST', `/characters/${characterId}/sessions`, { title, intro_text: introText, copy_memories_from: copyMemoriesFrom }),
   getSession: (id) => request('GET', `/sessions/${id}`),
   sendMessage: (sessionId, content, style) => request('POST', `/sessions/${sessionId}/messages`, { content, style }),
   getInspirations: (sessionId) => request('POST', `/sessions/${sessionId}/inspirations`),
