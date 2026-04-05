@@ -783,7 +783,12 @@ class CreatorGame {
     }
 
     async saveWorld() {
-        const worldName = await promptDialog('Enter a name for your world:', 'My World');
+        const result = await promptDialog('Enter a name for your world:', 'My World', {
+            toggle: { label: 'Keep Memories (undo history)', defaultChecked: false }
+        });
+        if (!result) return;
+
+        const worldName = result.value;
         if (!worldName) return;
 
         const worldData = {
@@ -792,6 +797,11 @@ class CreatorGame {
             timestamp: new Date().toISOString(),
             id: Date.now()
         };
+
+        // Save undo history if toggle is checked
+        if (result.toggleChecked && this.history.length > 0) {
+            worldData.history = this.history;
+        }
 
         // Save to localStorage
         const savedWorlds = this.getSavedWorlds();
@@ -874,7 +884,7 @@ class CreatorGame {
             worldDate.className = 'world-date';
 
             const worldBlocks = document.createElement('p');
-            worldBlocks.textContent = `${world.objects.length} blocks`;
+            worldBlocks.textContent = `${world.objects.length} blocks` + (world.history ? ' | has memories' : '');
             worldBlocks.className = 'world-blocks';
 
             worldInfo.appendChild(worldName);
@@ -920,7 +930,7 @@ class CreatorGame {
 
     loadSavedWorld(world) {
         this.objects = world.objects || [];
-        this.history = []; // Clear history when loading a world
+        this.history = world.history || []; // Restore history if saved, otherwise clear
         this.updateUndoButton();
         this.render();
         this.closeLoadWorldsModal();
@@ -962,7 +972,7 @@ class CreatorGame {
                 try {
                     const worldData = JSON.parse(event.target.result);
                     this.objects = worldData.objects || [];
-                    this.history = []; // Clear history when loading from file
+                    this.history = worldData.history || []; // Restore history if saved
                     this.updateUndoButton();
                     this.render();
                     this.closeLoadWorldsModal();

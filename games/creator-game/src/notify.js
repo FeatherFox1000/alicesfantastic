@@ -37,12 +37,16 @@ export function confirmDialog(message) {
 }
 
 // Custom prompt dialog — replaces prompt()
-export function promptDialog(message, defaultValue) {
+// options.toggle: { label, defaultChecked } — shows a toggle switch
+export function promptDialog(message, defaultValue, options = {}) {
     return new Promise(resolve => {
         const modal = document.getElementById('confirm-modal');
         const msg = document.getElementById('confirm-message');
         const inputWrap = document.getElementById('confirm-input-wrap');
         const input = document.getElementById('confirm-input');
+        const toggleWrap = document.getElementById('confirm-toggle-wrap');
+        const toggle = document.getElementById('confirm-toggle');
+        const toggleLabel = document.getElementById('confirm-toggle-label');
         const okBtn = document.getElementById('confirm-ok');
         const cancelBtn = document.getElementById('confirm-cancel');
 
@@ -50,18 +54,35 @@ export function promptDialog(message, defaultValue) {
         input.value = defaultValue || '';
         inputWrap.style.display = 'block';
         modal.style.display = 'flex';
+
+        // Show toggle if requested
+        if (options.toggle) {
+            toggleWrap.style.display = 'flex';
+            toggleLabel.textContent = options.toggle.label || 'Toggle';
+            toggle.checked = options.toggle.defaultChecked || false;
+        } else {
+            toggleWrap.style.display = 'none';
+        }
+
         input.focus();
 
         function cleanup(result) {
             modal.style.display = 'none';
             inputWrap.style.display = 'none';
+            toggleWrap.style.display = 'none';
             okBtn.removeEventListener('click', onOk);
             cancelBtn.removeEventListener('click', onCancel);
             input.removeEventListener('keydown', onKey);
             resolve(result);
         }
 
-        function onOk() { cleanup(input.value); }
+        function onOk() {
+            if (options.toggle) {
+                cleanup({ value: input.value, toggleChecked: toggle.checked });
+            } else {
+                cleanup(input.value);
+            }
+        }
         function onCancel() { cleanup(null); }
         function onKey(e) { if (e.key === 'Enter') onOk(); }
 
