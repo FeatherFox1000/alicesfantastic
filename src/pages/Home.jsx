@@ -69,6 +69,21 @@ function Home() {
       <section className="games-section">
         <h2 className="section-title">More Games</h2>
         <div className="games-grid">
+          <Link to="/warrior-cats" className="game-card">
+            <div className="game-image-wrapper">
+              <div className="game-image" style={{background: 'linear-gradient(135deg, #1a2a0a, #2a3a1a, #0a1a0a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem'}}>
+                🐱
+              </div>
+            </div>
+            <div className="game-content">
+              <h3>Warrior Cats</h3>
+              <p className="game-date">April 2026</p>
+              <p className="game-description">
+                3D open-world Warrior Cats game! Create your cat, choose your clan, explore the forest territories, and visit the Moonstone.
+              </p>
+            </div>
+          </Link>
+
           <Link to="/space-pups" className="game-card">
             <div className="game-image-wrapper">
               <img src="/images/space-pups-screenshot.png" alt="Space Pups Game" className="game-image" />

@@ -24,6 +24,29 @@ const MEMORY_CATEGORIES = [
   { key: 'items', icon: '🎒', label: 'Items', placeholder: 'e.g. "Owns a magic crystal sword"' },
 ];
 
+function renderMessageContent(text) {
+  // Split text into parts: quoted dialogue vs narrative/actions
+  const parts = [];
+  const regex = /"([^"]+)"/g;
+  let last = 0;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) {
+      parts.push({ type: 'narrative', text: text.slice(last, match.index) });
+    }
+    parts.push({ type: 'dialogue', text: `"${match[1]}"` });
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) {
+    parts.push({ type: 'narrative', text: text.slice(last) });
+  }
+  return parts.map((part, i) =>
+    part.type === 'dialogue'
+      ? <span key={i} className="airp-dialogue">{part.text}</span>
+      : <span key={i} className="airp-narrative">{part.text}</span>
+  );
+}
+
 function getStarterPrompts(character) {
   const name = character.name;
   const world = (character.world_name || '').toLowerCase();
@@ -546,7 +569,7 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
                 {msg.role === 'user' ? '🐾' : '✨'}
               </div>
               <div className="airp-message-bubble">
-                <p>{msg.content}</p>
+                <p>{msg.role === 'assistant' ? renderMessageContent(msg.content) : msg.content}</p>
                 <span className="airp-message-time">
                   {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>

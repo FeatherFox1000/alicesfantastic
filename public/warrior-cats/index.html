@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warrior Cats - The Forest</title>
+  <link rel="stylesheet" href="css/ui.css">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <h1>Warrior Cats</h1>
+      <p class="loading-subtitle">The Forest Awaits...</p>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <p class="loading-text" id="loading-text">Loading Three.js...</p>
+    </div>
+  </div>
+
+  <!-- Main Menu -->
+  <div id="main-menu" style="display:none">
+    <div class="menu-content">
+      <h1 class="menu-title">Warrior Cats</h1>
+      <p class="menu-subtitle">Choose your path. Defend your Clan.</p>
+      <div class="menu-buttons">
+        <button id="new-game-btn" class="menu-btn">New Game</button>
+        <button id="continue-btn" class="menu-btn" style="display:none">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Character Creator — Roblox-style 3-panel layout -->
+  <div id="character-creator" style="display:none">
+
+    <!-- LEFT PANEL: Coloring -->
+    <div class="cc-panel cc-left">
+      <div class="cc-panel-header">Coloring</div>
+
+      <div class="cc-color-tabs">
+        <button class="cc-color-tab active" data-ctab="simple">Simple</button>
+        <button class="cc-color-tab" data-ctab="paintbrush">Paintbrush</button>
+        <button class="cc-color-tab" data-ctab="advanced">Advanced</button>
+      </div>
+
+      <!-- Simple tab -->
+      <div class="cc-color-content active" id="ctab-simple">
+        <div class="cc-section-label">Primary Pelt</div>
+        <div class="cc-color-grid" id="primary-grid"></div>
+        <input type="color" id="base-color" value="#d4751c" class="cc-custom-color">
+
+        <div class="cc-section-label">Secondary Pelt</div>
+        <div class="cc-color-grid" id="secondary-grid"></div>
+        <input type="color" id="secondary-color" value="#2c1a0a" class="cc-custom-color">
+      </div>
+
+      <!-- Paintbrush tab -->
+      <div class="cc-color-content" id="ctab-paintbrush">
+        <div class="cc-section-label">Pattern</div>
+        <div class="cc-pattern-grid">
+          <button class="cc-pattern-btn active" data-pattern="tabby">Tabby</button>
+          <button class="cc-pattern-btn" data-pattern="mackerel">Mackerel</button>
+          <button class="cc-pattern-btn" data-pattern="classic">Classic</button>
+          <button class="cc-pattern-btn" data-pattern="ticked">Ticked</button>
+          <button class="cc-pattern-btn" data-pattern="spotted">Spotted</button>
+          <button class="cc-pattern-btn" data-pattern="rosette">Rosette</button>
+          <button class="cc-pattern-btn" data-pattern="tortoiseshell">Tortie</button>
+          <button class="cc-pattern-btn" data-pattern="calico">Calico</button>
+          <button class="cc-pattern-btn" data-pattern="dilute_calico">Dilute Calico</button>
+          <button class="cc-pattern-btn" data-pattern="tuxedo">Tuxedo</button>
+          <button class="cc-pattern-btn" data-pattern="bicolor">Bicolor</button>
+          <button class="cc-pattern-btn" data-pattern="van">Van</button>
+          <button class="cc-pattern-btn" data-pattern="pointed">Pointed</button>
+          <button class="cc-pattern-btn" data-pattern="smoke">Smoke</button>
+          <button class="cc-pattern-btn" data-pattern="silver">Silver</button>
+          <button class="cc-pattern-btn" data-pattern="golden">Golden</button>
+          <button class="cc-pattern-btn" data-pattern="solid">Solid</button>
+        </div>
+        <select id="pelt-pattern" class="cc-hidden-select">
+          <option value="solid">Solid</option>
+          <option value="tabby" selected>Tabby</option>
+          <option value="tortoiseshell">Tortoiseshell</option>
+          <option value="calico">Calico</option>
+          <option value="bicolor">Bicolor</option>
+          <option value="pointed">Pointed</option>
+          <option value="tuxedo">Tuxedo</option>
+          <option value="spotted">Spotted</option>
+        </select>
+
+        <div class="cc-section-label">Markings</div>
+        <div class="cc-markings-grid">
+          <button class="cc-marking-btn" data-marking="whitechest">White Chest</button>
+          <button class="cc-marking-btn" data-marking="whitepaws">White Paws</button>
+          <button class="cc-marking-btn" data-marking="tailtip">Tail Tip</button>
+          <button class="cc-marking-btn" data-marking="eartufts">Ear Tufts</button>
+          <button class="cc-marking-btn" data-marking="underbelly">Underbelly</button>
+        </div>
+        <!-- hidden checkboxes for JS compat -->
+        <div style="display:none">
+          <input type="checkbox" id="marking-whitechest">
+          <input type="checkbox" id="marking-whitepaws">
+          <input type="checkbox" id="marking-tailtip">
+          <input type="checkbox" id="marking-eartufts">
+          <input type="checkbox" id="marking-underbelly">
+        </div>
+      </div>
+
+      <!-- Advanced tab -->
+      <div class="cc-color-content" id="ctab-advanced">
+        <div class="cc-section-label">Eye Color</div>
+        <div class="cc-color-grid cc-eye-grid" id="eye-grid"></div>
+        <input type="color" id="eye-color" value="#2d8a4e" class="cc-custom-color">
+
+        <div class="cc-section-label">Nose Color</div>
+        <input type="color" id="nose-color" value="#e8a0a0" class="cc-custom-color">
+
+        <div class="cc-section-label">Fur Length</div>
+        <div class="cc-fur-btns">
+          <button class="cc-fur-btn" data-fur="short">Short</button>
+          <button class="cc-fur-btn active" data-fur="medium">Medium</button>
+          <button class="cc-fur-btn" data-fur="long">Long</button>
+        </div>
+        <select id="fur-length" style="display:none">
+          <option value="short">Short</option>
+          <option value="medium" selected>Medium</option>
+          <option value="long">Long</option>
+        </select>
+
+        <div class="cc-section-label">Ear Size</div>
+        <input type="range" id="ear-size" min="0.5" max="1.5" step="0.1" value="1.0" class="cc-slider">
+
+        <div class="cc-section-label">Tail Length</div>
+        <input type="range" id="tail-length" min="0.5" max="1.5" step="0.1" value="1.0" class="cc-slider">
+
+        <div class="cc-section-label">Leg Length</div>
+        <input type="range" id="leg-length" min="0.7" max="1.3" step="0.1" value="1.0" class="cc-slider">
+
+        <!-- hidden for JS compat -->
+        <select id="eye-shape" style="display:none">
+          <option value="round">Round</option>
+          <option value="almond" selected>Almond</option>
+          <option value="narrow">Narrow</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- CENTER: 3D Preview -->
+    <div class="cc-center">
+      <div id="creator-preview"></div>
+      <div class="cc-preview-name" id="name-preview">Firepelt</div>
+      <div class="cc-preview-controls">
+        <span class="cc-hint">Drag to rotate</span>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: Identity, Size, Accessories -->
+    <div class="cc-panel cc-right">
+      <div class="cc-panel-header">Identity</div>
+
+      <div class="cc-section-label">Name</div>
+      <div class="cc-name-row">
+        <select id="name-prefix" class="cc-select">
+          <option value="Fire">Fire</option>
+          <option value="Thunder">Thunder</option>
+          <option value="Shadow">Shadow</option>
+          <option value="River">River</option>
+          <option value="Bramble">Bramble</option>
+          <option value="Dove">Dove</option>
+          <option value="Lion">Lion</option>
+          <option value="Jay">Jay</option>
+          <option value="Holly">Holly</option>
+          <option value="Leaf">Leaf</option>
+          <option value="Squirrel">Squirrel</option>
+          <option value="Gray">Gray</option>
+          <option value="Blue">Blue</option>
+          <option value="Yellow">Yellow</option>
+          <option value="Tall">Tall</option>
+          <option value="Spotted">Spotted</option>
+          <option value="Cinder">Cinder</option>
+          <option value="Fern">Fern</option>
+          <option value="Bright">Bright</option>
+          <option value="Sand">Sand</option>
+          <option value="Dust">Dust</option>
+          <option value="Moss">Moss</option>
+          <option value="Storm">Storm</option>
+          <option value="Ivy">Ivy</option>
+          <option value="Breeze">Breeze</option>
+          <option value="Hawk">Hawk</option>
+          <option value="Owl">Owl</option>
+          <option value="Maple">Maple</option>
+          <option value="Willow">Willow</option>
+          <option value="Ash">Ash</option>
+          <option value="Ember">Ember</option>
+          <option value="Frost">Frost</option>
+          <option value="Night">Night</option>
+          <option value="Dark">Dark</option>
+          <option value="Moon">Moon</option>
+          <option value="Sun">Sun</option>
+          <option value="Star">Star</option>
+          <option value="Stone">Stone</option>
+          <option value="Raven">Raven</option>
+          <option value="Swift">Swift</option>
+          <option value="Thorn">Thorn</option>
+          <option value="Feather">Feather</option>
+          <option value="Cloud">Cloud</option>
+          <option value="Honey">Honey</option>
+          <option value="Pebble">Pebble</option>
+          <option value="Reed">Reed</option>
+          <option value="Sorrel">Sorrel</option>
+          <option value="Badger">Badger</option>
+          <option value="Fox">Fox</option>
+          <option value="Eagle">Eagle</option>
+        </select>
+        <select id="name-suffix" class="cc-select">
+          <option value="pelt">-pelt</option>
+          <option value="fur">-fur</option>
+          <option value="claw">-claw</option>
+          <option value="heart">-heart</option>
+          <option value="tail">-tail</option>
+          <option value="stripe">-stripe</option>
+          <option value="pool">-pool</option>
+          <option value="flight">-flight</option>
+          <option value="wing">-wing</option>
+          <option value="storm">-storm</option>
+          <option value="blaze">-blaze</option>
+          <option value="berry">-berry</option>
+          <option value="leaf">-leaf</option>
+          <option value="cloud">-cloud</option>
+          <option value="stream">-stream</option>
+          <option value="shade">-shade</option>
+          <option value="nose">-nose</option>
+          <option value="whisker">-whisker</option>
+          <option value="face">-face</option>
+          <option value="song">-song</option>
+          <option value="step">-step</option>
+          <option value="fall">-fall</option>
+          <option value="brook">-brook</option>
+          <option value="flame">-flame</option>
+          <option value="frost">-frost</option>
+          <option value="stone">-stone</option>
+          <option value="thorn">-thorn</option>
+          <option value="fang">-fang</option>
+          <option value="eye">-eye</option>
+          <option value="flower">-flower</option>
+        </select>
+      </div>
+
+      <div class="cc-section-label">Select Size</div>
+      <div class="cc-size-row">
+        <button class="cc-size-btn" data-size="small">Kit</button>
+        <button class="cc-size-btn active" data-size="medium">Warrior</button>
+        <button class="cc-size-btn" data-size="large">Leader</button>
+        <button class="cc-size-btn" data-size="stocky">Elder</button>
+      </div>
+      <select id="body-size" style="display:none">
+        <option value="small">Small</option>
+        <option value="medium" selected>Medium</option>
+        <option value="large">Large</option>
+        <option value="stocky">Stocky</option>
+      </select>
+
+      <div class="cc-section-label">Role</div>
+      <select id="cat-role" class="cc-select">
+        <option value="kit">Kit</option>
+        <option value="apprentice">Apprentice</option>
+        <option value="warrior" selected>Warrior</option>
+        <option value="senior-warrior">Senior Warrior</option>
+        <option value="queen">Queen</option>
+        <option value="elder">Elder</option>
+        <option value="medicine-cat">Medicine Cat</option>
+        <option value="medicine-apprentice">Medicine Cat Apprentice</option>
+        <option value="deputy">Deputy</option>
+        <option value="leader">Leader</option>
+      </select>
+
+      <div class="cc-section-label">Clan</div>
+      <select id="cat-clan" class="cc-select">
+        <option value="ThunderClan">ThunderClan</option>
+        <option value="RiverClan">RiverClan</option>
+        <option value="WindClan">WindClan</option>
+        <option value="ShadowClan">ShadowClan</option>
+        <option value="SkyClan">SkyClan</option>
+        <option value="loner">Loner</option>
+        <option value="kittypet">Kittypet</option>
+        <option value="rogue">Rogue</option>
+      </select>
+      <div class="cc-clan-desc" id="clan-description">ThunderClan — Brave and loyal cats of the forest.</div>
+
+      <div class="cc-divider"></div>
+
+      <div class="cc-panel-header">Accessories</div>
+      <div class="cc-search-box">
+        <input type="text" id="accessory-search" placeholder="Search accessories..." class="cc-search-input">
+      </div>
+      <div class="cc-accessory-list" id="accessory-list">
+        <button class="cc-acc-btn" data-acc="ear-normal">Normal Ears</button>
+        <button class="cc-acc-btn" data-acc="ear-tufts">Ear Tufts</button>
+        <button class="cc-acc-btn" data-acc="ear-folded">Folded Ears</button>
+        <button class="cc-acc-btn" data-acc="ear-large">Large Ears</button>
+        <button class="cc-acc-btn" data-acc="eye-normal">Normal Eyes</button>
+        <button class="cc-acc-btn" data-acc="eye-grumpy">Grumpy Eyes</button>
+        <button class="cc-acc-btn" data-acc="eye-lashes">Downwards Lashes</button>
+        <button class="cc-acc-btn" data-acc="eye-round">Round Eyes</button>
+        <button class="cc-acc-btn" data-acc="scar-face">Face Scar</button>
+        <button class="cc-acc-btn" data-acc="scar-ear">Torn Ear</button>
+        <button class="cc-acc-btn" data-acc="collar">Kittypet Collar</button>
+        <button class="cc-acc-btn" data-acc="herbs">Herb Bundle</button>
+        <button class="cc-acc-btn" data-acc="flower-crown">Flower Crown</button>
+        <button class="cc-acc-btn" data-acc="feather">Feather</button>
+      </div>
+
+      <div class="cc-divider"></div>
+
+      <div class="cc-action-btns">
+        <button id="cc-reset-btn" class="cc-action-btn">Reset Cat</button>
+        <button id="creator-back-btn" class="cc-action-btn">Back</button>
+      </div>
+      <button id="creator-done-btn" class="cc-enter-btn">Enter the Forest</button>
+    </div>
+
+  </div>
+
+  <!-- Game HUD -->
+  <div id="game-hud" style="display:none">
+    <div class="hud-top-left">
+      <div class="hud-name" id="hud-name">Firepelt</div>
+      <div class="hud-info" id="hud-info">Warrior of ThunderClan</div>
+    </div>
+    <div class="hud-top-right">
+      <div class="hud-weather" id="hud-weather">Sunny</div>
+      <div class="hud-time" id="hud-time">Sunhigh</div>
+    </div>
+    <div class="hud-bottom">
+      <div class="hud-controls">WASD to move | Mouse to look | Shift to run | Space to jump</div>
+    </div>
+    <div class="hud-location" id="hud-location">ThunderClan Camp</div>
+  </div>
+
+  <!-- Pause Menu -->
+  <div id="pause-menu" style="display:none">
+    <div class="pause-content">
+      <h2>Paused</h2>
+      <button id="resume-btn" class="menu-btn">Resume</button>
+      <button id="save-quit-btn" class="menu-btn">Save & Quit</button>
+    </div>
+  </div>
+
+  <canvas id="game-canvas"></canvas>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.168.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.168.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

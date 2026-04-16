@@ -76,7 +76,7 @@
     let gameState = 'waiting'; // waiting, playing, dead
     let score = 0;
     let highScore = parseInt(localStorage.getItem('penguinRunnerHigh') || '0');
-    let gameSpeed = 12;
+    let gameSpeed = 7;
     let frameCount = 0;
 
     // Ground
@@ -611,7 +611,7 @@
 
         // Gradually increase speed
         if (frameCount % 300 === 0) {
-          gameSpeed += 0.3;
+          gameSpeed += 0.15;
         }
 
         // Penguin physics

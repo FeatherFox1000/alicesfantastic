@@ -855,6 +855,8 @@
   border-bottom-left-radius: 0.3rem;
 }
 .airp-message-bubble p { margin: 0 0 0.3rem; color: white; line-height: 1.5; white-space: pre-wrap; }
+.airp-dialogue { color: #ffffff; font-weight: 500; }
+.airp-narrative { color: rgba(255,255,255,0.55); }
 .airp-message-time { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
 
 /* Typing indicator */
