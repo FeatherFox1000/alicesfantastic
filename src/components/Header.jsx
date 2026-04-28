@@ -89,6 +89,7 @@ function Header() {
           <Link to="/" className="nav-link">🏠 {!collapsed && 'Home'}</Link>
           <Link to="/unicorns-unite" className="nav-link">🦄 {!collapsed && 'Unicorns Unite'}</Link>
           <Link to="/creator" className="nav-link">🎨 {!collapsed && 'Creator'}</Link>
+          <a href="/warrior-cats/index.html" className="nav-link">🐾 {!collapsed && 'Warrior Cats'}</a>
           <Link to="/ai-rp-studio" className="nav-link">🐱 {!collapsed && 'The Sandbox'}</Link>
           <Link to="/space-pups" className="nav-link">🐶 {!collapsed && 'Space Pups'}</Link>
           <Link to="/penguin-runner" className="nav-link">🐧 {!collapsed && 'Penguin Runner'}</Link>
@@ -96,6 +97,7 @@ function Header() {
           <Link to="/present-maker" className="nav-link">🎁 {!collapsed && 'Present Maker'}</Link>
           <Link to="/homey" className="nav-link">🏠 {!collapsed && 'Homey'}</Link>
           <Link to="/tomato-hunter" className="nav-link">🍅 {!collapsed && 'Tomato Hunter'}</Link>
+          <Link to="/buddies" className="nav-link">👫 {!collapsed && 'Buddies'}</Link>
           <Link to="/podcasts" className="nav-link">🎙️ {!collapsed && 'Podcasts'}</Link>
         </nav>
 

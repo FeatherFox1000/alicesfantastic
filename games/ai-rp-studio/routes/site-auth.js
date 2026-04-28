@@ -410,4 +410,235 @@ router.post('/admin/user-notes/:username', adminOnly, (req, res) => {
   res.json({ id: result.lastInsertRowid, author_username: user.username, message: message.trim(), created_at: new Date().toISOString() });
 });
 
+// --- Buddies (Friend System) ---
+
+function makeBuddyCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const length = Math.random() < 0.5 ? 5 : 6;
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS buddy_codes (
+    user_id INTEGER PRIMARY KEY,
+    code TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS friendships (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    requester_id INTEGER NOT NULL,
+    addressee_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(requester_id, addressee_id),
+    FOREIGN KEY (requester_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (addressee_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS friend_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    read INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+
+// Get existing buddy code, or create one if none exists
+router.get('/buddies/code', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  let row = db.prepare('SELECT code FROM buddy_codes WHERE user_id = ?').get(user.id);
+  if (!row) {
+    const code = makeBuddyCode();
+    db.prepare("INSERT INTO buddy_codes (user_id, code, created_at) VALUES (?, ?, datetime('now'))").run(user.id, code);
+    row = { code };
+  }
+  res.json({ code: row.code });
+});
+
+// Generate a brand new buddy code (only when user clicks the refresh button)
+router.post('/buddies/code', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const code = makeBuddyCode();
+  db.prepare("INSERT OR REPLACE INTO buddy_codes (user_id, code, created_at) VALUES (?, ?, datetime('now'))").run(user.id, code);
+  res.json({ code });
+});
+
+// Search for users by username — tries progressively shorter prefixes so
+// e.g. "warriors" still matches "warrior_cats"
+router.get('/buddies/search', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const q = (req.query.q || '').trim();
+  if (q.length < 1) return res.json([]);
+  const search = db.prepare(
+    `SELECT username FROM users WHERE username LIKE ? AND username != ? AND is_banned = 0 LIMIT 10`
+  );
+  for (let len = q.length; len >= 1; len--) {
+    const results = search.all(`${q.slice(0, len)}%`, user.username);
+    if (results.length > 0) return res.json(results.map(r => r.username));
+  }
+  res.json([]);
+});
+
+// Send a friend request (requires target's current buddy code)
+router.post('/buddies/request', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const { username, code } = req.body;
+  if (!username || !code) return res.status(400).json({ error: 'Username and buddy code are required.' });
+  const target = db.prepare('SELECT id, username FROM users WHERE username = ? AND is_banned = 0').get(username);
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  if (target.id === user.id) return res.status(400).json({ error: "You can't add yourself as a buddy!" });
+
+  const codeRow = db.prepare('SELECT code FROM buddy_codes WHERE user_id = ?').get(target.id);
+  if (!codeRow || codeRow.code !== code.toUpperCase().trim()) {
+    return res.status(400).json({ error: 'Wrong buddy code! Ask your friend for their current code from their Buddies page.' });
+  }
+
+  const existing = db.prepare(
+    'SELECT id, status FROM friendships WHERE (requester_id = ? AND addressee_id = ?) OR (requester_id = ? AND addressee_id = ?)'
+  ).get(user.id, target.id, target.id, user.id);
+  if (existing) {
+    if (existing.status === 'accepted') return res.status(400).json({ error: 'You are already buddies!' });
+    return res.status(400).json({ error: 'A buddy request already exists.' });
+  }
+
+  db.prepare("INSERT INTO friendships (requester_id, addressee_id, status) VALUES (?, ?, 'pending')").run(user.id, target.id);
+  res.json({ message: `Buddy request sent to ${username}! They need to approve it.` });
+});
+
+// Get my incoming pending requests
+router.get('/buddies/requests', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const requests = db.prepare(
+    `SELECT f.id, u.username as from_username, f.created_at
+     FROM friendships f
+     JOIN users u ON u.id = f.requester_id
+     WHERE f.addressee_id = ? AND f.status = 'pending'
+     ORDER BY f.created_at DESC`
+  ).all(user.id);
+  res.json(requests);
+});
+
+// Approve a buddy request
+router.post('/buddies/requests/:id/approve', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const request = db.prepare("SELECT * FROM friendships WHERE id = ? AND addressee_id = ? AND status = 'pending'").get(req.params.id, user.id);
+  if (!request) return res.status(404).json({ error: 'Request not found.' });
+  db.prepare("UPDATE friendships SET status = 'accepted' WHERE id = ?").run(request.id);
+  const requester = db.prepare('SELECT username FROM users WHERE id = ?').get(request.requester_id);
+  res.json({ message: `You and ${requester.username} are now buddies!` });
+});
+
+// Deny a buddy request
+router.post('/buddies/requests/:id/deny', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const request = db.prepare("SELECT * FROM friendships WHERE id = ? AND addressee_id = ? AND status = 'pending'").get(req.params.id, user.id);
+  if (!request) return res.status(404).json({ error: 'Request not found.' });
+  db.prepare('DELETE FROM friendships WHERE id = ?').run(request.id);
+  res.json({ message: 'Request declined.' });
+});
+
+// Get my friends list
+router.get('/buddies', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const rows = db.prepare(
+    `SELECT u1.id as rid, u1.username as requester, u2.id as aid, u2.username as addressee
+     FROM friendships f
+     JOIN users u1 ON u1.id = f.requester_id
+     JOIN users u2 ON u2.id = f.addressee_id
+     WHERE (f.requester_id = ? OR f.addressee_id = ?) AND f.status = 'accepted'`
+  ).all(user.id, user.id);
+  const friends = rows.map(row => {
+    const friendUsername = row.rid === user.id ? row.addressee : row.requester;
+    const friendId = row.rid === user.id ? row.aid : row.rid;
+    const unread = db.prepare(
+      'SELECT COUNT(*) as count FROM friend_messages WHERE sender_id = ? AND receiver_id = ? AND read = 0'
+    ).get(friendId, user.id).count;
+    return { username: friendUsername, unread };
+  });
+  friends.sort((a, b) => a.username.localeCompare(b.username));
+  res.json(friends);
+});
+
+// Remove a buddy
+router.delete('/buddies/:username', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const target = db.prepare('SELECT id FROM users WHERE username = ?').get(req.params.username);
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  db.prepare(
+    'DELETE FROM friendships WHERE (requester_id = ? AND addressee_id = ?) OR (requester_id = ? AND addressee_id = ?)'
+  ).run(user.id, target.id, target.id, user.id);
+  res.json({ message: `${req.params.username} removed from buddies.` });
+});
+
+// Get messages with a specific friend
+router.get('/buddies/messages/:username', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const friend = db.prepare('SELECT id FROM users WHERE username = ?').get(req.params.username);
+  if (!friend) return res.status(404).json({ error: 'User not found.' });
+
+  const friendship = db.prepare(
+    `SELECT id FROM friendships WHERE ((requester_id = ? AND addressee_id = ?) OR (requester_id = ? AND addressee_id = ?)) AND status = 'accepted'`
+  ).get(user.id, friend.id, friend.id, user.id);
+  if (!friendship) return res.status(403).json({ error: 'You are not buddies with this user.' });
+
+  db.prepare('UPDATE friend_messages SET read = 1 WHERE sender_id = ? AND receiver_id = ?').run(friend.id, user.id);
+
+  const messages = db.prepare(
+    `SELECT fm.id, u.username as sender, fm.content, fm.read, fm.created_at
+     FROM friend_messages fm
+     JOIN users u ON u.id = fm.sender_id
+     WHERE (fm.sender_id = ? AND fm.receiver_id = ?) OR (fm.sender_id = ? AND fm.receiver_id = ?)
+     ORDER BY fm.created_at DESC LIMIT 50`
+  ).all(user.id, friend.id, friend.id, user.id);
+  res.json(messages.reverse());
+});
+
+// Send a message to a friend
+router.post('/buddies/messages/:username', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const friend = db.prepare('SELECT id FROM users WHERE username = ?').get(req.params.username);
+  if (!friend) return res.status(404).json({ error: 'User not found.' });
+
+  const friendship = db.prepare(
+    `SELECT id FROM friendships WHERE ((requester_id = ? AND addressee_id = ?) OR (requester_id = ? AND addressee_id = ?)) AND status = 'accepted'`
+  ).get(user.id, friend.id, friend.id, user.id);
+  if (!friendship) return res.status(403).json({ error: 'You are not buddies with this user.' });
+
+  const { content } = req.body;
+  if (!content || !content.trim()) return res.status(400).json({ error: 'Message cannot be empty.' });
+  if (content.length > 500) return res.status(400).json({ error: 'Message too long (max 500 characters).' });
+
+  const result = db.prepare('INSERT INTO friend_messages (sender_id, receiver_id, content) VALUES (?, ?, ?)').run(user.id, friend.id, content.trim());
+  res.json({
+    id: result.lastInsertRowid,
+    sender: user.username,
+    content: content.trim(),
+    read: 0,
+    created_at: new Date().toISOString(),
+  });
+});
+
 module.exports = router;
