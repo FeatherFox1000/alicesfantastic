@@ -66,7 +66,10 @@ export default function Buddies() {
       const res = await authFetch('/buddies/code');
       const data = await res.json();
       if (data.code) setMyCode(data.code);
-    } catch {}
+      else setMyCode('ERROR: ' + (data.error || 'no code returned'));
+    } catch (e) {
+      setMyCode('ERROR: ' + e.message);
+    }
   }
 
   async function generateCode() {
