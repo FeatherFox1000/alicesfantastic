@@ -2,11 +2,13 @@ import { useState } from 'react';
 import Dashboard from './Dashboard';
 import CreateCharacter from './CreateCharacter';
 import ChatPage from './ChatPage';
+import MultiplayerTab from './MultiplayerTab';
 import { useAuth } from '../../context/AuthContext';
 import './AIRPStudio.css';
 
 export default function AIRPStudio() {
   const { user } = useAuth();
+  const [tab, setTab] = useState('solo'); // solo | multiplayer
   const [page, setPage] = useState('dashboard'); // dashboard | create | edit | chat
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [editingCharacter, setEditingCharacter] = useState(null);
@@ -47,6 +49,7 @@ export default function AIRPStudio() {
     );
   }
 
+  // Solo chat and create/edit pages don't show the tab bar
   if (page === 'chat' && selectedCharacter) {
     return (
       <ChatPage
@@ -77,12 +80,34 @@ export default function AIRPStudio() {
   }
 
   return (
-    <Dashboard
-      username={user.username}
-      email={user.email}
-      onSelectCharacter={handleSelectCharacter}
-      onCreateCharacter={handleCreateCharacter}
-      onEditCharacter={handleEditCharacter}
-    />
+    <div className="ai-rp-studio">
+      {/* Tab bar */}
+      <div className="sandbox-tabs">
+        <button
+          className={`sandbox-tab ${tab === 'solo' ? 'sandbox-tab-active' : ''}`}
+          onClick={() => setTab('solo')}
+        >
+          🐾 Solo
+        </button>
+        <button
+          className={`sandbox-tab ${tab === 'multiplayer' ? 'sandbox-tab-active' : ''}`}
+          onClick={() => setTab('multiplayer')}
+        >
+          👫 Multiplayer
+        </button>
+      </div>
+
+      {tab === 'solo' ? (
+        <Dashboard
+          username={user.username}
+          email={user.email}
+          onSelectCharacter={handleSelectCharacter}
+          onCreateCharacter={handleCreateCharacter}
+          onEditCharacter={handleEditCharacter}
+        />
+      ) : (
+        <MultiplayerTab username={user.username} />
+      )}
+    </div>
   );
 }

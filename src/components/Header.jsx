@@ -89,7 +89,6 @@ function Header() {
           <Link to="/" className="nav-link">🏠 {!collapsed && 'Home'}</Link>
           <Link to="/unicorns-unite" className="nav-link">🦄 {!collapsed && 'Unicorns Unite'}</Link>
           <Link to="/creator" className="nav-link">🎨 {!collapsed && 'Creator'}</Link>
-          <a href="/warrior-cats/index.html" className="nav-link">🐾 {!collapsed && 'Warrior Cats'}</a>
           <Link to="/ai-rp-studio" className="nav-link">🐱 {!collapsed && 'The Sandbox'}</Link>
           <Link to="/space-pups" className="nav-link">🐶 {!collapsed && 'Space Pups'}</Link>
           <Link to="/penguin-runner" className="nav-link">🐧 {!collapsed && 'Penguin Runner'}</Link>

@@ -49,4 +49,18 @@ export const api = {
   getInspirations: (sessionId) => request('POST', `/sessions/${sessionId}/inspirations`),
   updateSession: (id, title) => request('PUT', `/sessions/${id}`, { title }),
   deleteSession: (id) => request('DELETE', `/sessions/${id}`),
+
+  // Multiplayer
+  mp: {
+    getWorlds: () => request('GET', '/multiplayer/worlds'),
+    createWorld: (data) => request('POST', '/multiplayer/worlds', data),
+    getWorld: (id) => request('GET', `/multiplayer/worlds/${id}`),
+    join: (id) => request('POST', `/multiplayer/worlds/${id}/join`),
+    decline: (id) => request('POST', `/multiplayer/worlds/${id}/decline`),
+    saveCharacter: (id, data) => request('POST', `/multiplayer/worlds/${id}/character`, data),
+    start: (id) => request('POST', `/multiplayer/worlds/${id}/start`),
+    postTurn: (id, content) => request('POST', `/multiplayer/worlds/${id}/turn`, { content }),
+    skip: (id) => request('POST', `/multiplayer/worlds/${id}/skip`),
+    poll: (id, since) => request('GET', `/multiplayer/worlds/${id}/poll?since=${since}`),
+  },
 };
