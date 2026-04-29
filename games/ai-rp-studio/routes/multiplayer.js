@@ -267,32 +267,51 @@ router.post('/worlds/:id/turn', requireUser, (req, res) => {
   // Save player message
   db.prepare(`INSERT INTO mp_messages (world_id, sender, role, content) VALUES (?, ?, 'user', ?)`).run(world.id, req.mpUser.username, content.trim());
 
-  // Build conversation history for AI
-  const allMessages = db.prepare('SELECT * FROM mp_messages WHERE world_id = ? ORDER BY id ASC').all(world.id);
-  const aiHistory = allMessages.map(m => ({
-    role: m.role === 'user' ? 'user' : 'assistant',
-    content: m.role === 'user' ? `[${m.sender}]: ${m.content}` : m.content,
-  }));
+  // Advance turn pointer first
+  const nextPlayer = nextTurn(world);
+  db.prepare(`UPDATE mp_worlds SET current_turn_username = ?, turn_started_at = datetime('now') WHERE id = ?`).run(nextPlayer, world.id);
 
-  // Call AI
-  const systemPrompt = buildMpSystemPrompt(world);
-  anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 600,
-    system: systemPrompt,
-    messages: aiHistory,
-  }).then(response => {
-    const aiText = response.content[0].text;
-    db.prepare(`INSERT INTO mp_messages (world_id, sender, role, content) VALUES (?, 'ai', 'assistant', ?)`).run(world.id, aiText);
+  // Decide whether to call AI now
+  const activePlayers = [world.host_username, ...getActivePlayers(world.id).filter(u => u !== world.host_username)];
+  let shouldCallAI = false;
 
-    // Advance to next turn
-    const nextPlayer = nextTurn(world);
-    db.prepare(`UPDATE mp_worlds SET current_turn_username = ?, turn_started_at = datetime('now') WHERE id = ?`).run(nextPlayer, world.id);
-  }).catch(err => {
-    console.error('AI error in multiplayer:', err);
-  });
+  if (world.ai_response_mode === 'round') {
+    // Only call AI after every player has gone once since the last AI message
+    const lastAIMsg = db.prepare(
+      `SELECT id FROM mp_messages WHERE world_id = ? AND sender = 'ai' ORDER BY id DESC LIMIT 1`
+    ).get(world.id);
+    const sinceId = lastAIMsg ? lastAIMsg.id : 0;
+    const playerMsgsSinceAI = db.prepare(
+      `SELECT DISTINCT sender FROM mp_messages WHERE world_id = ? AND id > ? AND role = 'user'`
+    ).all(world.id, sinceId).map(r => r.sender);
+    // All active players must have posted since the last AI message
+    shouldCallAI = activePlayers.every(p => playerMsgsSinceAI.includes(p));
+  } else {
+    // 'each' mode — always call AI
+    shouldCallAI = true;
+  }
 
-  // Return immediately with the player's message saved — client polls for AI response
+  if (shouldCallAI) {
+    const allMessages = db.prepare('SELECT * FROM mp_messages WHERE world_id = ? ORDER BY id ASC').all(world.id);
+    const aiHistory = allMessages.map(m => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: m.role === 'user' ? `[${m.sender}]: ${m.content}` : m.content,
+    }));
+    const systemPrompt = buildMpSystemPrompt(world);
+    anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      system: systemPrompt,
+      messages: aiHistory,
+    }).then(response => {
+      const aiText = response.content[0].text;
+      db.prepare(`INSERT INTO mp_messages (world_id, sender, role, content) VALUES (?, 'ai', 'assistant', ?)`).run(world.id, aiText);
+    }).catch(err => {
+      console.error('AI error in multiplayer:', err);
+    });
+  }
+
+  // Return immediately — client polls for AI response
   res.json({ ok: true });
 });
 
