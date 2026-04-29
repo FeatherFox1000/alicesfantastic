@@ -17,6 +17,7 @@ import Homey from './pages/Homey';
 import LoginPage from './pages/LoginPage';
 import AdminPanel from './pages/AdminPanel';
 import Buddies from './pages/Buddies';
+import Feedback from './pages/Feedback';
 import ParentalConsent from './pages/ParentalConsent';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import './App.css';
@@ -44,6 +45,7 @@ function AppContent() {
           <Route path="/present-maker" element={<PresentMaker />} />
           <Route path="/homey" element={<Homey />} />
           <Route path="/buddies" element={<Buddies />} />
+          <Route path="/feedback" element={<Feedback />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/consent/:token" element={<ParentalConsent />} />

@@ -410,6 +410,85 @@ router.post('/admin/user-notes/:username', adminOnly, (req, res) => {
   res.json({ id: result.lastInsertRowid, author_username: user.username, message: message.trim(), created_at: new Date().toISOString() });
 });
 
+// --- Feedback & Reviews ---
+db.exec(`
+  CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 10),
+    title TEXT NOT NULL DEFAULT '',
+    comment TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'comment',
+    pinned INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+// One review per user — they can update it
+try { db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS feedback_user_unique ON feedback(user_id)`); } catch {}
+
+try { db.exec(`ALTER TABLE feedback ADD COLUMN title TEXT NOT NULL DEFAULT ''`); } catch {}
+try { db.exec(`ALTER TABLE feedback ADD COLUMN type TEXT NOT NULL DEFAULT 'comment'`); } catch {}
+try { db.exec(`ALTER TABLE feedback ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`); } catch {}
+
+// Get all feedback (public) — pinned first, then newest
+router.get('/feedback', (req, res) => {
+  const rows = db.prepare('SELECT id, username, rating, title, comment, type, pinned, created_at FROM feedback ORDER BY pinned DESC, id DESC').all();
+  const avg = rows.length ? (rows.reduce((s, r) => s + r.rating, 0) / rows.length).toFixed(1) : null;
+  res.json({ feedback: rows, average: avg, count: rows.length });
+});
+
+// Get my own feedback
+router.get('/feedback/mine', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const row = db.prepare('SELECT id, rating, title, comment, type, pinned, created_at FROM feedback WHERE user_id = ?').get(user.id);
+  res.json(row || null);
+});
+
+// Submit or update my feedback
+router.post('/feedback', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const { rating, title, comment, type } = req.body;
+  if (!rating || rating < 1 || rating > 10) return res.status(400).json({ error: 'Rating must be between 1 and 10.' });
+  if (!title || !title.trim()) return res.status(400).json({ error: 'Title is required.' });
+  if (title.length > 100) return res.status(400).json({ error: 'Title too long (max 100 characters).' });
+  if (!comment || !comment.trim()) return res.status(400).json({ error: 'Comment is required.' });
+  if (comment.length > 1000) return res.status(400).json({ error: 'Comment too long (max 1000 characters).' });
+  const postType = type === 'bug' ? 'bug' : 'comment';
+  db.prepare(`
+    INSERT INTO feedback (user_id, username, rating, title, comment, type)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET rating = excluded.rating, title = excluded.title, comment = excluded.comment, type = excluded.type, created_at = datetime('now')
+  `).run(user.id, user.username, rating, title.trim(), comment.trim(), postType);
+  res.json({ ok: true });
+});
+
+// Delete my feedback
+router.delete('/feedback', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  db.prepare('DELETE FROM feedback WHERE user_id = ?').run(user.id);
+  res.json({ ok: true });
+});
+
+// Admin: delete any feedback
+router.delete('/admin/feedback/:id', adminOnly, (req, res) => {
+  db.prepare('DELETE FROM feedback WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+// Admin: pin/unpin feedback
+router.post('/admin/feedback/:id/pin', adminOnly, (req, res) => {
+  const row = db.prepare('SELECT pinned FROM feedback WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found.' });
+  const newPinned = row.pinned ? 0 : 1;
+  db.prepare('UPDATE feedback SET pinned = ? WHERE id = ?').run(newPinned, req.params.id);
+  res.json({ pinned: newPinned });
+});
+
 // --- Buddies (Friend System) ---
 
 function makeBuddyCode() {

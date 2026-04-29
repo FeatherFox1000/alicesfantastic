@@ -97,6 +97,7 @@ function Header() {
           <Link to="/homey" className="nav-link">🏠 {!collapsed && 'Homey'}</Link>
           <Link to="/tomato-hunter" className="nav-link">🍅 {!collapsed && 'Tomato Hunter'}</Link>
           <Link to="/buddies" className="nav-link">👫 {!collapsed && 'Buddies'}</Link>
+          <Link to="/feedback" className="nav-link">💬 {!collapsed && 'Feedback'}</Link>
           <Link to="/podcasts" className="nav-link">🎙️ {!collapsed && 'Podcasts'}</Link>
         </nav>
 
