@@ -19,10 +19,110 @@
       display: block;
       image-rendering: pixelated;
     }
+
+    #customize-btn {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(74, 144, 217, 0.9);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 5;
+      letter-spacing: 1px;
+    }
+    #customize-btn:hover { background: rgba(53, 122, 189, 0.95); }
+
+    #customize-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(10, 10, 30, 0.93);
+      z-index: 20;
+      justify-content: center;
+      align-items: center;
+    }
+    #customize-overlay.open { display: flex; }
+
+    #customize-panel {
+      background: #1a1a2e;
+      border: 3px solid #4a90d9;
+      border-radius: 14px;
+      padding: 24px 28px;
+      max-width: 520px;
+      width: 90%;
+      text-align: center;
+    }
+    #customize-panel h2 {
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 18px;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+    }
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .preset-option {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .preset-option canvas {
+      border-radius: 10px;
+      border: 3px solid transparent;
+      width: 80px !important;
+      height: 80px !important;
+      image-rendering: pixelated;
+    }
+    .preset-option.selected canvas { border-color: #4a90d9; }
+    .preset-option span {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #aaa;
+    }
+    .preset-option.selected span { color: #4a90d9; font-weight: bold; }
+    .preset-option:hover canvas { border-color: #6aafe0; }
+
+    #customize-back {
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 32px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+    #customize-back:hover { background: #357abd; }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
+  <button id="customize-btn" onclick="showCustomize()">🎨 CUSTOMIZE</button>
+
+  <div id="customize-overlay">
+    <div id="customize-panel">
+      <h2>🐧 CHOOSE YOUR PENGUIN</h2>
+      <div class="presets-grid" id="presets-grid"></div>
+      <button id="customize-back" onclick="hideCustomize()">▶ BACK</button>
+    </div>
+  </div>
+
   <script>
     function submitScore(game, score) {
       window.parent.postMessage({ type: 'gameScore', game, score }, '*');
@@ -36,6 +136,194 @@
         body: JSON.stringify({ game, score }),
       }).catch(() => {});
     }
+
+    // Penguin color presets (shared with jumping-penguin via localStorage)
+    const PRESETS = [
+      { name: 'Classic',  body: '#1a1a2e', belly: '#ffffff', beak: '#FF8C00', wing: '#2a2a4e' },
+      { name: 'Ocean',    body: '#0d2a4a', belly: '#b8dff0', beak: '#FFB347', wing: '#1a3d5a' },
+      { name: 'Grape',    body: '#2d0a50', belly: '#e0b8f8', beak: '#FF8C00', wing: '#3d1a60' },
+      { name: 'Flamingo', body: '#50102d', belly: '#ffc8e0', beak: '#FF69B4', wing: '#601a3d' },
+      { name: 'Forest',   body: '#0d3d0d', belly: '#b8f0b8', beak: '#FF8C00', wing: '#1a4d1a' },
+      { name: 'Cherry',   body: '#500d0d', belly: '#f8c0c0', beak: '#FF8C00', wing: '#601a1a' },
+      { name: 'Honey',    body: '#3d2800', belly: '#fff0a0', beak: '#FF6B00', wing: '#4d3400' },
+      { name: 'Teal',     body: '#0d3d3d', belly: '#a8f0e8', beak: '#FF8C00', wing: '#1a4d4d' },
+    ];
+
+    const API_SETTINGS = window.location.hostname === 'localhost'
+      ? 'http://localhost:3003/api/site-auth/settings'
+      : 'https://ai-rp-studio.fly.dev/api/site-auth/settings';
+
+    function loadColorsLocal() {
+      try {
+        const saved = localStorage.getItem('penguinColors');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+      return PRESETS[0];
+    }
+
+    async function loadColorsFromServer() {
+      const token = localStorage.getItem('site_token');
+      if (!token) return null;
+      try {
+        const res = await fetch(API_SETTINGS + '/penguinColors', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.value) return JSON.parse(data.value);
+        }
+      } catch {}
+      return null;
+    }
+
+    async function saveColorsToServer(colors) {
+      const token = localStorage.getItem('site_token');
+      if (!token) return;
+      try {
+        await fetch(API_SETTINGS + '/penguinColors', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: JSON.stringify(colors) })
+        });
+      } catch {}
+    }
+
+    let penguinColors = loadColorsLocal();
+    let selectedPresetIndex = PRESETS.findIndex(p => p.body === penguinColors.body);
+    if (selectedPresetIndex < 0) selectedPresetIndex = 0;
+
+    // Load from server (overrides local if logged in)
+    loadColorsFromServer().then(serverColors => {
+      if (serverColors) {
+        penguinColors = serverColors;
+        localStorage.setItem('penguinColors', JSON.stringify(serverColors));
+        selectedPresetIndex = PRESETS.findIndex(p => p.body === serverColors.body);
+        if (selectedPresetIndex < 0) selectedPresetIndex = 0;
+      }
+    });
+
+    // Check if current user is admin (for gold chain)
+    let isAdmin = false;
+    (async () => {
+      const token = localStorage.getItem('site_token');
+      if (!token) return;
+      const api = window.location.hostname === 'localhost'
+        ? 'http://localhost:3003/api/site-auth'
+        : 'https://ai-rp-studio.fly.dev/api/site-auth';
+      try {
+        const res = await fetch(api + '/me', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (res.ok) { const d = await res.json(); isAdmin = !!d.is_admin; }
+      } catch {}
+    })();
+
+    function saveColors(preset, index) {
+      penguinColors = preset;
+      selectedPresetIndex = index;
+      localStorage.setItem('penguinColors', JSON.stringify(preset));
+      saveColorsToServer(preset);
+      buildPresetsGrid();
+    }
+
+    // Draw a mini preview penguin (standing) on a small canvas
+    function drawPreviewPenguin(cv, colors) {
+      const c = cv.getContext('2d');
+      const W = cv.width, H = cv.height;
+      c.clearRect(0, 0, W, H);
+
+      // Background
+      c.fillStyle = '#0d0d1e';
+      c.fillRect(0, 0, W, H);
+
+      const px = W * 0.15;
+      const bottomY = H - 4;
+
+      // Body
+      c.fillStyle = colors.body;
+      c.beginPath();
+      c.ellipse(px + W * 0.36, bottomY - H * 0.38, W * 0.28, H * 0.36, 0, 0, Math.PI * 2);
+      c.fill();
+
+      // White belly
+      c.fillStyle = colors.belly;
+      c.beginPath();
+      c.ellipse(px + W * 0.38, bottomY - H * 0.32, W * 0.16, H * 0.26, 0, 0, Math.PI * 2);
+      c.fill();
+
+      // Head
+      c.fillStyle = colors.body;
+      c.beginPath();
+      c.arc(px + W * 0.36, bottomY - H * 0.68, W * 0.2, 0, Math.PI * 2);
+      c.fill();
+
+      // Eye
+      c.fillStyle = colors.belly;
+      c.beginPath();
+      c.arc(px + W * 0.44, bottomY - H * 0.72, W * 0.08, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = '#000';
+      c.beginPath();
+      c.arc(px + W * 0.46, bottomY - H * 0.72, W * 0.04, 0, Math.PI * 2);
+      c.fill();
+
+      // Beak
+      c.fillStyle = colors.beak;
+      c.beginPath();
+      c.moveTo(px + W * 0.54, bottomY - H * 0.67);
+      c.lineTo(px + W * 0.70, bottomY - H * 0.62);
+      c.lineTo(px + W * 0.54, bottomY - H * 0.59);
+      c.closePath();
+      c.fill();
+
+      // Wings
+      c.fillStyle = colors.wing;
+      c.beginPath();
+      c.moveTo(px + W * 0.10, bottomY - H * 0.44);
+      c.lineTo(px + W * 0.00, bottomY - H * 0.22);
+      c.lineTo(px + W * 0.18, bottomY - H * 0.30);
+      c.closePath();
+      c.fill();
+
+      // Feet
+      c.fillStyle = colors.beak;
+      c.fillRect(px + W * 0.18, bottomY - 4, W * 0.16, 4);
+      c.fillRect(px + W * 0.40, bottomY - 4, W * 0.16, 4);
+    }
+
+    function buildPresetsGrid() {
+      const grid = document.getElementById('presets-grid');
+      grid.innerHTML = '';
+      PRESETS.forEach((preset, i) => {
+        const div = document.createElement('div');
+        div.className = 'preset-option' + (i === selectedPresetIndex ? ' selected' : '');
+        div.onclick = () => { saveColors(preset, i); };
+
+        const cv = document.createElement('canvas');
+        cv.width = 60;
+        cv.height = 60;
+        drawPreviewPenguin(cv, preset);
+
+        const label = document.createElement('span');
+        label.textContent = preset.name;
+
+        div.appendChild(cv);
+        div.appendChild(label);
+        grid.appendChild(div);
+      });
+    }
+
+    function showCustomize() {
+      buildPresetsGrid();
+      document.getElementById('customize-overlay').classList.add('open');
+    }
+
+    function hideCustomize() {
+      document.getElementById('customize-overlay').classList.remove('open');
+    }
+
+    document.getElementById('customize-overlay').addEventListener('click', function(e) {
+      if (e.target === this) hideCustomize();
+    });
+
     const canvas = document.getElementById('game');
     const displayCtx = canvas.getContext('2d');
 
@@ -318,25 +606,25 @@
       if (penguin.ducking) {
         // Ducking penguin - wider and shorter
         // Body (oval, horizontal)
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = penguinColors.body;
         ctx.beginPath();
         ctx.ellipse(px + 15, bottomY - 12, 18, 12, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // White belly
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = penguinColors.belly;
         ctx.beginPath();
         ctx.ellipse(px + 17, bottomY - 10, 10, 8, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Head
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = penguinColors.body;
         ctx.beginPath();
         ctx.arc(px + 28, bottomY - 16, 8, 0, Math.PI * 2);
         ctx.fill();
 
         // Eye
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = penguinColors.belly;
         ctx.beginPath();
         ctx.arc(px + 31, bottomY - 18, 3, 0, Math.PI * 2);
         ctx.fill();
@@ -346,7 +634,7 @@
         ctx.fill();
 
         // Beak
-        ctx.fillStyle = '#FF8C00';
+        ctx.fillStyle = penguinColors.beak;
         ctx.beginPath();
         ctx.moveTo(px + 35, bottomY - 16);
         ctx.lineTo(px + 40, bottomY - 14);
@@ -355,31 +643,63 @@
         ctx.fill();
 
         // Feet
-        ctx.fillStyle = '#FF8C00';
+        ctx.fillStyle = penguinColors.beak;
         ctx.fillRect(px + 5, bottomY - 2, 8, 3);
         ctx.fillRect(px + 18, bottomY - 2, 8, 3);
+
+        // Gold chain (admin only) — diagonal drape, ducking
+        if (isAdmin) {
+          const x1 = px + 8,  y1 = bottomY - 27;
+          const x2 = px + 32, y2 = bottomY - 19;
+          const numLinks = 6;
+          const angle = Math.atan2(y2 - y1, x2 - x1);
+
+          ctx.strokeStyle = '#CC8800';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+
+          for (let i = 0; i < numLinks; i++) {
+            const t = i / (numLinks - 1);
+            const lx = x1 + t * (x2 - x1);
+            const ly = y1 + t * (y2 - y1);
+            ctx.fillStyle = i % 2 === 0 ? '#FFD700' : '#FFA500';
+            ctx.strokeStyle = '#CC8800';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.ellipse(lx, ly, 3.5, 2, angle, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#FFEC6E';
+            ctx.beginPath();
+            ctx.ellipse(lx - 0.5, ly - 0.5, 1.2, 0.7, angle, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
       } else {
         // Standing penguin
         // Body
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = penguinColors.body;
         ctx.beginPath();
         ctx.ellipse(px + 15, bottomY - 18, 14, 18, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // White belly
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = penguinColors.belly;
         ctx.beginPath();
         ctx.ellipse(px + 16, bottomY - 15, 8, 13, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Head
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = penguinColors.body;
         ctx.beginPath();
         ctx.arc(px + 15, bottomY - 34, 10, 0, Math.PI * 2);
         ctx.fill();
 
         // Eye
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = penguinColors.belly;
         ctx.beginPath();
         ctx.arc(px + 19, bottomY - 36, 4, 0, Math.PI * 2);
         ctx.fill();
@@ -389,7 +709,7 @@
         ctx.fill();
 
         // Beak
-        ctx.fillStyle = '#FF8C00';
+        ctx.fillStyle = penguinColors.beak;
         ctx.beginPath();
         ctx.moveTo(px + 24, bottomY - 33);
         ctx.lineTo(px + 32, bottomY - 31);
@@ -398,7 +718,7 @@
         ctx.fill();
 
         // Wings (flap when jumping)
-        ctx.fillStyle = '#2a2a4e';
+        ctx.fillStyle = penguinColors.wing;
         if (penguin.jumping) {
           // Wings up
           ctx.beginPath();
@@ -431,7 +751,7 @@
         }
 
         // Feet with walk animation
-        ctx.fillStyle = '#FF8C00';
+        ctx.fillStyle = penguinColors.beak;
         if (gameState === 'playing' && !penguin.jumping) {
           const footOffset = Math.sin(penguin.walkFrame * 0.3) * 3;
           ctx.fillRect(px + 6 + footOffset, bottomY - 2, 8, 3);
@@ -439,6 +759,42 @@
         } else {
           ctx.fillRect(px + 6, bottomY - 2, 8, 3);
           ctx.fillRect(px + 18, bottomY - 2, 8, 3);
+        }
+
+        // Gold chain (admin only) — diagonal drape across chest
+        if (isAdmin) {
+          const x1 = px + 3, y1 = bottomY - 33;
+          const x2 = px + 27, y2 = bottomY - 23;
+          const numLinks = 7;
+          const angle = Math.atan2(y2 - y1, x2 - x1);
+
+          // Connecting line
+          ctx.strokeStyle = '#CC8800';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+
+          // Chain links (oval shapes along the line)
+          for (let i = 0; i < numLinks; i++) {
+            const t = i / (numLinks - 1);
+            const lx = x1 + t * (x2 - x1);
+            const ly = y1 + t * (y2 - y1);
+            ctx.fillStyle = i % 2 === 0 ? '#FFD700' : '#FFA500';
+            ctx.strokeStyle = '#CC8800';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.ellipse(lx, ly, 3.5, 2, angle, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            // Highlight gleam
+            ctx.fillStyle = '#FFEC6E';
+            ctx.beginPath();
+            ctx.ellipse(lx - 0.5, ly - 0.5, 1.2, 0.7, angle, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
         }
       }
     }
@@ -683,6 +1039,10 @@
         c.x -= (gameState === 'playing' ? gameSpeed * 0.15 + c.speed : c.speed);
         if (c.x < -c.width) c.x = BASE_WIDTH + c.width;
       }
+
+      // Show customize button only on start/dead screens
+      document.getElementById('customize-btn').style.display =
+        (gameState === 'waiting' || gameState === 'dead') ? 'block' : 'none';
     }
 
     function draw() {

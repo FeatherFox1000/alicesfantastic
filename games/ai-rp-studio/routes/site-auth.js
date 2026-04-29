@@ -54,6 +54,17 @@ db.exec(`
   );
 `);
 
+// User settings (key/value store per user — e.g. penguinColors)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_settings (
+    user_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT,
+    PRIMARY KEY (user_id, key),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+
 function makeToken(user) {
   return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 }
@@ -729,6 +740,22 @@ router.post('/buddies/messages/:username', (req, res) => {
     read: 0,
     created_at: new Date().toISOString(),
   });
+});
+
+// User settings — save/load arbitrary key-value data per user (e.g. penguin colors)
+router.get('/settings/:key', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const row = db.prepare('SELECT value FROM user_settings WHERE user_id = ? AND key = ?').get(user.id, req.params.key);
+  res.json({ value: row ? row.value : null });
+});
+
+router.post('/settings/:key', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+  const { value } = req.body;
+  db.prepare('INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?, ?, ?)').run(user.id, req.params.key, value);
+  res.json({ ok: true });
 });
 
 module.exports = router;

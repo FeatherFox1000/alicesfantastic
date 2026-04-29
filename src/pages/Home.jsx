@@ -69,6 +69,7 @@ function Home() {
       <section className="games-section">
         <h2 className="section-title">More Games</h2>
         <div className="games-grid">
+
           <Link to="/space-pups" className="game-card">
             <div className="game-image-wrapper">
               <img src="/images/space-pups-screenshot.png" alt="Space Pups Game" className="game-image" />

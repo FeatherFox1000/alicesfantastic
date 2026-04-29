@@ -8,10 +8,110 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; background: #87CEEB; overflow: hidden; }
     canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+
+    #customize-btn {
+      display: none;
+      position: fixed;
+      bottom: 22%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-family: monospace;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 5;
+      letter-spacing: 1px;
+    }
+    #customize-btn:hover { background: #357abd; }
+
+    #customize-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(10, 10, 30, 0.92);
+      z-index: 20;
+      justify-content: center;
+      align-items: center;
+    }
+    #customize-overlay.open { display: flex; }
+
+    #customize-panel {
+      background: #1a1a2e;
+      border: 3px solid #4a90d9;
+      border-radius: 12px;
+      padding: 18px 20px;
+      max-width: 340px;
+      width: 90%;
+      text-align: center;
+    }
+    #customize-panel h2 {
+      color: #fff;
+      font-family: monospace;
+      font-size: 13px;
+      margin-bottom: 14px;
+      letter-spacing: 1px;
+    }
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .preset-option {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .preset-option canvas {
+      border-radius: 8px;
+      border: 3px solid transparent;
+      width: 56px !important;
+      height: 56px !important;
+      image-rendering: pixelated;
+    }
+    .preset-option.selected canvas { border-color: #4a90d9; }
+    .preset-option span {
+      font-family: monospace;
+      font-size: 9px;
+      color: #aaa;
+    }
+    .preset-option.selected span { color: #4a90d9; }
+
+    #customize-back {
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 24px;
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+    #customize-back:hover { background: #357abd; }
   </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<button id="customize-btn" onclick="showCustomize()">🎨 CUSTOMIZE</button>
+
+<div id="customize-overlay">
+  <div id="customize-panel">
+    <h2>🐧 CHOOSE YOUR PENGUIN</h2>
+    <div class="presets-grid" id="presets-grid"></div>
+    <button id="customize-back" onclick="hideCustomize()">▶ BACK</button>
+  </div>
+</div>
+
 <script>
 function submitScore(game, score) {
   window.parent.postMessage({ type: 'gameScore', game, score }, '*');
@@ -25,6 +125,171 @@ function submitScore(game, score) {
     body: JSON.stringify({ game, score }),
   }).catch(() => {});
 }
+
+// Penguin color presets (shared with penguin-runner via localStorage)
+const PRESETS = [
+  { name: 'Classic',  body: '#1a1a2e', belly: '#ffffff', beak: '#FF8C00', wing: '#0d0d1e' },
+  { name: 'Ocean',    body: '#0d2a4a', belly: '#b8dff0', beak: '#FFB347', wing: '#061525' },
+  { name: 'Grape',    body: '#2d0a50', belly: '#e0b8f8', beak: '#FF8C00', wing: '#1a0530' },
+  { name: 'Flamingo', body: '#50102d', belly: '#ffc8e0', beak: '#FF69B4', wing: '#300818' },
+  { name: 'Forest',   body: '#0d3d0d', belly: '#b8f0b8', beak: '#FF8C00', wing: '#062006' },
+  { name: 'Cherry',   body: '#500d0d', belly: '#f8c0c0', beak: '#FF8C00', wing: '#300606' },
+  { name: 'Honey',    body: '#3d2800', belly: '#fff0a0', beak: '#FF6B00', wing: '#201400' },
+  { name: 'Teal',     body: '#0d3d3d', belly: '#a8f0e8', beak: '#FF8C00', wing: '#062020' },
+];
+
+const API_SETTINGS = window.location.hostname === 'localhost'
+  ? 'http://localhost:3003/api/site-auth/settings'
+  : 'https://ai-rp-studio.fly.dev/api/site-auth/settings';
+
+function loadColorsLocal() {
+  try {
+    const saved = localStorage.getItem('penguinColors');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return PRESETS[0];
+}
+
+async function loadColorsFromServer() {
+  const token = localStorage.getItem('site_token');
+  if (!token) return null;
+  try {
+    const res = await fetch(API_SETTINGS + '/penguinColors', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.value) return JSON.parse(data.value);
+    }
+  } catch {}
+  return null;
+}
+
+async function saveColorsToServer(colors) {
+  const token = localStorage.getItem('site_token');
+  if (!token) return;
+  try {
+    await fetch(API_SETTINGS + '/penguinColors', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify(colors) })
+    });
+  } catch {}
+}
+
+let penguinColors = loadColorsLocal();
+let selectedPresetIndex = PRESETS.findIndex(p => p.body === penguinColors.body);
+if (selectedPresetIndex < 0) selectedPresetIndex = 0;
+
+// Load from server (overrides local if logged in)
+loadColorsFromServer().then(serverColors => {
+  if (serverColors) {
+    penguinColors = serverColors;
+    localStorage.setItem('penguinColors', JSON.stringify(serverColors));
+    selectedPresetIndex = PRESETS.findIndex(p => p.body === serverColors.body);
+    if (selectedPresetIndex < 0) selectedPresetIndex = 0;
+  }
+});
+
+// Check if current user is admin (for gold chain)
+let isAdmin = false;
+(async () => {
+  const token = localStorage.getItem('site_token');
+  if (!token) return;
+  const api = window.location.hostname === 'localhost'
+    ? 'http://localhost:3003/api/site-auth'
+    : 'https://ai-rp-studio.fly.dev/api/site-auth';
+  try {
+    const res = await fetch(api + '/me', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (res.ok) { const d = await res.json(); isAdmin = !!d.is_admin; }
+  } catch {}
+})();
+
+function saveColors(preset, index) {
+  penguinColors = preset;
+  selectedPresetIndex = index;
+  localStorage.setItem('penguinColors', JSON.stringify(preset));
+  saveColorsToServer(preset);
+  buildPresetsGrid(); // refresh selection highlight
+}
+
+// Draw a mini preview penguin on a small canvas
+function drawPreviewPenguin(canvas, colors) {
+  const c = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  c.clearRect(0, 0, W, H);
+
+  // Background
+  c.fillStyle = '#1a1a2e';
+  c.fillRect(0, 0, W, H);
+
+  const cx = Math.round(W / 2), cy = Math.round(H / 2) + 4;
+
+  // Body
+  c.fillStyle = colors.body;
+  c.fillRect(cx - 8, cy - 11, 16, 22);
+  c.fillRect(cx - 10, cy - 8, 20, 16);
+
+  // Belly
+  c.fillStyle = colors.belly;
+  c.fillRect(cx - 5, cy - 6, 11, 14);
+
+  // Eye
+  c.fillStyle = colors.belly;
+  c.fillRect(cx + 2, cy - 10, 6, 6);
+  c.fillStyle = '#000000';
+  c.fillRect(cx + 5, cy - 8, 3, 3);
+
+  // Beak
+  c.fillStyle = colors.beak;
+  c.fillRect(cx + 8, cy - 6, 4, 3);
+
+  // Wing
+  c.fillStyle = colors.wing;
+  c.fillRect(cx - 12, cy - 3, 4, 10);
+
+  // Feet
+  c.fillStyle = colors.beak;
+  c.fillRect(cx - 5, cy + 11, 4, 2);
+  c.fillRect(cx + 2, cy + 11, 4, 2);
+}
+
+function buildPresetsGrid() {
+  const grid = document.getElementById('presets-grid');
+  grid.innerHTML = '';
+  PRESETS.forEach((preset, i) => {
+    const div = document.createElement('div');
+    div.className = 'preset-option' + (i === selectedPresetIndex ? ' selected' : '');
+    div.onclick = () => { saveColors(preset, i); };
+
+    const cv = document.createElement('canvas');
+    cv.width = 40;
+    cv.height = 40;
+    drawPreviewPenguin(cv, preset);
+
+    const label = document.createElement('span');
+    label.textContent = preset.name;
+
+    div.appendChild(cv);
+    div.appendChild(label);
+    grid.appendChild(div);
+  });
+}
+
+function showCustomize() {
+  buildPresetsGrid();
+  document.getElementById('customize-overlay').classList.add('open');
+}
+
+function hideCustomize() {
+  document.getElementById('customize-overlay').classList.remove('open');
+}
+
+// Stop overlay clicks from falling through to canvas
+document.getElementById('customize-overlay').addEventListener('click', function(e) {
+  if (e.target === this) hideCustomize();
+});
+
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const GW = 160, GH = 213;
@@ -125,16 +390,16 @@ function drawPenguin() {
   const py = Math.round(penguin.y);
 
   // Body (dark)
-  ctx.fillStyle = '#1a1a2e';
+  ctx.fillStyle = penguinColors.body;
   ctx.fillRect(px - 5, py - 7, 10, 14);
   ctx.fillRect(px - 6, py - 5, 12, 10);
 
-  // Belly (white)
-  ctx.fillStyle = '#ffffff';
+  // Belly
+  ctx.fillStyle = penguinColors.belly;
   ctx.fillRect(px - 3, py - 4, 7, 9);
 
   // Eye (white)
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = penguinColors.belly;
   ctx.fillRect(px + 1, py - 6, 4, 4);
 
   // Eye (pupil)
@@ -142,18 +407,31 @@ function drawPenguin() {
   ctx.fillRect(px + 3, py - 5, 2, 2);
 
   // Beak
-  ctx.fillStyle = '#FF8C00';
+  ctx.fillStyle = penguinColors.beak;
   ctx.fillRect(px + 5, py - 4, 3, 2);
 
   // Wing
-  ctx.fillStyle = '#16213e';
+  ctx.fillStyle = penguinColors.wing;
   const wingOff = Math.sin(frameCount * 0.3) > 0 ? 0 : 1;
   ctx.fillRect(px - 7, py - 2 + wingOff, 3, 6);
 
   // Feet
-  ctx.fillStyle = '#FF8C00';
+  ctx.fillStyle = penguinColors.beak;
   ctx.fillRect(px - 3, py + 7, 3, 1);
   ctx.fillRect(px + 1, py + 7, 3, 1);
+
+  // Gold chain (admin only) — angled diagonally like a real necklace
+  if (isAdmin) {
+    ctx.fillStyle = '#FFD700';
+    ctx.fillRect(px - 4, py - 3, 2, 2);
+    ctx.fillRect(px - 1, py - 2, 2, 2);
+    ctx.fillRect(px + 2, py - 1, 2, 2);
+    ctx.fillRect(px + 4, py,     2, 2);
+    ctx.fillStyle = '#FFA500';
+    ctx.fillRect(px - 3, py - 4, 2, 1);
+    ctx.fillRect(px,     py - 3, 2, 1);
+    ctx.fillRect(px + 3, py - 2, 2, 1);
+  }
 
   ctx.restore();
 }
@@ -274,33 +552,52 @@ function drawMenu() {
   const cx = GW / 2, cy = GH / 2 + 5;
 
   // Body
-  ctx.fillStyle = '#1a1a2e';
+  ctx.fillStyle = penguinColors.body;
   ctx.fillRect(cx - 8, cy - 11, 16, 22);
   ctx.fillRect(cx - 10, cy - 8, 20, 16);
 
   // Belly
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = penguinColors.belly;
   ctx.fillRect(cx - 5, cy - 6, 11, 14);
 
   // Eye
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = penguinColors.belly;
   ctx.fillRect(cx + 2, cy - 10, 6, 6);
   ctx.fillStyle = '#000000';
   ctx.fillRect(cx + 5, cy - 8, 3, 3);
 
   // Beak
-  ctx.fillStyle = '#FF8C00';
+  ctx.fillStyle = penguinColors.beak;
   ctx.fillRect(cx + 8, cy - 6, 4, 3);
 
   // Wing
-  ctx.fillStyle = '#16213e';
+  ctx.fillStyle = penguinColors.wing;
   const wingOff = Math.sin(frameCount * 0.15) > 0 ? 0 : 2;
   ctx.fillRect(cx - 12, cy - 3 + wingOff, 4, 10);
 
   // Feet
-  ctx.fillStyle = '#FF8C00';
+  ctx.fillStyle = penguinColors.beak;
   ctx.fillRect(cx - 5, cy + 11, 4, 2);
   ctx.fillRect(cx + 2, cy + 11, 4, 2);
+
+  // Gold chain (admin only) — angled diagonally like a real necklace
+  if (isAdmin) {
+    ctx.fillStyle = '#FFD700';
+    ctx.fillRect(cx - 8, cy - 4, 3, 3);
+    ctx.fillRect(cx - 4, cy - 3, 3, 3);
+    ctx.fillRect(cx,     cy - 2, 3, 3);
+    ctx.fillRect(cx + 4, cy - 1, 3, 3);
+    ctx.fillStyle = '#FFA500';
+    ctx.fillRect(cx - 7, cy - 6, 2, 2);
+    ctx.fillRect(cx - 3, cy - 5, 2, 2);
+    ctx.fillRect(cx + 1, cy - 4, 2, 2);
+    ctx.fillRect(cx + 5, cy - 3, 2, 2);
+    ctx.fillStyle = '#FFEC6E';
+    ctx.fillRect(cx - 6, cy - 5, 1, 1);
+    ctx.fillRect(cx - 2, cy - 4, 1, 1);
+    ctx.fillRect(cx + 2, cy - 3, 1, 1);
+    ctx.fillRect(cx + 6, cy - 2, 1, 1);
+  }
 
   ctx.restore();
 
@@ -415,6 +712,9 @@ function update() {
   }
 
   updateSnowflakes();
+
+  // Show/hide customize button
+  document.getElementById('customize-btn').style.display = gameState === 'menu' ? 'block' : 'none';
 }
 
 function draw() {
