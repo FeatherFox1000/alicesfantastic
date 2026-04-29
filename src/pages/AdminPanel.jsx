@@ -36,6 +36,8 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
   const [scoreVal, setScoreVal] = useState('');
   const [addGame, setAddGame] = useState('');
   const [addScore, setAddScore] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState('');
   useEffect(() => {
     adminRequest('GET', `/admin/user/${username}`).then(data => {
       if (!data.error) setExtra(data);
@@ -102,6 +104,15 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
     loadNotifs();
   }
 
+  async function setPassword(e) {
+    e.preventDefault();
+    if (newPassword.length < 6) { setPasswordMsg('Must be at least 6 characters.'); return; }
+    const result = await adminRequest('POST', `/admin/set-password/${username}`, { password: newPassword });
+    setPasswordMsg(result.message || result.error || 'Done!');
+    setNewPassword('');
+    setTimeout(() => setPasswordMsg(''), 3000);
+  }
+
   const info = extra || basicInfo;
 
   return (
@@ -119,10 +130,6 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
           <div className="detail-item">
             <span className="detail-label">Email</span>
             <span className="detail-value">{info.email}</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">Password Hash</span>
-            <span className="detail-value detail-hash">{extra ? extra.password_hash : 'Loading...'}</span>
           </div>
           <div className="detail-item">
             <span className="detail-label">Joined</span>
@@ -188,6 +195,24 @@ function UserDetail({ username, basicInfo, currentAdmin, onClose }) {
               </>
             )}
           </form>
+        )}
+
+        {currentAdmin === 'warrior_cats' && (
+          <>
+            <h3 className="scores-title">Set Password</h3>
+            <form className="notify-form" onSubmit={setPassword}>
+              <input
+                type="text"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder={`New password for ${username}...`}
+                className="notify-input"
+                maxLength={100}
+              />
+              <button type="submit" className="notify-btn" disabled={newPassword.length < 6}>Set</button>
+            </form>
+            {passwordMsg && <p className="notify-sent">{passwordMsg}</p>}
+          </>
         )}
 
         <h3 className="scores-title">Send Notification</h3>

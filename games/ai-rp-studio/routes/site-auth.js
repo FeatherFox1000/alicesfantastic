@@ -257,6 +257,17 @@ function ownerOnly(req, res, next) {
   }
 }
 
+// Set a user's password (owner only)
+router.post('/admin/set-password/:username', ownerOnly, (req, res) => {
+  const { password } = req.body;
+  if (!password || password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  const user = db.prepare('SELECT id FROM users WHERE username = ?').get(req.params.username);
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+  const password_hash = bcrypt.hashSync(password, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(password_hash, user.id);
+  res.json({ message: `Password updated for ${req.params.username}.` });
+});
+
 router.post('/admin/make-admin/:username', ownerOnly, (req, res) => {
   const result = db.prepare('UPDATE users SET is_admin = 1 WHERE username = ?').run(req.params.username);
   if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
