@@ -44,6 +44,7 @@ export function AuthProvider({ children }) {
   async function login(username, password) {
     const data = await request('POST', '/login', { username, password });
     localStorage.setItem('site_token', data.token);
+    localStorage.setItem('site_password', password);
     setUser({ username: data.username, email: data.email, is_admin: data.is_admin });
     return data;
   }
@@ -66,6 +67,7 @@ export function AuthProvider({ children }) {
 
   function logout() {
     localStorage.removeItem('site_token');
+    localStorage.removeItem('site_password');
     setUser(null);
   }
 

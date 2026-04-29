@@ -62,7 +62,7 @@ export default function Dashboard({ username, email, onSelectCharacter, onCreate
               </div>
               <div className="airp-settings-field">
                 <label>Password</label>
-                <p>{localStorage.getItem('airp_password') || '••••••••'}</p>
+                <p>{localStorage.getItem('site_password') || localStorage.getItem('airp_password') || '••••••••'}</p>
               </div>
             </div>
           </div>
