@@ -305,7 +305,7 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
 
     try {
       const aiMsg = await api.sendMessage(currentSession.id, content, storyStyle);
-      setMessages(m => [...m, { ...aiMsg, created_at: new Date().toISOString(), imageUrl: aiMsg.imageUrl || null }]);
+      setMessages(m => [...m, { ...aiMsg, id: aiMsg.id, created_at: new Date().toISOString(), image_url: aiMsg.imageUrl || null }]);
       // Handle auto-extracted memories
       if (aiMsg.newMemories && aiMsg.newMemories.length > 0) {
         setMemories(m => [...aiMsg.newMemories, ...m]);

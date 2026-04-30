@@ -258,7 +258,8 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
       db.prepare('INSERT INTO character_snapshots (character_id, summary) VALUES (?, ?)').run(session.char_id, summary);
     }
 
-    res.json({ role: 'assistant', content: aiContent, newMemories: savedMemories, imageUrl });
+    const savedMsg = db.prepare('SELECT id FROM messages WHERE session_id = ? AND role = ? ORDER BY id DESC LIMIT 1').get(req.params.id, 'assistant');
+    res.json({ id: savedMsg?.id, role: 'assistant', content: aiContent, newMemories: savedMemories, imageUrl });
   } catch (err) {
     console.error('Claude API error:', err.message, err.status, JSON.stringify(err.error || {}));
     res.status(500).json({ error: 'Failed to get AI response. Please try again.' });
