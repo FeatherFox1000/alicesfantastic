@@ -232,8 +232,19 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
     // Ensure image_url column exists
     try { db.prepare('ALTER TABLE messages ADD COLUMN image_url TEXT').run(); } catch {}
 
-    // Generate image with Replicate FLUX Schnell (~2-4 seconds)
-    const imageUrl = await generateSceneImage(character.world_name, aiContent);
+    // Fetch last 3 assistant messages for location/style context
+    const prevMsgs = db.prepare('SELECT content FROM messages WHERE session_id = ? AND role = ? ORDER BY id DESC LIMIT 3').all(req.params.id, 'assistant');
+    const previousTexts = prevMsgs.map(m => m.content).reverse();
+
+    // Generate image with full context for consistency
+    const imageUrl = await generateSceneImage({
+      worldName: character.world_name,
+      worldDescription: character.world_description,
+      characterName: character.name,
+      characterAppearance: character.appearance,
+      storyText: aiContent,
+      previousTexts,
+    });
 
     // Save AI response with image URL
     db.prepare('INSERT INTO messages (session_id, role, content, image_url) VALUES (?, ?, ?, ?)').run(req.params.id, 'assistant', aiContent, imageUrl);
@@ -342,7 +353,19 @@ router.post('/sessions/:sessionId/messages/:msgId/regenerate-image', authMiddlew
   if (!msg) return res.status(404).json({ error: 'Message not found.' });
 
   const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(session.char_id);
-  const imageUrl = await generateSceneImage(character.world_name, msg.content);
+
+  // Get nearby messages for location/style context
+  const prevMsgs = db.prepare('SELECT content FROM messages WHERE session_id = ? AND role = ? AND id < ? ORDER BY id DESC LIMIT 3').all(req.params.sessionId, 'assistant', msg.id);
+  const previousTexts = prevMsgs.map(m => m.content).reverse();
+
+  const imageUrl = await generateSceneImage({
+    worldName: character.world_name,
+    worldDescription: character.world_description,
+    characterName: character.name,
+    characterAppearance: character.appearance,
+    storyText: msg.content,
+    previousTexts,
+  });
   if (imageUrl) {
     db.prepare('UPDATE messages SET image_url = ? WHERE id = ?').run(imageUrl, msg.id);
   }
@@ -365,7 +388,18 @@ router.post('/sessions/:id/backfill-images', authMiddleware, async (req, res) =>
   const batch = msgs.slice(0, 5);
   const results = {};
   for (const msg of batch) {
-    const imageUrl = await generateSceneImage(character.world_name, msg.content);
+    // Get preceding assistant messages for location/style context
+    const prevMsgs = db.prepare('SELECT content FROM messages WHERE session_id = ? AND role = ? AND id < ? ORDER BY id DESC LIMIT 3').all(req.params.id, 'assistant', msg.id);
+    const previousTexts = prevMsgs.map(m => m.content).reverse();
+
+    const imageUrl = await generateSceneImage({
+      worldName: character.world_name,
+      worldDescription: character.world_description,
+      characterName: character.name,
+      characterAppearance: character.appearance,
+      storyText: msg.content,
+      previousTexts,
+    });
     if (imageUrl) {
       db.prepare('UPDATE messages SET image_url = ? WHERE id = ?').run(imageUrl, msg.id);
       results[msg.id] = imageUrl;

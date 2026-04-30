@@ -310,7 +310,17 @@ router.post('/worlds/:id/turn', requireUser, (req, res) => {
       messages: aiHistory,
     }).then(async response => {
       const aiText = response.content[0].text;
-      const imageUrl = world.image_gen ? await generateSceneImage(world.world_name, aiText) : null;
+      let imageUrl = null;
+      if (world.image_gen) {
+        const prevMsgs = db.prepare('SELECT content FROM mp_messages WHERE world_id = ? AND role = ? ORDER BY id DESC LIMIT 3').all(world.id, 'assistant');
+        const previousTexts = prevMsgs.map(m => m.content).reverse();
+        imageUrl = await generateSceneImage({
+          worldName: world.world_name,
+          worldDescription: world.world_description,
+          storyText: aiText,
+          previousTexts,
+        });
+      }
       db.prepare(`INSERT INTO mp_messages (world_id, sender, role, content, image_url) VALUES (?, 'ai', 'assistant', ?, ?)`).run(world.id, aiText, imageUrl);
     }).catch(err => {
       console.error('AI error in multiplayer:', err);
