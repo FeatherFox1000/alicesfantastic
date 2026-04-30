@@ -25,6 +25,7 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
     player_age: character?.player_age || '8-10',
     intro_text: character?.intro_text || '',
     image_gen: character?.image_gen ? true : false,
+    art_style: character?.art_style || '3d',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -190,6 +191,30 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
                 {form.image_gen ? '🖼️ Images ON' : '🖼️ Images OFF'}
               </span>
             </div>
+
+            {form.image_gen && (
+              <div className="airp-art-style-picker">
+                <p className="airp-art-style-label">Choose your art style:</p>
+                <div className="airp-art-style-options">
+                  {[
+                    { value: '3d', label: '3D', desc: 'Smooth & cinematic', img: '/images/art-styles/3d.svg' },
+                    { value: 'chibi', label: 'Chibi', desc: 'Cute & kawaii', img: '/images/art-styles/chibi.svg' },
+                    { value: 'abstract', label: 'Abstract', desc: 'Bold & artistic', img: '/images/art-styles/abstract.svg' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`airp-art-style-card${form.art_style === opt.value ? ' active' : ''}`}
+                      onClick={() => set('art_style', opt.value)}
+                    >
+                      <img src={opt.img} alt={opt.label} className="airp-art-style-preview" />
+                      <span className="airp-art-style-name">{opt.label}</span>
+                      <span className="airp-art-style-desc">{opt.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {error && <p className="airp-error">{error}</p>}

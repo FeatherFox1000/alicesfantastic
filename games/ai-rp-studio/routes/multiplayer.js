@@ -89,6 +89,7 @@ db.exec(`
 `);
 try { db.exec(`ALTER TABLE mp_messages ADD COLUMN image_url TEXT`); } catch {}
 try { db.exec(`ALTER TABLE mp_worlds ADD COLUMN image_gen INTEGER DEFAULT 0`); } catch {}
+try { db.exec(`ALTER TABLE mp_worlds ADD COLUMN art_style TEXT DEFAULT '3d'`); } catch {}
 
 // Make sure shared_character columns exist
 try { db.exec(`ALTER TABLE mp_worlds ADD COLUMN shared_char_name TEXT`); } catch {}
@@ -159,18 +160,18 @@ ${ageRule}
 
 // --- Create a new multiplayer world ---
 router.post('/worlds', requireUser, (req, res) => {
-  const { world_name, world_description, opening_scene, player_age, character_mode, ai_response_mode, buddies, shared_char_name, shared_char_description, shared_char_appearance, shared_char_personality, image_gen } = req.body;
+  const { world_name, world_description, opening_scene, player_age, character_mode, ai_response_mode, buddies, shared_char_name, shared_char_description, shared_char_appearance, shared_char_personality, image_gen, art_style } = req.body;
   if (!world_name || !world_description) return res.status(400).json({ error: 'World name and description are required.' });
   if (!buddies || buddies.length === 0) return res.status(400).json({ error: 'Invite at least one buddy.' });
 
   const result = db.prepare(`
-    INSERT INTO mp_worlds (host_username, world_name, world_description, opening_scene, player_age, character_mode, ai_response_mode, status, current_turn_username, turn_started_at, shared_char_name, shared_char_description, shared_char_appearance, shared_char_personality, image_gen)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'waiting', ?, datetime('now'), ?, ?, ?, ?, ?)
+    INSERT INTO mp_worlds (host_username, world_name, world_description, opening_scene, player_age, character_mode, ai_response_mode, status, current_turn_username, turn_started_at, shared_char_name, shared_char_description, shared_char_appearance, shared_char_personality, image_gen, art_style)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'waiting', ?, datetime('now'), ?, ?, ?, ?, ?, ?)
   `).run(
     req.mpUser.username, world_name, world_description, opening_scene || '', player_age || '8-10',
     character_mode || 'own', ai_response_mode || 'each', req.mpUser.username,
     shared_char_name || null, shared_char_description || null, shared_char_appearance || null, shared_char_personality || null,
-    image_gen ? 1 : 0
+    image_gen ? 1 : 0, art_style || '3d'
   );
   const worldId = result.lastInsertRowid;
 
@@ -319,6 +320,7 @@ router.post('/worlds/:id/turn', requireUser, (req, res) => {
           worldDescription: world.world_description,
           storyText: aiText,
           previousTexts,
+          artStyle: world.art_style || '3d',
         });
       }
       db.prepare(`INSERT INTO mp_messages (world_id, sender, role, content, image_url) VALUES (?, 'ai', 'assistant', ?, ?)`).run(world.id, aiText, imageUrl);

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="130" viewBox="0 0 200 130">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fce4ec"/>
+      <stop offset="100%" stop-color="#f8bbd0"/>
+    </linearGradient>
+    <radialGradient id="face" cx="45%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#fff5f0"/>
+      <stop offset="100%" stop-color="#ffd6c8"/>
+    </radialGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="200" height="130" fill="url(#bg)"/>
+  <!-- Stars / sparkles -->
+  <text x="18" y="28" font-size="14" fill="#ff80ab">✦</text>
+  <text x="168" y="22" font-size="10" fill="#ea80fc">✦</text>
+  <text x="145" y="95" font-size="12" fill="#ff80ab">✦</text>
+  <text x="28" y="95" font-size="9" fill="#ea80fc">★</text>
+  <!-- Hearts -->
+  <text x="155" y="55" font-size="14" fill="#f48fb1">♥</text>
+  <text x="35" y="52" font-size="10" fill="#ce93d8">♥</text>
+  <!-- Body (small, chibi proportions) -->
+  <ellipse cx="100" cy="108" rx="16" ry="10" fill="#b39ddb"/>
+  <!-- Tiny legs -->
+  <rect x="88" y="112" width="8" height="10" rx="4" fill="#b39ddb"/>
+  <rect x="104" y="112" width="8" height="10" rx="4" fill="#b39ddb"/>
+  <!-- Torso -->
+  <rect x="84" y="92" width="32" height="20" rx="10" fill="#ce93d8"/>
+  <!-- Arms -->
+  <ellipse cx="78" cy="102" rx="8" ry="5" fill="#ce93d8" transform="rotate(-20,78,102)"/>
+  <ellipse cx="122" cy="102" rx="8" ry="5" fill="#ce93d8" transform="rotate(20,122,102)"/>
+  <!-- Big chibi head -->
+  <circle cx="100" cy="66" r="32" fill="url(#face)"/>
+  <!-- Blush circles -->
+  <circle cx="83" cy="74" r="7" fill="#ffb3c1" opacity="0.5"/>
+  <circle cx="117" cy="74" r="7" fill="#ffb3c1" opacity="0.5"/>
+  <!-- Big sparkly eyes -->
+  <ellipse cx="90" cy="63" rx="9" ry="11" fill="#1a1a2e"/>
+  <ellipse cx="110" cy="63" rx="9" ry="11" fill="#1a1a2e"/>
+  <ellipse cx="88" cy="60" rx="4" ry="5" fill="#7c4dff"/>
+  <ellipse cx="108" cy="60" rx="4" ry="5" fill="#7c4dff"/>
+  <circle cx="86" cy="58" r="2.5" fill="white"/>
+  <circle cx="106" cy="58" r="2.5" fill="white"/>
+  <circle cx="91" cy="65" r="1.2" fill="white"/>
+  <circle cx="111" cy="65" r="1.2" fill="white"/>
+  <!-- Tiny nose -->
+  <circle cx="100" cy="72" r="1.5" fill="#ffb3c1"/>
+  <!-- Happy mouth -->
+  <path d="M93 76 Q100 83 107 76" stroke="#f06292" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Ears with inner -->
+  <circle cx="68" cy="64" r="8" fill="url(#face)"/>
+  <circle cx="68" cy="64" r="4" fill="#ffb3c1"/>
+  <circle cx="132" cy="64" r="8" fill="url(#face)"/>
+  <circle cx="132" cy="64" r="4" fill="#ffb3c1"/>
+  <!-- Hair tuft -->
+  <ellipse cx="100" cy="36" rx="12" ry="8" fill="#b39ddb"/>
+  <ellipse cx="87" cy="40" rx="8" ry="6" fill="#b39ddb"/>
+  <ellipse cx="113" cy="40" rx="8" ry="6" fill="#b39ddb"/>
+</svg>

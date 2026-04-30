@@ -11,6 +11,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
  *   characterAppearance: string? — player character appearance
  *   storyText:          string   — the AI scene text to illustrate
  *   previousTexts:      string[] — last 2-3 AI scene texts (oldest first), for location continuity
+ *   artStyle:           string?  — '3d' | 'chibi' | 'abstract'
  * }
  */
 async function generateSceneImage(ctx) {
@@ -21,7 +22,14 @@ async function generateSceneImage(ctx) {
     ctx = { worldName: ctx, storyText: arguments[1] };
   }
 
-  const { worldName, worldDescription, characterName, characterAppearance, storyText, previousTexts } = ctx;
+  const { worldName, worldDescription, characterName, characterAppearance, storyText, previousTexts, artStyle } = ctx;
+
+  const styleMap = {
+    '3d':       '3D render, Pixar-style, smooth glossy surfaces, subsurface scattering, cinematic 3D lighting, detailed 3D characters',
+    chibi:      'chibi anime style, cute oversized heads, kawaii, pastel colors, big sparkly eyes, soft outlines, adorable',
+    abstract:   'abstract digital art, bold geometric shapes, vibrant color blocks, stylized impressionistic, painterly brushstrokes, dreamy',
+  };
+  const styleSuffix = styleMap[artStyle] || styleMap['3d'];
 
   try {
     // Build context block for Claude
@@ -37,11 +45,15 @@ async function generateSceneImage(ctx) {
       ? `Previous scenes (for location & style reference):\n${previousTexts.slice(-3).map((t, i) => `${i + 1}. ${t.slice(0, 250)}`).join('\n')}`
       : '';
 
-    const systemPrompt = `You write short image prompts for a children's fantasy illustration series. Each image must feel like it belongs in the same illustrated storybook — same art style throughout.
+    const styleDesc = artStyle === 'chibi' ? 'chibi anime, kawaii, cute oversized heads' :
+                      artStyle === 'abstract' ? 'abstract geometric, bold colors, stylized' :
+                      '3D render, Pixar-style, smooth glossy surfaces';
+
+    const systemPrompt = `You write short image prompts for a children's fantasy illustration series. Art style: ${styleDesc}. Every image must feel like it belongs in the same storybook.
 
 Rules:
-- CONSISTENT ART STYLE: always painterly children's book illustration, vibrant colours, soft lighting, cute and expressive characters. Never change this style.
-- CONSISTENT CHARACTERS: if the main character appears, always describe them with their same appearance. Never change how they look.
+- CONSISTENT ART STYLE: always use ${styleDesc}. Never switch to a different art style.
+- CONSISTENT CHARACTERS: if the main character appears, always describe them with the exact same appearance every time.
 - CONSISTENT LOCATION: if the scene hasn't moved somewhere new, describe the same location. Only describe a new location if the story text clearly shows the characters moved there.
 - Focus on the most visually interesting moment in the scene.
 - Child-friendly. No scary gore, no text in the image.
@@ -60,7 +72,7 @@ Rules:
     });
 
     const rawPrompt = imgPromptRes.content[0].text.trim().replace(/['"—–]/g, '').slice(0, 250);
-    const fullPrompt = rawPrompt + ', digital art, children\'s book illustration, painterly, vibrant colours, soft lighting, cute, no text';
+    const fullPrompt = rawPrompt + `, ${styleSuffix}, vibrant colours, children's fantasy, no text, no watermark`;
 
     // Step 2: Replicate FLUX Schnell — synchronous with Prefer: wait
     const response = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {

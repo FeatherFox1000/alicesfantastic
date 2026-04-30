@@ -12,6 +12,7 @@ export default function CreateMultiplayerWorld({ username, onCreated, onBack }) 
     character_mode: 'own', // own | shared
     ai_response_mode: 'each',
     image_gen: false,
+    art_style: '3d',
     shared_char_name: '',
     shared_char_description: '',
     shared_char_appearance: '',
@@ -151,6 +152,29 @@ export default function CreateMultiplayerWorld({ username, onCreated, onBack }) 
               </label>
               <span className="airp-toggle-text">{form.image_gen ? '🖼️ Images ON' : '🖼️ Images OFF'}</span>
             </div>
+            {form.image_gen && (
+              <div className="airp-art-style-picker">
+                <p className="airp-art-style-label">Choose your art style:</p>
+                <div className="airp-art-style-options">
+                  {[
+                    { value: '3d', label: '3D', desc: 'Smooth & cinematic', img: '/images/art-styles/3d.svg' },
+                    { value: 'chibi', label: 'Chibi', desc: 'Cute & kawaii', img: '/images/art-styles/chibi.svg' },
+                    { value: 'abstract', label: 'Abstract', desc: 'Bold & artistic', img: '/images/art-styles/abstract.svg' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`airp-art-style-card${form.art_style === opt.value ? ' active' : ''}`}
+                      onClick={() => set('art_style', opt.value)}
+                    >
+                      <img src={opt.img} alt={opt.label} className="airp-art-style-preview" />
+                      <span className="airp-art-style-name">{opt.label}</span>
+                      <span className="airp-art-style-desc">{opt.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mp-form-nav">

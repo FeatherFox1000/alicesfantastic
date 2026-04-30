@@ -244,6 +244,7 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
       characterAppearance: character.appearance,
       storyText: aiContent,
       previousTexts,
+      artStyle: character.art_style || '3d',
     });
 
     // Save AI response with image URL
@@ -365,6 +366,7 @@ router.post('/sessions/:sessionId/messages/:msgId/regenerate-image', authMiddlew
     characterAppearance: character.appearance,
     storyText: msg.content,
     previousTexts,
+    artStyle: character.art_style || '3d',
   });
   if (imageUrl) {
     db.prepare('UPDATE messages SET image_url = ? WHERE id = ?').run(imageUrl, msg.id);
@@ -399,6 +401,7 @@ router.post('/sessions/:id/backfill-images', authMiddleware, async (req, res) =>
       characterAppearance: character.appearance,
       storyText: msg.content,
       previousTexts,
+      artStyle: character.art_style || '3d',
     });
     if (imageUrl) {
       db.prepare('UPDATE messages SET image_url = ? WHERE id = ?').run(imageUrl, msg.id);

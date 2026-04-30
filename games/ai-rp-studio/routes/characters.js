@@ -31,17 +31,18 @@ router.get('/:id', auth, (req, res) => {
 
 // Create character
 router.post('/', auth, (req, res) => {
-  const { name, world_name, world_description, character_description, appearance, personality, player_age, intro_text, image_gen } = req.body;
+  const { name, world_name, world_description, character_description, appearance, personality, player_age, intro_text, image_gen, art_style } = req.body;
   if (!name || !world_name || !world_description || !character_description) {
     return res.status(400).json({ error: 'Name, world name, world description, and character description are required.' });
   }
   // Ensure columns exist
   try { db.prepare('ALTER TABLE characters ADD COLUMN intro_text TEXT DEFAULT ""').run(); } catch {}
   try { db.prepare('ALTER TABLE characters ADD COLUMN image_gen INTEGER DEFAULT 0').run(); } catch {}
+  try { db.prepare('ALTER TABLE characters ADD COLUMN art_style TEXT DEFAULT "3d"').run(); } catch {}
   const result = db.prepare(`
-    INSERT INTO characters (user_id, name, world_name, world_description, character_description, appearance, personality, player_age, intro_text, image_gen)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(req.user.id, name, world_name, world_description, character_description, appearance || '', personality || '', player_age || '', intro_text || '', image_gen ? 1 : 0);
+    INSERT INTO characters (user_id, name, world_name, world_description, character_description, appearance, personality, player_age, intro_text, image_gen, art_style)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(req.user.id, name, world_name, world_description, character_description, appearance || '', personality || '', player_age || '', intro_text || '', image_gen ? 1 : 0, art_style || '3d');
   const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(result.lastInsertRowid);
   res.json(character);
 });
@@ -50,11 +51,12 @@ router.post('/', auth, (req, res) => {
 router.put('/:id', auth, (req, res) => {
   const character = db.prepare('SELECT * FROM characters WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
   if (!character) return res.status(404).json({ error: 'Character not found.' });
-  const { name, world_name, world_description, character_description, appearance, personality, player_age, intro_text, image_gen } = req.body;
+  const { name, world_name, world_description, character_description, appearance, personality, player_age, intro_text, image_gen, art_style } = req.body;
   try { db.prepare('ALTER TABLE characters ADD COLUMN intro_text TEXT DEFAULT ""').run(); } catch {}
   try { db.prepare('ALTER TABLE characters ADD COLUMN image_gen INTEGER DEFAULT 0').run(); } catch {}
+  try { db.prepare('ALTER TABLE characters ADD COLUMN art_style TEXT DEFAULT "3d"').run(); } catch {}
   db.prepare(`
-    UPDATE characters SET name=?, world_name=?, world_description=?, character_description=?, appearance=?, personality=?, player_age=?, intro_text=?, image_gen=?
+    UPDATE characters SET name=?, world_name=?, world_description=?, character_description=?, appearance=?, personality=?, player_age=?, intro_text=?, image_gen=?, art_style=?
     WHERE id=?
   `).run(
     name || character.name,
@@ -66,6 +68,7 @@ router.put('/:id', auth, (req, res) => {
     player_age !== undefined ? player_age : character.player_age,
     intro_text !== undefined ? intro_text : (character.intro_text || ''),
     image_gen !== undefined ? (image_gen ? 1 : 0) : (character.image_gen || 0),
+    art_style !== undefined ? art_style : (character.art_style || '3d'),
     req.params.id
   );
   const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.params.id);
