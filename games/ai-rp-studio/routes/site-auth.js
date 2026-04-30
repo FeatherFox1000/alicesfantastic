@@ -30,6 +30,7 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
 `);
+try { db.exec(`ALTER TABLE users ADD COLUMN birthdate TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN last_login TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN ban_pending INTEGER DEFAULT 0`); } catch (e) {}
@@ -82,14 +83,24 @@ function getUser(req) {
 
 // Signup — COPPA compliant
 router.post('/signup', (req, res) => {
-  const { username, email, password, is_child, parent_email } = req.body;
+  const { username, email, password, is_child, parent_email, birthdate } = req.body;
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Username, email, and password are required.' });
+  }
+  if (!birthdate) {
+    return res.status(400).json({ error: 'Date of birth is required.' });
   }
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters.' });
   }
-  if (is_child && !parent_email) {
+  // Auto-calculate is_child from birthdate (under 13)
+  const dob = new Date(birthdate);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) age--;
+  const autoIsChild = age < 13;
+  const finalIsChild = autoIsChild || is_child;
+  if (finalIsChild && !parent_email) {
     return res.status(400).json({ error: 'A parent or guardian email is required for users under 13.' });
   }
   const existing = db.prepare('SELECT id FROM users WHERE username = ? OR email = ?').get(username, email);
@@ -97,13 +108,13 @@ router.post('/signup', (req, res) => {
     return res.status(409).json({ error: 'Username or email already taken.' });
   }
   const password_hash = bcrypt.hashSync(password, 10);
-  const consent_token = is_child ? crypto.randomBytes(32).toString('hex') : null;
+  const consent_token = finalIsChild ? crypto.randomBytes(32).toString('hex') : null;
   const result = db.prepare(
-    'INSERT INTO users (username, email, password_hash, is_child, parent_email, parent_consent, consent_token) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(username, email, password_hash, is_child ? 1 : 0, parent_email || null, is_child ? 0 : 1, consent_token);
+    'INSERT INTO users (username, email, password_hash, is_child, parent_email, parent_consent, consent_token, birthdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(username, email, password_hash, finalIsChild ? 1 : 0, parent_email || null, finalIsChild ? 0 : 1, consent_token, birthdate);
   const user = { id: result.lastInsertRowid, username };
 
-  if (is_child) {
+  if (finalIsChild) {
     return res.json({
       pending_consent: true,
       message: 'Account created! A parent or guardian needs to approve this account.',
@@ -164,7 +175,7 @@ router.get('/me', (req, res) => {
   if (!auth) return res.status(401).json({ error: 'No token.' });
   try {
     const payload = jwt.verify(auth.replace('Bearer ', ''), JWT_SECRET);
-    const user = db.prepare('SELECT id, username, email, is_banned, is_admin, is_child, created_at FROM users WHERE id = ?').get(payload.id);
+    const user = db.prepare('SELECT id, username, email, is_banned, is_admin, is_child, birthdate, created_at FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'User not found.' });
     if (user.is_banned) return res.status(403).json({ error: 'Your account has been banned.' });
     const unread = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0').get(user.id);

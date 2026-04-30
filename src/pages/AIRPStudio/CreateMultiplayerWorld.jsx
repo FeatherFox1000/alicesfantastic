@@ -108,22 +108,6 @@ export default function CreateMultiplayerWorld({ username, onCreated, onBack }) 
         <div className="mp-form-section">
           <h3>⚙️ Game Settings</h3>
 
-          <div className="mp-setting-group">
-            <div className="mp-setting-label">Age level</div>
-            <div className="airp-age-picker">
-              {[
-                { value: 'under-8', emoji: '🧸', label: 'Under 8', desc: 'Gentle & sweet' },
-                { value: '8-10', emoji: '⚡', label: '8–10', desc: 'Fun & adventurous' },
-                { value: '11-14', emoji: '⚔️', label: '11+', desc: 'Epic & exciting' },
-              ].map(opt => (
-                <button key={opt.value} type="button" className={`airp-age-option${form.player_age === opt.value ? ' active' : ''}`} onClick={() => set('player_age', opt.value)}>
-                  <span className="airp-age-emoji">{opt.emoji}</span>
-                  <span className="airp-age-label">{opt.label}</span>
-                  <span className="airp-age-desc">{opt.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="mp-setting-group">
             <div className="mp-setting-label">Characters</div>

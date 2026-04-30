@@ -4,7 +4,7 @@ import './AIRPStudio.css';
 
 export default function AuthPage({ onLogin }) {
   const [tab, setTab] = useState('login');
-  const [form, setForm] = useState({ username: '', email: '', password: '' });
+  const [form, setForm] = useState({ username: '', email: '', password: '', birthdate: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +22,8 @@ export default function AuthPage({ onLogin }) {
       if (tab === 'login') {
         data = await api.login(form.username, form.password);
       } else {
-        data = await api.signup(form.username, form.email, form.password);
+        if (!form.birthdate) { setError('Please enter your date of birth.'); setLoading(false); return; }
+        data = await api.signup(form.username, form.email, form.password, form.birthdate);
       }
       localStorage.setItem('site_token', data.token);
       onLogin(data);
@@ -70,6 +71,19 @@ export default function AuthPage({ onLogin }) {
                 placeholder="your@email.com"
                 required
                 autoComplete="email"
+              />
+            </label>
+          )}
+
+          {tab === 'signup' && (
+            <label>
+              Date of Birth
+              <input
+                type="date"
+                value={form.birthdate}
+                onChange={e => set('birthdate', e.target.value)}
+                required
+                max={new Date().toISOString().split('T')[0]}
               />
             </label>
           )}

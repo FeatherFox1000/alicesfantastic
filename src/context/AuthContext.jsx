@@ -49,8 +49,8 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  async function signup(username, email, password, is_child, parent_email) {
-    const data = await request('POST', '/signup', { username, email, password, is_child, parent_email });
+  async function signup(username, email, password, is_child, parent_email, birthdate) {
+    const data = await request('POST', '/signup', { username, email, password, is_child, parent_email, birthdate });
     if (data.pending_consent) {
       return data;
     }

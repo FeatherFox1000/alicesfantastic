@@ -6,8 +6,7 @@ import './LoginPage.css';
 export default function LoginPage() {
   const { login, signup } = useAuth();
   const [tab, setTab] = useState('login');
-  const [form, setForm] = useState({ username: '', email: '', password: '', parent_email: '' });
-  const [ageGroup, setAgeGroup] = useState(null); // null = not answered, 'under13', '13plus'
+  const [form, setForm] = useState({ username: '', email: '', password: '', parent_email: '', birthdate: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingConsent, setPendingConsent] = useState(null);
@@ -35,13 +34,18 @@ export default function LoginPage() {
           throw err;
         }
       } else {
-        if (!ageGroup) {
-          setError('Please select your age group first.');
+        if (!form.birthdate) {
+          setError('Please enter your date of birth.');
           setLoading(false);
           return;
         }
-        const is_child = ageGroup === 'under13';
-        const data = await signup(form.username, form.email, form.password, is_child, is_child ? form.parent_email : undefined);
+        // Calculate age client-side to know if parent email is needed
+        const dob = new Date(form.birthdate);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) age--;
+        const is_child = age < 13;
+        const data = await signup(form.username, form.email, form.password, is_child, is_child ? form.parent_email : undefined, form.birthdate);
         if (data.pending_consent) {
           setPendingConsent(data);
           return;
@@ -104,90 +108,88 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={submit} className="login-form">
-          {tab === 'signup' && !ageGroup && (
-            <div className="age-gate">
-              <p className="age-gate-label">How old are you?</p>
-              <div className="age-gate-buttons">
-                <button type="button" className="age-btn" onClick={() => setAgeGroup('under13')}>Under 13</button>
-                <button type="button" className="age-btn" onClick={() => setAgeGroup('13plus')}>13 or older</button>
-              </div>
-            </div>
+          <label>
+            Username
+            <input
+              type="text"
+              value={form.username}
+              onChange={e => set('username', e.target.value)}
+              placeholder="Your username"
+              required
+              autoComplete="username"
+            />
+          </label>
+
+          {tab === 'signup' && (
+            <label>
+              Email
+              <input
+                type="email"
+                value={form.email}
+                onChange={e => set('email', e.target.value)}
+                placeholder="your@email.com"
+                required
+                autoComplete="email"
+              />
+            </label>
           )}
 
-          {(tab === 'login' || ageGroup) && (
-            <>
-              <label>
-                Username
-                <input
-                  type="text"
-                  value={form.username}
-                  onChange={e => set('username', e.target.value)}
-                  placeholder="Your username"
-                  required
-                  autoComplete="username"
-                />
-              </label>
-
-              {tab === 'signup' && (
-                <label>
-                  Email
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={e => set('email', e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    autoComplete="email"
-                  />
-                </label>
-              )}
-
-              {tab === 'signup' && ageGroup === 'under13' && (
-                <label>
-                  Parent/Guardian Email
-                  <input
-                    type="email"
-                    value={form.parent_email}
-                    onChange={e => set('parent_email', e.target.value)}
-                    placeholder="Your parent's email"
-                    required
-                  />
-                  <span className="field-hint">Required for users under 13. Your parent will need to approve your account.</span>
-                </label>
-              )}
-
-              <label>
-                Password
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={e => set('password', e.target.value)}
-                  placeholder={tab === 'signup' ? 'At least 6 characters' : 'Your password'}
-                  required
-                  autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
-                />
-              </label>
-
-              {error && <p className="login-error">{error}</p>}
-
-              {tab === 'signup' && (
-                <p className="privacy-notice">
-                  By signing up, you agree to our <Link to="/privacy">Privacy Policy</Link>.
-                  {ageGroup === 'under13' && ' A parent or guardian must approve this account before you can log in.'}
-                </p>
-              )}
-
-              <button type="submit" className="login-btn" disabled={loading}>
-                {loading ? 'Loading...' : tab === 'login' ? 'Sign In' : 'Create Account'}
-              </button>
-
-              {tab === 'signup' && ageGroup && (
-                <button type="button" className="age-reset" onClick={() => setAgeGroup(null)}>
-                  Change age group
-                </button>
-              )}
-            </>
+          {tab === 'signup' && (
+            <label>
+              Date of Birth
+              <input
+                type="date"
+                value={form.birthdate}
+                onChange={e => set('birthdate', e.target.value)}
+                required
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </label>
           )}
+
+          {tab === 'signup' && form.birthdate && (() => {
+            const dob = new Date(form.birthdate);
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) age--;
+            return age < 13;
+          })() && (
+            <label>
+              Parent/Guardian Email
+              <input
+                type="email"
+                value={form.parent_email}
+                onChange={e => set('parent_email', e.target.value)}
+                placeholder="Your parent's email"
+                required
+              />
+              <span className="field-hint">Since you're under 13, a parent or guardian needs to approve your account.</span>
+            </label>
+          )}
+
+          <label>
+            Password
+            <input
+              type="password"
+              value={form.password}
+              onChange={e => set('password', e.target.value)}
+              placeholder={tab === 'signup' ? 'At least 6 characters' : 'Your password'}
+              required
+              autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+            />
+          </label>
+
+          {error && <p className="login-error">{error}</p>}
+
+          {tab === 'signup' && (
+            <p className="privacy-notice">
+              By signing up, you agree to our <Link to="/privacy">Privacy Policy</Link>.
+            </p>
+          )}
+
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? 'Loading...' : tab === 'login' ? 'Sign In' : 'Create Account'}
+          </button>
         </form>
       </div>
     </div>
