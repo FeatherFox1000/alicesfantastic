@@ -11,6 +11,7 @@ export default function CreateMultiplayerWorld({ username, onCreated, onBack }) 
     player_age: '8-10',
     character_mode: 'own', // own | shared
     ai_response_mode: 'each',
+    image_gen: false,
     shared_char_name: '',
     shared_char_description: '',
     shared_char_appearance: '',
@@ -153,6 +154,18 @@ export default function CreateMultiplayerWorld({ username, onCreated, onBack }) 
                 <span className="mp-option-title">After a full round</span>
                 <span className="mp-option-desc">AI waits for all players to go, then responds once</span>
               </button>
+            </div>
+          </div>
+
+          <div className="mp-setting-group">
+            <div className="mp-setting-label">🖼️ Scene Images</div>
+            <p className="mp-hint" style={{marginBottom: '8px'}}>When on, the AI generates a picture with each story response.</p>
+            <div className="airp-image-gen-toggle">
+              <label className="airp-toggle-switch">
+                <input type="checkbox" checked={form.image_gen} onChange={e => set('image_gen', e.target.checked)} />
+                <span className="airp-toggle-slider"></span>
+              </label>
+              <span className="airp-toggle-text">{form.image_gen ? '🖼️ Images ON' : '🖼️ Images OFF'}</span>
             </div>
           </div>
 

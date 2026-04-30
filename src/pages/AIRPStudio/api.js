@@ -49,6 +49,8 @@ export const api = {
   getInspirations: (sessionId) => request('POST', `/sessions/${sessionId}/inspirations`),
   updateSession: (id, title) => request('PUT', `/sessions/${id}`, { title }),
   deleteSession: (id) => request('DELETE', `/sessions/${id}`),
+  regenerateImage: (sessionId, msgId) => request('POST', `/sessions/${sessionId}/messages/${msgId}/regenerate-image`),
+  backfillImages: (sessionId) => request('POST', `/sessions/${sessionId}/backfill-images`),
 
   // Multiplayer
   mp: {

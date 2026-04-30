@@ -1128,6 +1128,56 @@
 .airp-narrative { color: rgba(255,255,255,0.55); }
 .airp-message-time { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
 
+.airp-scene-image-wrap {
+  margin-top: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  max-width: 100%;
+}
+.airp-scene-image {
+  width: 100%;
+  max-width: 480px;
+  border-radius: 10px;
+  display: block;
+  background: rgba(255,255,255,0.05);
+  min-height: 60px;
+}
+
+.airp-image-gen-section { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 18px; }
+.airp-image-gen-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.airp-scene-image-loading { font-size: 0.8rem; color: rgba(255,255,255,0.5); padding: 10px 0; }
+.airp-scene-image-error { font-size: 0.8rem; color: rgba(255,100,100,0.8); padding: 6px 0; display: flex; align-items: center; gap: 8px; }
+
+.airp-regen-btn {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.airp-regen-btn:hover { background: rgba(255,255,255,0.22); }
+.airp-regen-btn:disabled { opacity: 0.4; cursor: default; }
+
+.airp-regen-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.airp-scene-image-wrap {
+  position: relative;
+}
+.airp-scene-image-wrap:hover .airp-regen-overlay { opacity: 1; }
+
 /* Typing indicator */
 .airp-typing { display: flex; align-items: center; gap: 4px; padding: 1rem; }
 .airp-typing span {

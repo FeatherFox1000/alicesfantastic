@@ -2,9 +2,14 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const db = require('../db');
 const { authMiddleware } = require('./characters');
+const { generateSceneImage } = require('./imageGen');
 
 const router = express.Router();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// Enable image_gen for ALL existing characters so every adventure gets images
+try { db.prepare('ALTER TABLE characters ADD COLUMN image_gen INTEGER DEFAULT 0').run(); } catch {}
+db.prepare('UPDATE characters SET image_gen = 1').run();
 
 const STYLE_INSTRUCTIONS = {
   standard: '',
@@ -157,6 +162,7 @@ router.get('/sessions/:id', authMiddleware, (req, res) => {
     WHERE s.id = ?
   `).get(req.params.id);
   if (!session || session.user_id !== req.user.id) return res.status(404).json({ error: 'Session not found.' });
+  try { db.prepare('ALTER TABLE messages ADD COLUMN image_url TEXT').run(); } catch {}
   const messages = db.prepare('SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC').all(req.params.id);
   res.json({ ...session, messages });
 });
@@ -223,8 +229,14 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
     // Strip memory tags from the visible response
     const aiContent = rawContent.replace(/\n*\[MEMORY:[^\]]+\]/g, '').trim();
 
-    // Save AI response (without memory tags)
-    db.prepare('INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)').run(req.params.id, 'assistant', aiContent);
+    // Ensure image_url column exists
+    try { db.prepare('ALTER TABLE messages ADD COLUMN image_url TEXT').run(); } catch {}
+
+    // Generate image with Replicate FLUX Schnell (~2-4 seconds)
+    const imageUrl = await generateSceneImage(character.world_name, aiContent);
+
+    // Save AI response with image URL
+    db.prepare('INSERT INTO messages (session_id, role, content, image_url) VALUES (?, ?, ?, ?)').run(req.params.id, 'assistant', aiContent, imageUrl);
 
     // Save extracted memories
     const savedMemories = [];
@@ -246,7 +258,7 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
       db.prepare('INSERT INTO character_snapshots (character_id, summary) VALUES (?, ?)').run(session.char_id, summary);
     }
 
-    res.json({ role: 'assistant', content: aiContent, newMemories: savedMemories });
+    res.json({ role: 'assistant', content: aiContent, newMemories: savedMemories, imageUrl });
   } catch (err) {
     console.error('Claude API error:', err.message, err.status, JSON.stringify(err.error || {}));
     res.status(500).json({ error: 'Failed to get AI response. Please try again.' });
@@ -314,6 +326,51 @@ router.delete('/sessions/:id', authMiddleware, (req, res) => {
   db.prepare('DELETE FROM messages WHERE session_id = ?').run(req.params.id);
   db.prepare('DELETE FROM sessions WHERE id = ?').run(req.params.id);
   res.json({ success: true });
+});
+
+// Regenerate image for a specific message
+router.post('/sessions/:sessionId/messages/:msgId/regenerate-image', authMiddleware, async (req, res) => {
+  const session = db.prepare(`
+    SELECT s.*, c.user_id, c.id as char_id FROM sessions s
+    JOIN characters c ON c.id = s.character_id
+    WHERE s.id = ?
+  `).get(req.params.sessionId);
+  if (!session || session.user_id !== req.user.id) return res.status(404).json({ error: 'Session not found.' });
+
+  const msg = db.prepare('SELECT * FROM messages WHERE id = ? AND session_id = ?').get(req.params.msgId, req.params.sessionId);
+  if (!msg) return res.status(404).json({ error: 'Message not found.' });
+
+  const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(session.char_id);
+  const imageUrl = await generateSceneImage(character.world_name, msg.content);
+  if (imageUrl) {
+    db.prepare('UPDATE messages SET image_url = ? WHERE id = ?').run(imageUrl, msg.id);
+  }
+  res.json({ imageUrl });
+});
+
+// Backfill images for all assistant messages in a session that have no image
+router.post('/sessions/:id/backfill-images', authMiddleware, async (req, res) => {
+  const session = db.prepare(`
+    SELECT s.*, c.user_id, c.id as char_id FROM sessions s
+    JOIN characters c ON c.id = s.character_id
+    WHERE s.id = ?
+  `).get(req.params.id);
+  if (!session || session.user_id !== req.user.id) return res.status(404).json({ error: 'Session not found.' });
+
+  const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(session.char_id);
+  const msgs = db.prepare('SELECT * FROM messages WHERE session_id = ? AND role = ? AND (image_url IS NULL OR image_url = \'\') ORDER BY id ASC').all(req.params.id, 'assistant');
+
+  // Process up to 5 at a time (limits response time to ~20s max)
+  const batch = msgs.slice(0, 5);
+  const results = {};
+  for (const msg of batch) {
+    const imageUrl = await generateSceneImage(character.world_name, msg.content);
+    if (imageUrl) {
+      db.prepare('UPDATE messages SET image_url = ? WHERE id = ?').run(imageUrl, msg.id);
+      results[msg.id] = imageUrl;
+    }
+  }
+  res.json({ updated: results, remaining: Math.max(0, msgs.length - batch.length) });
 });
 
 module.exports = router;

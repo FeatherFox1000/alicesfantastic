@@ -3,6 +3,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { verifyToken } = require('./auth');
+const { generateSceneImage } = require('./imageGen');
 
 const router = express.Router();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -81,10 +82,13 @@ db.exec(`
     sender TEXT NOT NULL,
     role TEXT NOT NULL,
     content TEXT NOT NULL,
+    image_url TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (world_id) REFERENCES mp_worlds(id) ON DELETE CASCADE
   );
 `);
+try { db.exec(`ALTER TABLE mp_messages ADD COLUMN image_url TEXT`); } catch {}
+try { db.exec(`ALTER TABLE mp_worlds ADD COLUMN image_gen INTEGER DEFAULT 0`); } catch {}
 
 // Make sure shared_character columns exist
 try { db.exec(`ALTER TABLE mp_worlds ADD COLUMN shared_char_name TEXT`); } catch {}
@@ -155,17 +159,18 @@ ${ageRule}
 
 // --- Create a new multiplayer world ---
 router.post('/worlds', requireUser, (req, res) => {
-  const { world_name, world_description, opening_scene, player_age, character_mode, ai_response_mode, buddies, shared_char_name, shared_char_description, shared_char_appearance, shared_char_personality } = req.body;
+  const { world_name, world_description, opening_scene, player_age, character_mode, ai_response_mode, buddies, shared_char_name, shared_char_description, shared_char_appearance, shared_char_personality, image_gen } = req.body;
   if (!world_name || !world_description) return res.status(400).json({ error: 'World name and description are required.' });
   if (!buddies || buddies.length === 0) return res.status(400).json({ error: 'Invite at least one buddy.' });
 
   const result = db.prepare(`
-    INSERT INTO mp_worlds (host_username, world_name, world_description, opening_scene, player_age, character_mode, ai_response_mode, status, current_turn_username, turn_started_at, shared_char_name, shared_char_description, shared_char_appearance, shared_char_personality)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'waiting', ?, datetime('now'), ?, ?, ?, ?)
+    INSERT INTO mp_worlds (host_username, world_name, world_description, opening_scene, player_age, character_mode, ai_response_mode, status, current_turn_username, turn_started_at, shared_char_name, shared_char_description, shared_char_appearance, shared_char_personality, image_gen)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'waiting', ?, datetime('now'), ?, ?, ?, ?, ?)
   `).run(
     req.mpUser.username, world_name, world_description, opening_scene || '', player_age || '8-10',
     character_mode || 'own', ai_response_mode || 'each', req.mpUser.username,
-    shared_char_name || null, shared_char_description || null, shared_char_appearance || null, shared_char_personality || null
+    shared_char_name || null, shared_char_description || null, shared_char_appearance || null, shared_char_personality || null,
+    image_gen ? 1 : 0
   );
   const worldId = result.lastInsertRowid;
 
@@ -303,9 +308,10 @@ router.post('/worlds/:id/turn', requireUser, (req, res) => {
       max_tokens: 600,
       system: systemPrompt,
       messages: aiHistory,
-    }).then(response => {
+    }).then(async response => {
       const aiText = response.content[0].text;
-      db.prepare(`INSERT INTO mp_messages (world_id, sender, role, content) VALUES (?, 'ai', 'assistant', ?)`).run(world.id, aiText);
+      const imageUrl = world.image_gen ? await generateSceneImage(world.world_name, aiText) : null;
+      db.prepare(`INSERT INTO mp_messages (world_id, sender, role, content, image_url) VALUES (?, 'ai', 'assistant', ?, ?)`).run(world.id, aiText, imageUrl);
     }).catch(err => {
       console.error('AI error in multiplayer:', err);
     });

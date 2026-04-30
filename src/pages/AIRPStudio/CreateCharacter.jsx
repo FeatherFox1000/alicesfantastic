@@ -23,6 +23,7 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
     personality: character?.personality || '',
     player_age: character?.player_age || '',
     intro_text: character?.intro_text || '',
+    image_gen: character?.image_gen ? true : false,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -192,6 +193,24 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
                 maxLength={200}
               />
             </label>
+          </div>
+
+          <div className="airp-form-section airp-image-gen-section">
+            <h3>🖼️ Scene Images <span className="airp-optional">(optional)</span></h3>
+            <p className="airp-age-hint">When turned on, the AI will generate a picture to go with each story response. Images may take a few seconds to load.</p>
+            <div className="airp-image-gen-toggle">
+              <label className="airp-toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={form.image_gen}
+                  onChange={e => set('image_gen', e.target.checked)}
+                />
+                <span className="airp-toggle-slider"></span>
+              </label>
+              <span className="airp-toggle-text">
+                {form.image_gen ? '🖼️ Images ON' : '🖼️ Images OFF'}
+              </span>
+            </div>
           </div>
 
           {error && <p className="airp-error">{error}</p>}

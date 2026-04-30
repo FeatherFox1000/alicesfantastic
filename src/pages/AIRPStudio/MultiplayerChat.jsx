@@ -1,6 +1,45 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from './api';
 
+function SceneImage({ url }) {
+  const [status, setStatus] = useState('loading');
+  const [attempt, setAttempt] = useState(0);
+  const [imgSrc, setImgSrc] = useState(url + '&_a=0');
+  const MAX_ATTEMPTS = 10;
+  const timerRef = useRef(null);
+
+  function scheduleRetry(currentAttempt) {
+    if (currentAttempt >= MAX_ATTEMPTS) { setStatus('failed'); return; }
+    timerRef.current = setTimeout(() => {
+      const next = currentAttempt + 1;
+      setAttempt(next);
+      setImgSrc(url + '&_a=' + next);
+      setStatus('loading');
+    }, 30000);
+  }
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  return (
+    <div className="airp-scene-image-wrap">
+      {status === 'loading' && (
+        <div className="airp-scene-image-loading">
+          {attempt > 0 ? `🖼️ Retrying... (${attempt + 1}/${MAX_ATTEMPTS + 1})` : '🖼️ Generating image...'}
+        </div>
+      )}
+      {status === 'failed' && <div className="airp-scene-image-error">🖼️ Image could not be generated</div>}
+      <img
+        className="airp-scene-image"
+        src={imgSrc}
+        alt="Scene illustration"
+        style={status !== 'loaded' ? { display: 'none' } : {}}
+        onLoad={() => { clearTimeout(timerRef.current); setStatus('loaded'); }}
+        onError={() => scheduleRetry(attempt)}
+      />
+    </div>
+  );
+}
+
 export default function MultiplayerChat({ worldId, username, onBack }) {
   const [world, setWorld] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -233,6 +272,7 @@ export default function MultiplayerChat({ worldId, username, onBack }) {
               {!isAI && !isSystem && <div className="mp-msg-sender">{m.sender}</div>}
               {isAI && <div className="mp-msg-sender mp-ai-label">🌟 Storyteller</div>}
               <div className="mp-msg-content">{m.content}</div>
+              {isAI && m.image_url && <SceneImage url={m.image_url} />}
               <div className="mp-msg-time">{new Date(m.created_at + (m.created_at.endsWith('Z') ? '' : 'Z')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
             </div>
           );

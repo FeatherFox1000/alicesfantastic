@@ -24,6 +24,50 @@ const MEMORY_CATEGORIES = [
   { key: 'items', icon: '🎒', label: 'Items', placeholder: 'e.g. "Owns a magic crystal sword"' },
 ];
 
+function SceneImage({ url, sessionId, msgId, onRegenerate }) {
+  const [status, setStatus] = useState('loading');
+  const [src, setSrc] = useState(url);
+  const [regenerating, setRegenerating] = useState(false);
+
+  async function handleRegenerate() {
+    setRegenerating(true);
+    setStatus('loading');
+    try {
+      const data = await api.regenerateImage(sessionId, msgId);
+      if (data.imageUrl) { setSrc(data.imageUrl); onRegenerate && onRegenerate(msgId, data.imageUrl); }
+      else setStatus('failed');
+    } catch { setStatus('failed'); }
+    setRegenerating(false);
+  }
+
+  return (
+    <div className="airp-scene-image-wrap">
+      {status === 'loading' && <div className="airp-scene-image-loading">🖼️ Generating image...</div>}
+      {status === 'failed' && (
+        <div className="airp-scene-image-error">
+          🖼️ Image failed
+          <button className="airp-regen-btn" onClick={handleRegenerate} disabled={regenerating}>
+            {regenerating ? '...' : '↺ Retry'}
+          </button>
+        </div>
+      )}
+      <img
+        className="airp-scene-image"
+        src={src}
+        alt="Scene illustration"
+        style={status !== 'loaded' ? { display: 'none' } : {}}
+        onLoad={() => setStatus('loaded')}
+        onError={() => setStatus('failed')}
+      />
+      {status === 'loaded' && (
+        <button className="airp-regen-btn airp-regen-overlay" onClick={handleRegenerate} disabled={regenerating} title="Generate a different image">
+          {regenerating ? '...' : '↺'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function renderMessageContent(text) {
   // Split text into parts: quoted dialogue vs narrative/actions
   const parts = [];
@@ -178,9 +222,33 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
       setActiveSession(data);
       setMessages(data.messages);
       setShowHistory(false);
+      // Backfill images for any assistant messages missing one
+      const hasMissing = data.messages.some(m => m.role === 'assistant' && !m.image_url);
+      if (hasMissing) {
+        backfillImages(data.id, data.messages);
+      }
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  async function backfillImages(sessionId, currentMessages) {
+    try {
+      const result = await api.backfillImages(sessionId);
+      if (Object.keys(result.updated).length > 0) {
+        setMessages(prev => prev.map(m =>
+          result.updated[m.id] ? { ...m, image_url: result.updated[m.id] } : m
+        ));
+        // If there are more to backfill, keep going
+        if (result.remaining > 0) {
+          setTimeout(() => backfillImages(sessionId, currentMessages), 1000);
+        }
+      }
+    } catch {}
+  }
+
+  function handleImageRegenerate(msgId, newUrl) {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, image_url: newUrl } : m));
   }
 
   function newAdventure() {
@@ -237,7 +305,7 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
 
     try {
       const aiMsg = await api.sendMessage(currentSession.id, content, storyStyle);
-      setMessages(m => [...m, { ...aiMsg, created_at: new Date().toISOString() }]);
+      setMessages(m => [...m, { ...aiMsg, created_at: new Date().toISOString(), imageUrl: aiMsg.imageUrl || null }]);
       // Handle auto-extracted memories
       if (aiMsg.newMemories && aiMsg.newMemories.length > 0) {
         setMemories(m => [...aiMsg.newMemories, ...m]);
@@ -570,6 +638,9 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
               </div>
               <div className="airp-message-bubble">
                 <p>{msg.role === 'assistant' ? renderMessageContent(msg.content) : msg.content}</p>
+                {(msg.imageUrl || msg.image_url) && (
+                  <SceneImage url={msg.imageUrl || msg.image_url} sessionId={activeSession?.id} msgId={msg.id} onRegenerate={handleImageRegenerate} />
+                )}
                 <span className="airp-message-time">
                   {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
