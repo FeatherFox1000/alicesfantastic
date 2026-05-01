@@ -197,9 +197,9 @@ export default function CreateCharacter({ onCreated, onBack, character }) {
                 <p className="airp-art-style-label">Choose your art style:</p>
                 <div className="airp-art-style-options">
                   {[
-                    { value: '3d', label: '3D', desc: 'Smooth & cinematic', img: '/images/art-styles/3d.svg' },
-                    { value: 'chibi', label: 'Chibi', desc: 'Cute & kawaii', img: '/images/art-styles/chibi.svg' },
-                    { value: 'abstract', label: 'Abstract', desc: 'Bold & artistic', img: '/images/art-styles/abstract.svg' },
+                    { value: '3d', label: '3D', desc: 'Smooth & cinematic', img: '/images/art-styles/3d.webp' },
+                    { value: 'chibi', label: 'Chibi', desc: 'Cute & kawaii', img: '/images/art-styles/chibi.webp' },
+                    { value: 'abstract', label: 'Abstract', desc: 'Bold & artistic', img: '/images/art-styles/abstract.webp' },
                   ].map(opt => (
                     <button
                       key={opt.value}
