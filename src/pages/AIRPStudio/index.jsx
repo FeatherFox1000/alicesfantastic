@@ -3,12 +3,14 @@ import Dashboard from './Dashboard';
 import CreateCharacter from './CreateCharacter';
 import ChatPage from './ChatPage';
 import MultiplayerTab from './MultiplayerTab';
+import ImageGenTab from './ImageGenTab';
+import SongMakerTab from './SongMakerTab';
 import { useAuth } from '../../context/AuthContext';
 import './AIRPStudio.css';
 
 export default function AIRPStudio() {
   const { user } = useAuth();
-  const [tab, setTab] = useState('solo'); // solo | multiplayer
+  const [tab, setTab] = useState('solo'); // solo | multiplayer | images | songs
   const [page, setPage] = useState('dashboard'); // dashboard | create | edit | chat
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [editingCharacter, setEditingCharacter] = useState(null);
@@ -83,21 +85,21 @@ export default function AIRPStudio() {
     <div className="ai-rp-studio">
       {/* Tab bar */}
       <div className="sandbox-tabs">
-        <button
-          className={`sandbox-tab ${tab === 'solo' ? 'sandbox-tab-active' : ''}`}
-          onClick={() => setTab('solo')}
-        >
+        <button className={`sandbox-tab ${tab === 'solo' ? 'sandbox-tab-active' : ''}`} onClick={() => setTab('solo')}>
           🐾 Solo
         </button>
-        <button
-          className={`sandbox-tab ${tab === 'multiplayer' ? 'sandbox-tab-active' : ''}`}
-          onClick={() => setTab('multiplayer')}
-        >
+        <button className={`sandbox-tab ${tab === 'multiplayer' ? 'sandbox-tab-active' : ''}`} onClick={() => setTab('multiplayer')}>
           👫 Multiplayer
+        </button>
+        <button className={`sandbox-tab ${tab === 'images' ? 'sandbox-tab-active' : ''}`} onClick={() => setTab('images')}>
+          🎨 Image Creator
+        </button>
+        <button className={`sandbox-tab ${tab === 'songs' ? 'sandbox-tab-active' : ''}`} onClick={() => setTab('songs')}>
+          🎵 Song Maker
         </button>
       </div>
 
-      {tab === 'solo' ? (
+      {tab === 'solo' && (
         <Dashboard
           username={user.username}
           email={user.email}
@@ -105,9 +107,10 @@ export default function AIRPStudio() {
           onCreateCharacter={handleCreateCharacter}
           onEditCharacter={handleEditCharacter}
         />
-      ) : (
-        <MultiplayerTab username={user.username} />
       )}
+      {tab === 'multiplayer' && <MultiplayerTab username={user.username} />}
+      {tab === 'images' && <ImageGenTab />}
+      {tab === 'songs' && <SongMakerTab />}
     </div>
   );
 }

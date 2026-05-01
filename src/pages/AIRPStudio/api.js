@@ -52,6 +52,10 @@ export const api = {
   regenerateImage: (sessionId, msgId) => request('POST', `/sessions/${sessionId}/messages/${msgId}/regenerate-image`),
   backfillImages: (sessionId) => request('POST', `/sessions/${sessionId}/backfill-images`),
 
+  // Create tools
+  createImage: (prompt, art_style) => request('POST', '/create/image', { prompt, art_style }),
+  createSong: (prompt, duration) => request('POST', '/create/song', { prompt, duration }),
+
   // Multiplayer
   mp: {
     getWorlds: () => request('GET', '/multiplayer/worlds'),

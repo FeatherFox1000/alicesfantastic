@@ -1542,3 +1542,156 @@
   .airp-dashboard { padding: 1rem; }
   .airp-create-page { padding: 1rem; }
 }
+
+/* ===== IMAGE CREATOR & SONG MAKER TABS ===== */
+.create-tab {
+  padding: 2rem 1.5rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.create-tab-header { margin-bottom: 1.5rem; }
+.create-tab-header h2 { font-size: 1.6rem; font-weight: 700; color: #e9d5ff; margin: 0 0 0.4rem; }
+.create-tab-header p { color: #c4b5fd; margin: 0; font-size: 0.95rem; }
+
+.create-form { display: flex; flex-direction: column; gap: 1rem; }
+
+.create-art-styles { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.create-input-row { display: flex; flex-direction: column; gap: 0.75rem; }
+.create-prompt-input {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  color: #f0e6ff;
+  font-size: 1rem;
+  padding: 0.85rem 1rem;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.create-prompt-input:focus { outline: none; border-color: #7c3aed; }
+.create-prompt-input::placeholder { color: #7c6a9a; }
+
+.create-generate-btn {
+  background: linear-gradient(135deg, #5a1cbf, #7b14c9);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.85rem 2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  align-self: flex-start;
+}
+.create-generate-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.create-generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.create-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  color: #c4b5fd;
+}
+.create-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(124,58,237,0.3);
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.create-result {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.create-result-img {
+  width: 100%;
+  max-width: 560px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.create-download-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  color: #e9d5ff;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.create-download-btn:hover { background: rgba(255,255,255,0.14); }
+
+/* Song Maker specific */
+.song-moods {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.song-mood-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  color: #c4b5fd;
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.song-mood-btn:hover { border-color: #a78bfa; color: #e9d5ff; }
+.song-mood-btn.active { background: rgba(124,58,237,0.25); border-color: #7c3aed; color: #e9d5ff; }
+
+.song-duration-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.song-duration-label { color: #c4b5fd; font-size: 0.9rem; font-weight: 600; }
+.song-duration-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #c4b5fd;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.song-duration-btn:hover { border-color: #a78bfa; }
+.song-duration-btn.active { background: rgba(124,58,237,0.25); border-color: #7c3aed; color: #e9d5ff; }
+
+.song-result { align-items: flex-start; }
+.song-play-btn {
+  background: linear-gradient(135deg, #5a1cbf, #7b14c9);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 0.75rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.song-play-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.song-enhanced-prompt {
+  color: #a78bfa;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin: 0;
+  max-width: 560px;
+}

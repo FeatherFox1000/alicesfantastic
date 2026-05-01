@@ -13,6 +13,7 @@ app.use('/api/site-auth', require('./routes/site-auth'));
 app.use('/api/characters', require('./routes/characters'));
 app.use('/api', require('./routes/sessions'));
 app.use('/api/multiplayer', require('./routes/multiplayer'));
+app.use('/api/create', require('./routes/create'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
