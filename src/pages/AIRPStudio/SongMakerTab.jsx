@@ -152,7 +152,7 @@ export default function SongMakerTab() {
                 <div className="ml-song-name">{song.title}</div>
                 <div className="ml-song-meta">
                   {song.loading
-                    ? 'Composing... this takes 1-3 minutes'
+                    ? 'Your song is on the way! It may take a while, so please wait — thanks! 🎵'
                     : song.error
                     ? song.error
                     : song.enhancedPrompt
