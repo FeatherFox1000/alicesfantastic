@@ -33,7 +33,8 @@ router.post('/song', async (req, res) => {
   const { prompt, duration } = req.body;
   if (!prompt || !prompt.trim()) return res.status(400).json({ error: 'Prompt is required.' });
 
-  const clampedDuration = Math.min(30, Math.max(5, parseInt(duration) || 15));
+  // 2-3 minutes by default, max 180s
+  const clampedDuration = Math.min(180, Math.max(30, parseInt(duration) || 120));
 
   try {
     // Step 1: Claude sharpens the music prompt
@@ -51,7 +52,7 @@ router.post('/song', async (req, res) => {
       headers: {
         'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json',
-        'Prefer': 'wait=60',
+        'Prefer': 'wait=10',
       },
       body: JSON.stringify({
         input: {
@@ -69,9 +70,9 @@ router.post('/song', async (req, res) => {
     // Synchronous response
     if (data.output) return res.json({ audioUrl: data.output, prompt: musicPrompt });
 
-    // Poll if needed
+    // Poll — longer songs need more time (up to ~4 min)
     if (data.id) {
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 80; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const poll = await fetch(`https://api.replicate.com/v1/predictions/${data.id}`, {
           headers: { 'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}` },

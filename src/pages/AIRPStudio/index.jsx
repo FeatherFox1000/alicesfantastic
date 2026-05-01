@@ -95,7 +95,7 @@ export default function AIRPStudio() {
           🎨 Image Creator
         </button>
         <button className={`sandbox-tab ${tab === 'songs' ? 'sandbox-tab-active' : ''}`} onClick={() => setTab('songs')}>
-          🎵 Song Maker
+          🎵 Music Lab
         </button>
       </div>
 

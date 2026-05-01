@@ -1,141 +1,207 @@
 import { useState, useRef } from 'react';
 import { api } from './api';
 
-const MOODS = [
-  { label: '🌟 Epic', prompt: 'epic orchestral adventure music, heroic, sweeping strings and brass' },
-  { label: '🌸 Peaceful', prompt: 'peaceful and calm ambient music, soft piano, gentle and relaxing' },
-  { label: '😊 Happy', prompt: 'upbeat cheerful music, happy and playful, light and fun' },
-  { label: '🌙 Mysterious', prompt: 'mysterious and magical music, eerie, fantasy, atmospheric' },
-  { label: '⚔️ Battle', prompt: 'intense battle music, fast-paced, drums and electric guitar, exciting' },
-  { label: '🎪 Silly', prompt: 'silly and goofy cartoon music, playful, funny, bouncy' },
+const TAGS = [
+  'epic', 'peaceful', 'happy', 'mysterious', 'battle', 'romantic',
+  'sad', 'silly', 'orchestral', 'piano', 'guitar', 'electronic',
+  'jazz', 'fantasy', 'lo-fi', 'pop',
 ];
 
-const DURATIONS = [5, 10, 15, 20, 30];
+const DURATIONS = [
+  { label: '1 min', value: 60 },
+  { label: '2 min', value: 120 },
+  { label: '3 min', value: 180 },
+];
+
+let nextId = 1;
 
 export default function SongMakerTab() {
   const [prompt, setPrompt] = useState('');
-  const [duration, setDuration] = useState(15);
+  const [instrumental, setInstrumental] = useState(true);
+  const [duration, setDuration] = useState(120);
   const [loading, setLoading] = useState(false);
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [enhancedPrompt, setEnhancedPrompt] = useState('');
   const [error, setError] = useState('');
-  const [playing, setPlaying] = useState(false);
-  const audioRef = useRef(null);
+  const [songs, setSongs] = useState([]);
+  const [playingId, setPlayingId] = useState(null);
+  const audioRefs = useRef({});
+
+  function addTag(tag) {
+    const cur = prompt.trim();
+    if (cur.toLowerCase().includes(tag)) return;
+    setPrompt(cur ? cur + ', ' + tag : tag);
+  }
 
   async function generate() {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || loading) return;
     setLoading(true);
     setError('');
-    setAudioUrl(null);
-    setEnhancedPrompt('');
-    setPlaying(false);
+    const id = nextId++;
+    const placeholder = {
+      id,
+      title: prompt.slice(0, 40) + (prompt.length > 40 ? '...' : ''),
+      prompt,
+      duration,
+      audioUrl: null,
+      enhancedPrompt: '',
+      loading: true,
+      error: null,
+    };
+    setSongs(prev => [placeholder, ...prev]);
     try {
-      const data = await api.createSong(prompt, duration);
-      setAudioUrl(data.audioUrl);
-      setEnhancedPrompt(data.prompt);
+      const data = await api.createSong(
+        prompt + (instrumental ? ', instrumental, no vocals' : ''),
+        duration
+      );
+      setSongs(prev => prev.map(s => s.id === id
+        ? { ...s, audioUrl: data.audioUrl, enhancedPrompt: data.prompt, loading: false }
+        : s
+      ));
     } catch (err) {
+      setSongs(prev => prev.map(s => s.id === id
+        ? { ...s, loading: false, error: err.message }
+        : s
+      ));
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }
 
-  function togglePlay() {
-    const audio = audioRef.current;
+  function togglePlay(song) {
+    const audio = audioRefs.current[song.id];
     if (!audio) return;
-    if (playing) {
+    if (playingId === song.id) {
       audio.pause();
-      setPlaying(false);
+      setPlayingId(null);
     } else {
+      // Pause any currently playing
+      Object.entries(audioRefs.current).forEach(([id, a]) => {
+        if (parseInt(id) !== song.id) a.pause();
+      });
       audio.play();
-      setPlaying(true);
+      setPlayingId(song.id);
     }
   }
 
+  function formatDur(secs) {
+    return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  }
+
   return (
-    <div className="create-tab">
-      <div className="create-tab-header">
-        <h2>🎵 Song Maker</h2>
-        <p>Describe a vibe and get an original AI-made song!</p>
-      </div>
-
-      <div className="create-form">
-        <div className="song-moods">
-          {MOODS.map(m => (
-            <button
-              key={m.label}
-              type="button"
-              className={`song-mood-btn${prompt === m.prompt ? ' active' : ''}`}
-              onClick={() => setPrompt(m.prompt)}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="create-input-row">
+    <div className="ml-layout">
+      {/* ── Left panel ── */}
+      <div className="ml-left">
+        <div className="ml-left-top">
+          <h2 className="ml-title">Music Lab</h2>
+          <p className="ml-subtitle">Describe your song</p>
           <textarea
-            className="create-prompt-input"
+            className="ml-prompt"
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
-            placeholder="Describe your song... e.g. a cozy rainy day jazz tune with soft piano and drums"
-            rows={3}
+            placeholder="Lounge music in a bar on a rainy night, exotica, ethereal..."
             maxLength={300}
           />
+
+          <div className="ml-toggles">
+            <button
+              className={`ml-toggle-btn${instrumental ? ' ml-toggle-active' : ''}`}
+              onClick={() => setInstrumental(t => !t)}
+            >
+              🎸 Instrumental
+            </button>
+            <div className="ml-duration-pills">
+              {DURATIONS.map(d => (
+                <button
+                  key={d.value}
+                  className={`ml-dur-pill${duration === d.value ? ' ml-dur-active' : ''}`}
+                  onClick={() => setDuration(d.value)}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="ml-inspiration">
+            <span className="ml-insp-label">Inspiration</span>
+            <div className="ml-tags">
+              {TAGS.map(t => (
+                <button key={t} className="ml-tag" onClick={() => addTag(t)}>+ {t}</button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="song-duration-row">
-          <span className="song-duration-label">Length:</span>
-          {DURATIONS.map(d => (
-            <button
-              key={d}
-              type="button"
-              className={`song-duration-btn${duration === d ? ' active' : ''}`}
-              onClick={() => setDuration(d)}
-            >
-              {d}s
-            </button>
-          ))}
-        </div>
+        {error && <p className="airp-error" style={{margin: '0 0 1rem'}}>{error}</p>}
 
         <button
-          className="create-generate-btn"
+          className="ml-create-btn"
           onClick={generate}
           disabled={loading || !prompt.trim()}
-          style={{ marginTop: '0.5rem' }}
         >
-          {loading ? '🎵 Composing...' : '🎵 Make Song'}
+          {loading
+            ? <><span className="ml-btn-spinner" /> Creating...</>
+            : <> 🎵 Create</>
+          }
         </button>
-
-        {error && <p className="airp-error">{error}</p>}
       </div>
 
-      {loading && (
-        <div className="create-loading">
-          <div className="create-loading-spinner" />
-          <p>Composing your song... this can take up to 30 seconds</p>
+      {/* ── Right panel ── */}
+      <div className="ml-right">
+        <h3 className="ml-library-title">My Creations</h3>
+        {songs.length === 0 && (
+          <p className="ml-empty">Your songs will appear here</p>
+        )}
+        <div className="ml-song-list">
+          {songs.map(song => (
+            <div key={song.id} className={`ml-song-card${playingId === song.id ? ' ml-song-playing' : ''}`}>
+              <div className="ml-song-art">
+                {song.loading
+                  ? <div className="ml-song-art-spinner" />
+                  : song.error
+                  ? '❌'
+                  : <button className="ml-song-play" onClick={() => togglePlay(song)}>
+                      {playingId === song.id ? '⏸' : '▶'}
+                    </button>
+                }
+              </div>
+              <div className="ml-song-info">
+                <div className="ml-song-name">{song.title}</div>
+                <div className="ml-song-meta">
+                  {song.loading
+                    ? 'Composing... this takes 1-3 minutes'
+                    : song.error
+                    ? song.error
+                    : song.enhancedPrompt
+                  }
+                </div>
+              </div>
+              <div className="ml-song-right">
+                {!song.loading && !song.error && (
+                  <>
+                    <span className="ml-song-dur">{formatDur(song.duration)}</span>
+                    <a
+                      href={song.audioUrl}
+                      download={`song-${song.id}.mp3`}
+                      className="ml-song-dl"
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Download"
+                    >⬇</a>
+                  </>
+                )}
+                {song.audioUrl && (
+                  <audio
+                    ref={el => { if (el) audioRefs.current[song.id] = el; }}
+                    src={song.audioUrl}
+                    onEnded={() => setPlayingId(null)}
+                  />
+                )}
+              </div>
+            </div>
+          ))}
         </div>
-      )}
-
-      {audioUrl && !loading && (
-        <div className="create-result song-result">
-          <button className="song-play-btn" onClick={togglePlay}>
-            {playing ? '⏸ Pause' : '▶ Play'}
-          </button>
-          <audio
-            ref={audioRef}
-            src={audioUrl}
-            onEnded={() => setPlaying(false)}
-            style={{ display: 'none' }}
-          />
-          {enhancedPrompt && (
-            <p className="song-enhanced-prompt">🎼 {enhancedPrompt}</p>
-          )}
-          <a href={audioUrl} download="sandbox-song.mp3" className="create-download-btn" target="_blank" rel="noreferrer">
-            ⬇️ Download
-          </a>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
