@@ -48,11 +48,13 @@ Return ONLY valid JSON, nothing else. Example: {"prompt":"upbeat jazz piano trio
 
     let musicPrompt, clampedDuration;
     try {
-      const parsed = JSON.parse(enhanced.content[0].text.trim());
+      // Strip markdown code fences if Claude wraps the JSON
+      const raw = enhanced.content[0].text.trim().replace(/^```[\w]*\n?/, '').replace(/```$/, '').trim();
+      const parsed = JSON.parse(raw);
       musicPrompt = parsed.prompt || prompt.trim();
       clampedDuration = Math.min(180, Math.max(30, parseInt(parsed.duration) || 120));
     } catch {
-      musicPrompt = enhanced.content[0].text.trim();
+      musicPrompt = prompt.trim();
       clampedDuration = 120;
     }
 
