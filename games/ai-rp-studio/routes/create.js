@@ -28,7 +28,8 @@ router.post('/image', async (req, res) => {
 // POST /api/create/song
 // Body: { prompt, duration }
 router.post('/song', async (req, res) => {
-  if (!process.env.REPLICATE_API_TOKEN) return res.status(500).json({ error: 'Replicate API not configured.' });
+  const MUSIC_TOKEN = process.env.REPLICATE_MUSIC_TOKEN || process.env.REPLICATE_API_TOKEN;
+  if (!MUSIC_TOKEN) return res.status(500).json({ error: 'Replicate API not configured.' });
 
   const { prompt } = req.body;
   if (!prompt || !prompt.trim()) return res.status(400).json({ error: 'Prompt is required.' });
@@ -55,11 +56,11 @@ Return ONLY valid JSON, nothing else. Example: {"prompt":"upbeat jazz piano trio
       clampedDuration = 120;
     }
 
-    // Step 2: Generate with meta/musicgen on Replicate (Prefer: wait for sync)
+    // Step 2: Generate with meta/musicgen on Replicate
     const response = await fetch('https://api.replicate.com/v1/models/meta/musicgen/predictions', {
       method: 'POST',
       headers: {
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+        'Authorization': `Token ${MUSIC_TOKEN}`,
         'Content-Type': 'application/json',
         'Prefer': 'wait=10',
       },
@@ -84,7 +85,7 @@ Return ONLY valid JSON, nothing else. Example: {"prompt":"upbeat jazz piano trio
       for (let i = 0; i < 80; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const poll = await fetch(`https://api.replicate.com/v1/predictions/${data.id}`, {
-          headers: { 'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}` },
+          headers: { 'Authorization': `Token ${MUSIC_TOKEN}` },
         });
         const pollData = await poll.json();
         if (pollData.status === 'succeeded' && pollData.output) {
