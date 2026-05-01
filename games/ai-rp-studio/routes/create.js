@@ -30,21 +30,30 @@ router.post('/image', async (req, res) => {
 router.post('/song', async (req, res) => {
   if (!process.env.REPLICATE_API_TOKEN) return res.status(500).json({ error: 'Replicate API not configured.' });
 
-  const { prompt, duration } = req.body;
+  const { prompt } = req.body;
   if (!prompt || !prompt.trim()) return res.status(400).json({ error: 'Prompt is required.' });
 
-  // 2-3 minutes by default, max 180s
-  const clampedDuration = Math.min(180, Math.max(30, parseInt(duration) || 120));
-
   try {
-    // Step 1: Claude sharpens the music prompt
+    // Step 1: Claude sharpens the prompt AND picks the best duration
     const enhanced = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 80,
-      system: 'You write short music generation prompts. Given a description, write a vivid 1-sentence prompt describing the style, mood, instruments, and tempo. Be specific. Return ONLY the prompt, nothing else.',
+      max_tokens: 120,
+      system: `You help generate music. Given a description, return JSON with two fields:
+- "prompt": a vivid 1-sentence music prompt describing style, mood, instruments, and tempo. Be specific.
+- "duration": the ideal length in seconds as a number. Rules: short energetic pieces 60-90s, standard songs 120s, epic/cinematic/ambient 150-180s. Pick what fits best.
+Return ONLY valid JSON, nothing else. Example: {"prompt":"upbeat jazz piano trio","duration":120}`,
       messages: [{ role: 'user', content: prompt.trim() }],
     });
-    const musicPrompt = enhanced.content[0].text.trim();
+
+    let musicPrompt, clampedDuration;
+    try {
+      const parsed = JSON.parse(enhanced.content[0].text.trim());
+      musicPrompt = parsed.prompt || prompt.trim();
+      clampedDuration = Math.min(180, Math.max(30, parseInt(parsed.duration) || 120));
+    } catch {
+      musicPrompt = enhanced.content[0].text.trim();
+      clampedDuration = 120;
+    }
 
     // Step 2: Generate with meta/musicgen on Replicate (Prefer: wait for sync)
     const response = await fetch('https://api.replicate.com/v1/models/meta/musicgen/predictions', {
@@ -68,7 +77,7 @@ router.post('/song', async (req, res) => {
     const data = await response.json();
 
     // Synchronous response
-    if (data.output) return res.json({ audioUrl: data.output, prompt: musicPrompt });
+    if (data.output) return res.json({ audioUrl: data.output, prompt: musicPrompt, duration: clampedDuration });
 
     // Poll — longer songs need more time (up to ~4 min)
     if (data.id) {
@@ -79,7 +88,7 @@ router.post('/song', async (req, res) => {
         });
         const pollData = await poll.json();
         if (pollData.status === 'succeeded' && pollData.output) {
-          return res.json({ audioUrl: pollData.output, prompt: musicPrompt });
+          return res.json({ audioUrl: pollData.output, prompt: musicPrompt, duration: clampedDuration });
         }
         if (pollData.status === 'failed') {
           return res.status(500).json({ error: 'Music generation failed.' });

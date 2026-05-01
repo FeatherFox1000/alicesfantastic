@@ -7,18 +7,11 @@ const TAGS = [
   'jazz', 'fantasy', 'lo-fi', 'pop',
 ];
 
-const DURATIONS = [
-  { label: '1 min', value: 60 },
-  { label: '2 min', value: 120 },
-  { label: '3 min', value: 180 },
-];
-
 let nextId = 1;
 
 export default function SongMakerTab() {
   const [prompt, setPrompt] = useState('');
   const [instrumental, setInstrumental] = useState(true);
-  const [duration, setDuration] = useState(120);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [songs, setSongs] = useState([]);
@@ -40,7 +33,7 @@ export default function SongMakerTab() {
       id,
       title: prompt.slice(0, 40) + (prompt.length > 40 ? '...' : ''),
       prompt,
-      duration,
+      duration: null,
       audioUrl: null,
       enhancedPrompt: '',
       loading: true,
@@ -49,11 +42,10 @@ export default function SongMakerTab() {
     setSongs(prev => [placeholder, ...prev]);
     try {
       const data = await api.createSong(
-        prompt + (instrumental ? ', instrumental, no vocals' : ''),
-        duration
+        prompt + (instrumental ? ', instrumental, no vocals' : '')
       );
       setSongs(prev => prev.map(s => s.id === id
-        ? { ...s, audioUrl: data.audioUrl, enhancedPrompt: data.prompt, loading: false }
+        ? { ...s, audioUrl: data.audioUrl, enhancedPrompt: data.prompt, duration: data.duration, loading: false }
         : s
       ));
     } catch (err) {
@@ -109,17 +101,6 @@ export default function SongMakerTab() {
             >
               🎸 Instrumental
             </button>
-            <div className="ml-duration-pills">
-              {DURATIONS.map(d => (
-                <button
-                  key={d.value}
-                  className={`ml-dur-pill${duration === d.value ? ' ml-dur-active' : ''}`}
-                  onClick={() => setDuration(d.value)}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="ml-inspiration">

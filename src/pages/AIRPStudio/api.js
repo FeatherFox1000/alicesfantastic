@@ -54,7 +54,7 @@ export const api = {
 
   // Create tools
   createImage: (prompt, art_style) => request('POST', '/create/image', { prompt, art_style }),
-  createSong: (prompt, duration) => request('POST', '/create/song', { prompt, duration }),
+  createSong: (prompt) => request('POST', '/create/song', { prompt }),
 
   // Multiplayer
   mp: {
