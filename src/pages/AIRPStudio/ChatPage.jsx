@@ -181,6 +181,7 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
   const [showNewAdventureModal, setShowNewAdventureModal] = useState(false);
   const [keepMemories, setKeepMemories] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [storyPublished, setStoryPublished] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -386,6 +387,17 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
   function pickInspiration(text) {
     setInput(text);
     setShowInspiration(false);
+  }
+
+  async function publishStory() {
+    if (!activeSession || messages.length === 0) return;
+    try {
+      const title = activeSession.title || `${character.name}'s Adventure`;
+      const preview = messages.filter(m => m.role === 'assistant').slice(0, 3).map(m => m.content).join(' ').slice(0, 300);
+      const cover = messages.find(m => m.image_url)?.image_url || null;
+      await api.publish('story', title, null, cover, preview);
+      setStoryPublished(true);
+    } catch {}
   }
 
   async function deleteSession(sessionId, e) {
@@ -609,6 +621,16 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
               ? `Tell the AI what you want to do as ${character.name}!`
               : `${messages.length} messages`}
           </p>
+          {activeSession && messages.length > 0 && (
+            <button
+              className={`discover-publish-btn${storyPublished ? ' published' : ''}`}
+              onClick={publishStory}
+              disabled={storyPublished}
+              style={{ marginTop: '0.5rem' }}
+            >
+              {storyPublished ? '✅ Published!' : '🌍 Publish Story'}
+            </button>
+          )}
         </div>
 
         <div className="airp-messages">

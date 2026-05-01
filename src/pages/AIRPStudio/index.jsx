@@ -5,6 +5,7 @@ import ChatPage from './ChatPage';
 import MultiplayerTab from './MultiplayerTab';
 import ImageGenTab from './ImageGenTab';
 import SongMakerTab from './SongMakerTab';
+import DiscoverTab from './DiscoverTab';
 import { useAuth } from '../../context/AuthContext';
 import './AIRPStudio.css';
 
@@ -97,6 +98,9 @@ export default function AIRPStudio() {
         <button className={`sandbox-tab ${tab === 'songs' ? 'sandbox-tab-active' : ''}`} onClick={() => setTab('songs')}>
           🎵 Music Lab
         </button>
+        <button className={`sandbox-tab ${tab === 'discover' ? 'sandbox-tab-active' : ''}`} onClick={() => setTab('discover')}>
+          🌍 Discover
+        </button>
       </div>
 
       {tab === 'solo' && (
@@ -111,6 +115,7 @@ export default function AIRPStudio() {
       {tab === 'multiplayer' && <MultiplayerTab username={user.username} />}
       {tab === 'images' && <ImageGenTab />}
       {tab === 'songs' && <SongMakerTab />}
+      {tab === 'discover' && <DiscoverTab />}
     </div>
   );
 }

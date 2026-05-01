@@ -16,6 +16,7 @@ export default function SongMakerTab() {
   const [error, setError] = useState('');
   const [songs, setSongs] = useState([]);
   const [playingId, setPlayingId] = useState(null);
+  const [publishedIds, setPublishedIds] = useState(new Set());
   const audioRefs = useRef({});
 
   function addTag(tag) {
@@ -77,7 +78,16 @@ export default function SongMakerTab() {
   }
 
   function formatDur(secs) {
+    if (!secs) return '';
     return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  }
+
+  async function publishSong(song) {
+    if (publishedIds.has(song.id)) return;
+    try {
+      await api.publish('song', song.title, song.audioUrl, song.coverUrl, song.enhancedPrompt);
+      setPublishedIds(prev => new Set([...prev, song.id]));
+    } catch {}
   }
 
   return (
@@ -171,6 +181,12 @@ export default function SongMakerTab() {
                       rel="noreferrer"
                       title="Download"
                     >⬇</a>
+                    <button
+                      className={`ml-song-publish${publishedIds.has(song.id) ? ' ml-song-published' : ''}`}
+                      onClick={() => publishSong(song)}
+                      disabled={publishedIds.has(song.id)}
+                      title={publishedIds.has(song.id) ? 'Published!' : 'Publish to Discover'}
+                    >{publishedIds.has(song.id) ? '✅' : '🌍'}</button>
                   </>
                 )}
                 {song.audioUrl && (

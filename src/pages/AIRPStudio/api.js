@@ -52,6 +52,11 @@ export const api = {
   regenerateImage: (sessionId, msgId) => request('POST', `/sessions/${sessionId}/messages/${msgId}/regenerate-image`),
   backfillImages: (sessionId) => request('POST', `/sessions/${sessionId}/backfill-images`),
 
+  // Discover
+  getDiscover: () => request('GET', '/discover'),
+  publish: (type, title, content_url, cover_url, description) => request('POST', '/discover/publish', { type, title, content_url, cover_url, description }),
+  unpublish: (id) => request('DELETE', `/discover/publish/${id}`),
+
   // Create tools
   createImage: (prompt, art_style) => request('POST', '/create/image', { prompt, art_style }),
   createSong: (prompt) => request('POST', '/create/song', { prompt }),

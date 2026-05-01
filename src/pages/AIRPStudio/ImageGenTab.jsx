@@ -13,12 +13,15 @@ export default function ImageGenTab() {
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState('');
+  const [published, setPublished] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   async function generate() {
     if (!prompt.trim()) return;
     setLoading(true);
     setError('');
     setImageUrl(null);
+    setPublished(false);
     try {
       const data = await api.createImage(prompt, artStyle);
       setImageUrl(data.imageUrl);
@@ -26,6 +29,20 @@ export default function ImageGenTab() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function publish() {
+    if (!imageUrl || publishing) return;
+    setPublishing(true);
+    try {
+      const title = prompt.slice(0, 60) || 'Untitled Image';
+      await api.publish('image', title, imageUrl, imageUrl, prompt);
+      setPublished(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -83,9 +100,18 @@ export default function ImageGenTab() {
       {imageUrl && !loading && (
         <div className="create-result">
           <img src={imageUrl} alt="Generated scene" className="create-result-img" />
-          <a href={imageUrl} download="sandbox-image.webp" className="create-download-btn" target="_blank" rel="noreferrer">
-            ⬇️ Download
-          </a>
+          <div className="create-result-actions">
+            <a href={imageUrl} download="sandbox-image.webp" className="create-download-btn" target="_blank" rel="noreferrer">
+              ⬇️ Download
+            </a>
+            <button
+              className={`discover-publish-btn${published ? ' published' : ''}`}
+              onClick={publish}
+              disabled={publishing || published}
+            >
+              {published ? '✅ Published!' : publishing ? 'Publishing...' : '🌍 Publish'}
+            </button>
+          </div>
         </div>
       )}
     </div>
