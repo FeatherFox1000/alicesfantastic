@@ -31,10 +31,11 @@ export default function SongMakerTab() {
     const id = nextId++;
     const placeholder = {
       id,
-      title: prompt.slice(0, 40) + (prompt.length > 40 ? '...' : ''),
+      title: '...',
       prompt,
       duration: null,
       audioUrl: null,
+      coverUrl: null,
       enhancedPrompt: '',
       loading: true,
       error: null,
@@ -45,7 +46,7 @@ export default function SongMakerTab() {
         prompt + (instrumental ? ', instrumental, no vocals' : '')
       );
       setSongs(prev => prev.map(s => s.id === id
-        ? { ...s, audioUrl: data.audioUrl, enhancedPrompt: data.prompt, duration: data.duration, loading: false }
+        ? { ...s, audioUrl: data.audioUrl, title: data.title || prompt.slice(0, 40), enhancedPrompt: data.prompt, duration: data.duration, coverUrl: data.coverUrl, loading: false }
         : s
       ));
     } catch (err) {
@@ -136,9 +137,10 @@ export default function SongMakerTab() {
         <div className="ml-song-list">
           {songs.map(song => (
             <div key={song.id} className={`ml-song-card${playingId === song.id ? ' ml-song-playing' : ''}`}>
-              <div className="ml-song-art">
+              <div className="ml-song-art" style={song.coverUrl ? { background: 'none', padding: 0, overflow: 'hidden' } : {}}>
+                {song.coverUrl && <img src={song.coverUrl} alt="" className="ml-song-art-img" />}
                 {song.loading
-                  ? <div className="ml-song-art-spinner" />
+                  ? <div className="ml-song-art-spinner" style={song.coverUrl ? { position: 'absolute' } : {}} />
                   : song.error
                   ? '❌'
                   : <button className="ml-song-play" onClick={() => togglePlay(song)}>

@@ -1782,6 +1782,13 @@
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  position: relative;
+}
+.ml-song-art-img {
+  width: 44px; height: 44px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
 }
 .ml-song-art-spinner {
   width: 20px; height: 20px;
