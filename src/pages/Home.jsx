@@ -6,17 +6,20 @@ function Home() {
     <div className="home">
       <section className="about-section">
         <div className="about-content">
-          <h2>Welcome to Alice's Game Studio!</h2>
+          <h2>Hey everyone — this is Alice! 👋</h2>
           <p>
-            This website showcases games created by Alice, a young game developer who loves bringing
-            imagination to life through interactive experiences. From magical unicorn adventures to
-            creative world-building tools, each game is a project where Alice has built, designed,
-            and shared her creations with the world.
+            Welcome to my amazing site! I hope you all have a ton of fun here! 🎉
           </p>
           <p>
-            Explore the games Alice has made, try the world-building tools she's created, and see
-            what's possible when creativity meets code. Each game represents a unique project and
-            learning experience in Alice's game development journey.
+            So here's the story: I had this idea when I was 8 years old, and my dad did most of
+            the coding. I did the drawings — you can see my original art in Unicorns Unite! — for
+            the characters. Then Claude came along, the AI I used to help make this site possible.
+          </p>
+          <p>
+            Just so you all know: <strong>this site was made by a kid, for kids.</strong>
+          </p>
+          <p>
+            This is Alice, signing off — see y'all later! 🌟
           </p>
         </div>
       </section>
