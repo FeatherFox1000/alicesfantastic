@@ -275,7 +275,9 @@ export default function Feedback() {
                   <span className="fb-card-date">{new Date(fb.created_at + 'Z').toLocaleDateString()}</span>
                   {user?.is_admin && (
                     <div className="fb-admin-actions">
-                      <button className="fb-admin-btn" onClick={() => adminPin(fb.id, setFeedbackList)}>{fb.pinned ? '📌 Unpin' : '📌 Pin'}</button>
+                      {user.username === 'warrior_cats' && (
+                        <button className="fb-admin-btn" onClick={() => adminPin(fb.id, setFeedbackList)}>{fb.pinned ? '📌 Unpin' : '📌 Pin'}</button>
+                      )}
                       <button className="fb-admin-btn fb-admin-del" onClick={() => adminDelete(fb.id, setFeedbackList)}>🗑 Delete</button>
                     </div>
                   )}

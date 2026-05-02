@@ -513,8 +513,8 @@ router.delete('/admin/feedback/:id', adminOnly, (req, res) => {
   res.json({ ok: true });
 });
 
-// Admin: pin/unpin feedback
-router.post('/admin/feedback/:id/pin', adminOnly, (req, res) => {
+// Owner only: pin/unpin feedback (multiple can be pinned simultaneously)
+router.post('/admin/feedback/:id/pin', ownerOnly, (req, res) => {
   const row = db.prepare('SELECT pinned FROM feedback WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found.' });
   const newPinned = row.pinned ? 0 : 1;
