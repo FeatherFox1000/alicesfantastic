@@ -1,0 +1,26 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Drop shadow -->
+  <polygon
+    points="60,13 72.5,44.5 106,45.8 80,67 90,100 60,81 30,100 40,67 14,45.8 47.5,44.5"
+    fill="#1a1a00" opacity="0.25" transform="translate(3,4)"
+  />
+  <!-- Main yellow star -->
+  <polygon
+    points="60,13 72.5,44.5 106,45.8 80,67 90,100 60,81 30,100 40,67 14,45.8 47.5,44.5"
+    fill="#FFD110" stroke="#1a1a00" stroke-width="7" stroke-linejoin="round"
+  />
+  <!-- Inner cream highlight -->
+  <polygon
+    points="60,24 70,49 96,50 76,66 83,91 60,77 37,91 44,66 24,50 50,49"
+    fill="#FFFAAA" opacity="0.72"
+  />
+
+  <!-- Dash sparkle marks around the star -->
+  <line x1="60" y1="2"   x2="60" y2="9"   stroke="#1a1a00" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="111" y1="12" x2="106" y2="17" stroke="#1a1a00" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="118" y1="57" x2="111" y2="57" stroke="#1a1a00" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="9"   y1="57" x2="2"   y2="57" stroke="#1a1a00" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="9"   y1="12" x2="14"  y2="17" stroke="#1a1a00" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="104" y1="108" x2="100" y2="104" stroke="#1a1a00" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="16"  y1="108" x2="20"  y2="104" stroke="#1a1a00" stroke-width="3.5" stroke-linecap="round"/>
+</svg>

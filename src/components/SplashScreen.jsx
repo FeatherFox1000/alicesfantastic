@@ -11,7 +11,8 @@ const STARS = Array.from({ length: 60 }, (_, i) => ({
   dur: (1.2 + (i % 4) * 0.35).toFixed(2),
 }));
 
-const FLOATERS = ['🌟', '✨', '🎮', '🐾', '🎵', '🎨', '⭐', '🦄'];
+const FLOATER_COUNT = 10;
+const FLOATER_SIZES = [28, 36, 22, 42, 30, 26, 38, 24, 34, 28];
 
 export default function SplashScreen({ onDone }) {
   const [leaving, setLeaving] = useState(false);
@@ -24,7 +25,7 @@ export default function SplashScreen({ onDone }) {
 
   return (
     <div className={`splash${leaving ? ' splash-out' : ''}`}>
-      {/* Starfield */}
+      {/* Starfield dots */}
       {STARS.map(s => (
         <div
           key={s.id}
@@ -40,20 +41,21 @@ export default function SplashScreen({ onDone }) {
         />
       ))}
 
-      {/* Floating emoji orbs */}
-      {FLOATERS.map((emoji, i) => (
-        <div
+      {/* Floating cartoon stars */}
+      {Array.from({ length: FLOATER_COUNT }, (_, i) => (
+        <img
           key={i}
+          src="/images/star.svg"
           className="splash-floater"
           style={{
-            left: `${(i * 13 + 5) % 90}%`,
-            animationDelay: `${(i * 0.3).toFixed(1)}s`,
-            animationDuration: `${3 + (i % 3)}s`,
-            fontSize: `${1.2 + (i % 3) * 0.4}rem`,
+            left: `${(i * 11 + 3) % 92}%`,
+            width: FLOATER_SIZES[i],
+            height: FLOATER_SIZES[i],
+            animationDelay: `${(i * 0.28).toFixed(2)}s`,
+            animationDuration: `${3.2 + (i % 4) * 0.6}s`,
           }}
-        >
-          {emoji}
-        </div>
+          alt=""
+        />
       ))}
 
       {/* Main content */}
