@@ -25,7 +25,7 @@ const MEMORY_CATEGORIES = [
 ];
 
 function SceneImage({ url, sessionId, msgId, onRegenerate }) {
-  const [status, setStatus] = useState('loading');
+  const [status, setStatus] = useState(url ? 'loading' : 'failed');
   const [src, setSrc] = useState(url);
   const [regenerating, setRegenerating] = useState(false);
 
@@ -225,7 +225,7 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
       setShowHistory(false);
       // Backfill images for any assistant messages missing one
       const hasMissing = data.messages.some(m => m.role === 'assistant' && !m.image_url);
-      if (hasMissing) {
+      if (hasMissing && character.image_gen) {
         backfillImages(data.id, data.messages);
       }
     } catch (err) {
@@ -306,7 +306,7 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
 
     try {
       const aiMsg = await api.sendMessage(currentSession.id, content, storyStyle);
-      setMessages(m => [...m, { ...aiMsg, id: aiMsg.id, created_at: new Date().toISOString(), image_url: aiMsg.imageUrl || null }]);
+      setMessages(m => [...m, { ...aiMsg, id: aiMsg.id, created_at: new Date().toISOString(), image_url: aiMsg.imageUrl || null, image_gen_enabled: aiMsg.imageGenEnabled }]);
       // Handle auto-extracted memories
       if (aiMsg.newMemories && aiMsg.newMemories.length > 0) {
         setMemories(m => [...aiMsg.newMemories, ...m]);
@@ -660,8 +660,8 @@ export default function ChatPage({ character, onBack, onEditCharacter }) {
               </div>
               <div className="airp-message-bubble">
                 <p>{msg.role === 'assistant' ? renderMessageContent(msg.content) : msg.content}</p>
-                {(msg.imageUrl || msg.image_url) && (
-                  <SceneImage url={msg.imageUrl || msg.image_url} sessionId={activeSession?.id} msgId={msg.id} onRegenerate={handleImageRegenerate} />
+                {(msg.imageUrl || msg.image_url || msg.image_gen_enabled || (character.image_gen && msg.role === 'assistant' && msg.id)) && (
+                  <SceneImage url={msg.imageUrl || msg.image_url || null} sessionId={activeSession?.id} msgId={msg.id} onRegenerate={handleImageRegenerate} />
                 )}
                 <span className="airp-message-time">
                   {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

@@ -7,9 +7,8 @@ const { generateSceneImage } = require('./imageGen');
 const router = express.Router();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Enable image_gen for ALL existing characters so every adventure gets images
+// Add image_gen column if it doesn't exist (existing characters default to 0 = off)
 try { db.prepare('ALTER TABLE characters ADD COLUMN image_gen INTEGER DEFAULT 0').run(); } catch {}
-db.prepare('UPDATE characters SET image_gen = 1').run();
 
 const STYLE_INSTRUCTIONS = {
   standard: '',
@@ -232,20 +231,21 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
     // Ensure image_url column exists
     try { db.prepare('ALTER TABLE messages ADD COLUMN image_url TEXT').run(); } catch {}
 
-    // Fetch last 3 assistant messages for location/style context
-    const prevMsgs = db.prepare('SELECT content FROM messages WHERE session_id = ? AND role = ? ORDER BY id DESC LIMIT 3').all(req.params.id, 'assistant');
-    const previousTexts = prevMsgs.map(m => m.content).reverse();
-
-    // Generate image with full context for consistency
-    const imageUrl = await generateSceneImage({
-      worldName: character.world_name,
-      worldDescription: character.world_description,
-      characterName: character.name,
-      characterAppearance: character.appearance,
-      storyText: aiContent,
-      previousTexts,
-      artStyle: character.art_style || '3d',
-    });
+    // Only generate an image if this character has images enabled
+    let imageUrl = null;
+    if (character.image_gen) {
+      const prevMsgs = db.prepare('SELECT content FROM messages WHERE session_id = ? AND role = ? ORDER BY id DESC LIMIT 3').all(req.params.id, 'assistant');
+      const previousTexts = prevMsgs.map(m => m.content).reverse();
+      imageUrl = await generateSceneImage({
+        worldName: character.world_name,
+        worldDescription: character.world_description,
+        characterName: character.name,
+        characterAppearance: character.appearance,
+        storyText: aiContent,
+        previousTexts,
+        artStyle: character.art_style || '3d',
+      });
+    }
 
     // Save AI response with image URL
     db.prepare('INSERT INTO messages (session_id, role, content, image_url) VALUES (?, ?, ?, ?)').run(req.params.id, 'assistant', aiContent, imageUrl);
@@ -271,7 +271,7 @@ router.post('/sessions/:id/messages', authMiddleware, async (req, res) => {
     }
 
     const savedMsg = db.prepare('SELECT id FROM messages WHERE session_id = ? AND role = ? ORDER BY id DESC LIMIT 1').get(req.params.id, 'assistant');
-    res.json({ id: savedMsg?.id, role: 'assistant', content: aiContent, newMemories: savedMemories, imageUrl });
+    res.json({ id: savedMsg?.id, role: 'assistant', content: aiContent, newMemories: savedMemories, imageUrl, imageGenEnabled: !!character.image_gen });
   } catch (err) {
     console.error('Claude API error:', err.message, err.status, JSON.stringify(err.error || {}));
     res.status(500).json({ error: 'Failed to get AI response. Please try again.' });
